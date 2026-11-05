@@ -42,7 +42,24 @@ import java.util.concurrent.Executors;
  * 네이버 조회·공유 받기·복사·공유·파일 저장만 앱이 맡는다.
  */
 public class MainActivity extends Activity {
+    /** 화면은 GitHub Pages에서 불러와서 앱을 다시 안 깔아도 자동 반영된다. 인터넷이 안 되면 앱에 넣어둔 화면으로 연다. */
+    private static final String REMOTE = "https://portpapa.github.io/chehumdan-memo/";
     private static final String HOME = "https://appassets.androidplatform.net/assets/index.html";
+    private volatile boolean trusted = false;  // 지금 열린 페이지가 우리 페이지일 때만 브리지 허용
+    private boolean fellBack = false;
+
+    private static boolean ours(Uri u) {
+        if (u == null || !"https".equals(u.getScheme())) return false;
+        String h = u.getHost(), p = u.getPath() == null ? "" : u.getPath();
+        return "appassets.androidplatform.net".equals(h)
+                || ("portpapa.github.io".equals(h) && p.startsWith("/chehumdan-memo"));
+    }
+
+    private void fallback() {
+        if (fellBack) return;
+        fellBack = true;
+        web.loadUrl(HOME);
+    }
     private static final String UA = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36";
     private static final int MAX_BODY = 4 * 1024 * 1024;
 
@@ -84,14 +101,30 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                trusted = ours(Uri.parse(url));
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
+                trusted = ours(Uri.parse(url));
                 if (hasWindowFocus()) checkClipboard();
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest req, android.webkit.WebResourceError err) {
+                if (req.isForMainFrame()) fallback();
+            }
+
+            @Override
+            public void onReceivedHttpError(WebView view, WebResourceRequest req, WebResourceResponse res) {
+                if (req.isForMainFrame() && res.getStatusCode() >= 400) fallback();
             }
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                 Uri u = req.getUrl();
-                if ("appassets.androidplatform.net".equals(u.getHost())) return false;
+                if (ours(u)) return false;
                 try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) {}
                 return true;
             }
@@ -100,7 +133,7 @@ public class MainActivity extends Activity {
 
         handleIntent(getIntent());
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
-        if (web.getUrl() == null) web.loadUrl(HOME);
+        if (web.getUrl() == null) web.loadUrl(REMOTE);
 
         if (Build.VERSION.SDK_INT >= 33) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
@@ -182,6 +215,7 @@ public class MainActivity extends Activity {
     private class Bridge {
         @JavascriptInterface
         public void httpGet(final String id, final String url) {
+            if (!trusted) return;
             pool.execute(() -> {
                 JSONObject res = new JSONObject();
                 HttpURLConnection c = null;
@@ -218,6 +252,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String takeIncoming() {
+            if (!trusted) return "";
             String t = incoming;
             incoming = "";
             return t;
@@ -226,6 +261,7 @@ public class MainActivity extends Activity {
         /** 네이버 지도에서 "링크 복사" 후 앱을 열었을 때를 위해 클립보드를 읽는다 (앱이 앞에 있을 때만 가능) */
         @JavascriptInterface
         public String readClipboard() {
+            if (!trusted) return "";
             try {
                 ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
                 ClipData d = cm.getPrimaryClip();
@@ -239,6 +275,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void copyText(final String text) {
+            if (!trusted) return;
             runOnUiThread(() -> {
                 ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
                 cm.setPrimaryClip(ClipData.newPlainText("후기씨앗", text));
@@ -247,6 +284,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void shareText(final String text) {
+            if (!trusted) return;
             runOnUiThread(() -> {
                 Intent send = new Intent(Intent.ACTION_SEND);
                 send.setType("text/plain");
@@ -257,6 +295,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void saveFile(final String name, final String text) {
+            if (!trusted) return;
             pool.execute(() -> {
                 String msg;
                 try {
