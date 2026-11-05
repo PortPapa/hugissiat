@@ -76,7 +76,6 @@ public class ReminderReceiver extends BroadcastReceiver {
                 JSONObject r = o.optJSONObject(id);
                 if (r != null) schedule(c, id, r.optLong("at"), r.optString("title"), r.optString("body"));
             }
-            GeoKeeper.register(c);
             return;
         }
         if (!ACTION.equals(a)) return;

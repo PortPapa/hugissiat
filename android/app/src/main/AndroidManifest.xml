@@ -7,10 +7,6 @@
     <!-- 다녀온 뒤 알림 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <!-- 가게 나오면 알림 (켰을 때만 요청) -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <queries>
         <intent>
@@ -80,10 +76,6 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
-
-        <receiver
-            android:name=".GeoReceiver"
-            android:exported="false" />
 
         <!-- 보내기: 캐시의 MD·사진을 다른 앱에 읽기 권한으로 넘긴다 -->
         <provider

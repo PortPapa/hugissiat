@@ -1124,9 +1124,8 @@ function yamlQ(s){return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"')
 function buildMD(){
   const C=CATS[S.cat];const biz=V('biz');
   const plan=PLACE?getPlans().find(p=>String(p.id)===String(PLACE.id)):null;
-  let stay='';try{if(PLACE&&IS_APP&&ChdNative.geoStay){const g=JSON.parse(ChdNative.geoStay(String(PLACE.id))||'{}');if(g.in&&g.out&&g.out>g.in){const m=Math.round((g.out-g.in)/60000);stay=(m>=60?Math.floor(m/60)+'시간 ':'')+(m%60?m%60+'분':'');const d=new Date(g.in);stay=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}부터 약 ${stay.trim()}`}}}catch(e){}
   const out=['---'];
-  [['업체명',biz],['업종',(PLACE&&PLACE.category)||C.label],['지역',V('region')],['방문일시',[V('visitDate'),S.f.visitTime||''].filter(Boolean).join(' ')],['머문 시간',stay],['체험단 플랫폼',S.f.platform||''],['플레이스ID',PLACE?PLACE.id:''],['작성일',today()]]
+  [['업체명',biz],['업종',(PLACE&&PLACE.category)||C.label],['지역',V('region')],['방문일시',[V('visitDate'),S.f.visitTime||''].filter(Boolean).join(' ')],['체험단 플랫폼',S.f.platform||''],['플레이스ID',PLACE?PLACE.id:''],['작성일',today()]]
     .forEach(([a,b])=>{if(b)out.push(`${a}: ${yamlQ(b)}`)});
   out.push('---','',`# ${biz||'(업체명)'}`,'');
   out.push('## 내 경험','');
@@ -1360,7 +1359,7 @@ function openQuickMemo(place){
 
 /* ---------- 갈 곳 미리 등록 + 다녀온 뒤 알림 ---------- */
 function getPlans(){try{return JSON.parse(localStorage.getItem('chd-plans')||'[]')||[]}catch(e){return []}}
-function setPlans(a){try{localStorage.setItem('chd-plans',JSON.stringify(a))}catch(e){}syncWidget();syncGeo()}
+function setPlans(a){try{localStorage.setItem('chd-plans',JSON.stringify(a))}catch(e){}syncWidget()}
 const PCOLORS=['#2FB463','#FF6B4A','#3B82F6','#8B5CF6','#F5A623','#F06292','#14B8A6','#64748B'];
 function getPlatforms(){try{return JSON.parse(localStorage.getItem('chd-platforms')||'[]')||[]}catch(e){return []}}
 function setPlatforms(a){try{localStorage.setItem('chd-platforms',JSON.stringify(a))}catch(e){}}
@@ -1959,7 +1958,7 @@ function renderMe(){
   let ver='';try{ver=IS_APP&&ChdNative.version?ChdNative.version():''}catch(e){}
   const dOn=driveLinked();
   v.append(pc,
-    group('일정',[row('체험단 플랫폼',dots,()=>platformSheet()),row('다녀온 뒤 알림',st.remindH+'시간 뒤',()=>remindSheet()),IS_APP&&ChdNative.geoStatus?row('가게 나오면 알림',geoOn()?'켜짐':'꺼짐',()=>geoSheet(),{cls:geoOn()?'on':''}):null]),
+    group('일정',[row('체험단 플랫폼',dots,()=>platformSheet()),row('다녀온 뒤 알림',st.remindH+'시간 뒤',()=>remindSheet())]),
     canDrive()?group('저장',[row('구글 드라이브',dOn?'연결됨':'연결 안 됨',()=>driveSheet(),{cls:dOn?'on':''})]):'',
     group('정보',[row('사용법','',()=>document.body.classList.add('sheet')),ver?row('버전',ver,null,{noChev:true,cls:'static'}):null])
   );
@@ -2196,29 +2195,6 @@ async function addFromLink(){
   if(/https:\/\/(naver\.me\/|[\w.-]*naver\.com\/)/.test(c))fetchAndChoose(c);else pasteSheet('');
 }
 $('#dkPaste').onclick=()=>quickVoice();
-/* ---------- 가게를 나오면 알림: 방문일에 가게 반경 150m에 10분 넘게 있다가 나가면 알려준다 ---------- */
-const geoOn=()=>{try{return IS_APP&&ChdNative.geoStatus&&ChdNative.geoStatus()==='on'}catch(e){return false}};
-let GEO_FETCHING=false;
-async function syncGeo(){
-  if(!geoOn())return;
-  const ps=getPlans().filter(p=>p.when);
-  const need=ps.filter(p=>!p.place.lat&&p.place.placeUrl&&!String(p.place.id).startsWith('m'));
-  if(need.length&&!GEO_FETCHING){GEO_FETCHING=true;
-    for(const p of need){try{const d=sanitize(await fetchPlace(p.place.placeUrl));if(d&&d.lat){const all=getPlans();const q=all.find(x=>x.id===p.id);if(q){q.place.lat=d.lat;q.place.lng=d.lng;try{localStorage.setItem('chd-plans',JSON.stringify(all))}catch(e){}}}}catch(e){}}
-    GEO_FETCHING=false}
-  const fences=getPlans().filter(p=>p.when&&p.place.lat).map(p=>{const d=new Date(p.when);
-    const day0=new Date(d.getFullYear(),d.getMonth(),d.getDate(),6).getTime(),day1=new Date(d.getFullYear(),d.getMonth(),d.getDate(),23,59).getTime();
-    return {id:String(p.id),name:p.place.name,lat:p.place.lat,lng:p.place.lng,from:p.noTime?day0:d.getTime()-2*3600e3,to:p.noTime?day1:Math.min(day1+6*3600e3,d.getTime()+10*3600e3)}}).filter(f=>f.to>Date.now());
-  try{ChdNative.geoSet(JSON.stringify(fences))}catch(e){}
-}
-window.chdGeo=st=>{if(st==='on'){toast('가게를 나오면 알려드릴게요');syncGeo()}else if(st==='denied')toast('위치 권한을 "항상 허용"으로 바꿔야 쓸 수 있어요');if(TAB==='me')renderMe()};
-function geoSheet(){openAct(b=>{
-  const on=geoOn();
-  b.append(el('h3','','가게 나오면 알림'),el('div','e-tip','방문하는 날, 가게에 머물다 나오면 "다녀오셨어요?" 알림을 보내요. 위치는 폰 안에서만 써요.'));
-  const t=el('button','e-btn'+(on?'':' primary'),on?'끄기':'켜기');t.type='button';
-  t.onclick=()=>{closeAct();if(on){ChdNative.geoDisable();toast('껐어요');renderMe()}else ChdNative.geoEnable()};
-  b.append(t);
-})}
 /* ---------- 지금 메모: 오늘 가는 곳(또는 방금 쓰던 곳)에 말로 바로 남기기 ---------- */
 function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
 function memoPlaces(){
