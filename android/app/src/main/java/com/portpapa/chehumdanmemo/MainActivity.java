@@ -1,0 +1,252 @@
+package com.portpapa.chehumdanmemo;
+
+import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Insets;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.provider.MediaStore;
+import android.view.View;
+import android.view.WindowInsets;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
+import android.widget.Toast;
+import android.window.OnBackInvokedDispatcher;
+
+import androidx.webkit.WebViewAssetLoader;
+
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+/**
+ * 후기씨앗: 페이지(assets/index.html)를 WebView로 띄우고,
+ * 네이버 조회·공유 받기·복사·공유·파일 저장만 앱이 맡는다.
+ */
+public class MainActivity extends Activity {
+    private static final String HOME = "https://appassets.androidplatform.net/assets/index.html";
+    private static final String UA = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36";
+    private static final int MAX_BODY = 4 * 1024 * 1024;
+
+    private WebView web;
+    private String incoming = "";
+    private final ExecutorService pool = Executors.newFixedThreadPool(2);
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        FrameLayout root = new FrameLayout(this);
+        web = new WebView(this);
+        root.addView(web, new FrameLayout.LayoutParams(-1, -1));
+        setContentView(root);
+
+        // Android 15+ 는 화면 끝까지 그려지므로 상태바·내비바·키보드 만큼 여백을 준다
+        if (Build.VERSION.SDK_INT >= 30) {
+            root.setOnApplyWindowInsetsListener((v, insets) -> {
+                Insets i = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
+                v.setPadding(i.left, i.top, i.right, i.bottom);
+                return WindowInsets.CONSUMED;
+            });
+        }
+
+        final WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
+
+        WebSettings s = web.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setAllowFileAccess(false);
+        s.setAllowContentAccess(false);
+
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
+                return loader.shouldInterceptRequest(req.getUrl());
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
+                Uri u = req.getUrl();
+                if ("appassets.androidplatform.net".equals(u.getHost())) return false;
+                try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) {}
+                return true;
+            }
+        });
+        web.addJavascriptInterface(new Bridge(), "ChdNative");
+
+        handleIntent(getIntent());
+        if (savedInstanceState != null) web.restoreState(savedInstanceState);
+        if (web.getUrl() == null) web.loadUrl(HOME);
+
+        if (Build.VERSION.SDK_INT >= 33) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBack);
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        web.saveState(out);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIntent(intent);
+        if (!incoming.isEmpty()) {
+            String t = incoming;
+            incoming = "";
+            web.evaluateJavascript("window.chdIncoming&&window.chdIncoming(" + JSONObject.quote(t) + ")", null);
+        }
+    }
+
+    private void handleIntent(Intent intent) {
+        if (intent != null && Intent.ACTION_SEND.equals(intent.getAction())) {
+            CharSequence t = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
+            if (t != null) incoming = t.toString();
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override
+    public void onBackPressed() {
+        handleBack();
+    }
+
+    private void handleBack() {
+        web.evaluateJavascript("(window.chdBack&&window.chdBack())?'1':'0'", v -> {
+            if (!"\"1\"".equals(v)) finish();
+        });
+    }
+
+    @Override
+    protected void onDestroy() {
+        pool.shutdownNow();
+        super.onDestroy();
+    }
+
+    private static boolean allowedHost(String url) {
+        try {
+            URL u = new URL(url);
+            if (!"https".equals(u.getProtocol())) return false;
+            String h = u.getHost().toLowerCase();
+            return h.equals("naver.me") || h.equals("naver.com") || h.endsWith(".naver.com");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void callback(String id, JSONObject res) {
+        String js = "window.__chdNative(" + JSONObject.quote(id) + "," + JSONObject.quote(res.toString()) + ")";
+        runOnUiThread(() -> web.evaluateJavascript(js, null));
+    }
+
+    /** 페이지에서 window.ChdNative 로 부르는 함수들 */
+    private class Bridge {
+        @JavascriptInterface
+        public void httpGet(final String id, final String url) {
+            pool.execute(() -> {
+                JSONObject res = new JSONObject();
+                HttpURLConnection c = null;
+                try {
+                    if (!allowedHost(url)) throw new Exception("네이버 링크만 열 수 있어요");
+                    c = (HttpURLConnection) new URL(url).openConnection();
+                    c.setInstanceFollowRedirects(true);
+                    c.setConnectTimeout(10000);
+                    c.setReadTimeout(15000);
+                    c.setRequestProperty("User-Agent", UA);
+                    c.setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9");
+                    int code = c.getResponseCode();
+                    String finalUrl = c.getURL().toString();
+                    if (!allowedHost(finalUrl)) throw new Exception("네이버 밖으로 이동하는 링크예요");
+                    InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
+                    ByteArrayOutputStream buf = new ByteArrayOutputStream();
+                    if (in != null) {
+                        byte[] b = new byte[16384];
+                        int n;
+                        while ((n = in.read(b)) > 0 && buf.size() < MAX_BODY) buf.write(b, 0, n);
+                        in.close();
+                    }
+                    res.put("status", code);
+                    res.put("url", finalUrl);
+                    res.put("body", buf.toString(StandardCharsets.UTF_8.name()));
+                } catch (Exception e) {
+                    try { res.put("error", e.getMessage() == null ? "연결에 실패했어요" : e.getMessage()); } catch (Exception ignored) {}
+                } finally {
+                    if (c != null) c.disconnect();
+                }
+                callback(id, res);
+            });
+        }
+
+        @JavascriptInterface
+        public String takeIncoming() {
+            String t = incoming;
+            incoming = "";
+            return t;
+        }
+
+        @JavascriptInterface
+        public void copyText(final String text) {
+            runOnUiThread(() -> {
+                ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                cm.setPrimaryClip(ClipData.newPlainText("후기씨앗", text));
+            });
+        }
+
+        @JavascriptInterface
+        public void shareText(final String text) {
+            runOnUiThread(() -> {
+                Intent send = new Intent(Intent.ACTION_SEND);
+                send.setType("text/plain");
+                send.putExtra(Intent.EXTRA_TEXT, text);
+                startActivity(Intent.createChooser(send, "후기 소스 보내기"));
+            });
+        }
+
+        @JavascriptInterface
+        public void saveFile(final String name, final String text) {
+            pool.execute(() -> {
+                String msg;
+                try {
+                    ContentResolver cr = getContentResolver();
+                    ContentValues v = new ContentValues();
+                    v.put(MediaStore.Downloads.DISPLAY_NAME, name);
+                    v.put(MediaStore.Downloads.MIME_TYPE, "text/markdown");
+                    v.put(MediaStore.Downloads.RELATIVE_PATH, "Download/");
+                    Uri uri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+                    if (uri == null) throw new Exception();
+                    try (OutputStream os = cr.openOutputStream(uri)) {
+                        os.write(text.getBytes(StandardCharsets.UTF_8));
+                    }
+                    msg = "다운로드 폴더에 저장했어요: " + name;
+                } catch (Exception e) {
+                    msg = "저장하지 못했어요. 복사나 공유를 써주세요.";
+                }
+                final String m = msg;
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, m, Toast.LENGTH_LONG).show());
+            });
+        }
+    }
+}

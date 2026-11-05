@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>체험단 경험 메모</title>
+<title>후기씨앗</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 :root{--bg:#f6f4ef;--card:#fff;--ink:#1f1f1f;--sub:#6f6a62;--line:#e6e1d6;--acc:#ff6b4a;--acc-ink:#c2410c;--acc-soft:#fff0ea;--ok:#2f9e6e;--ok-soft:#e8f6ee;--no:#d0574f;--no-soft:#fdeceb}
@@ -97,7 +97,7 @@ aside#previewPane{position:sticky;top:78px;align-self:start}
 #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;z-index:60}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 /* ---------- 쉬운 모드 ---------- */
-body.easy .wrap,body.easy #fabPreview,body.easy #btnSample,body.easy #btnReset,body.easy #btnCopy,body.easy #btnDown,body.easy .progress{display:none!important}
+body.easy .wrap,body.easy #fabPreview,body.easy #btnSample,body.easy #btnCopy,body.easy #btnDown,body.easy .progress{display:none!important}
 body:not(.easy) #easy{display:none}
 #easy{max-width:560px;margin:0 auto;padding:14px 18px 0;min-height:calc(100dvh - 62px);display:flex;flex-direction:column}
 .e-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;font-size:13px;color:var(--sub)}
@@ -147,12 +147,12 @@ body:not(.easy) #easy{display:none}
 </head>
 <body>
 <header class="top">
-  <div class="brand"><b>체험단 경험 메모</b><span>다녀와서 내 경험을 고르고 적으면, MD로 정리돼요</span></div>
+  <div class="brand"><b>후기씨앗</b><span>AI 후기에 넣을 내 진짜 경험, 질문 몇 개로 정리</span></div>
   <div class="actions">
     <button class="btn" id="btnMode" type="button">자세히 쓰기</button>
     <a class="btn" href="https://github.com/PortPapa/chehumdan-memo#readme" target="_blank" rel="noopener" style="text-decoration:none">사용법</a>
     <button class="btn" id="btnSample" type="button">예시 채우기</button>
-    <button class="btn" id="btnReset" type="button">새로 쓰기</button>
+    <button class="btn" id="btnReset" type="button">새 가게</button>
     <button class="btn" id="btnCopy" type="button">MD 복사</button>
     <button class="btn primary" id="btnDown" type="button">.md 다운로드</button>
   </div>
@@ -211,6 +211,61 @@ function sanitize(p){
 }
 /* 어사이드 스킬이 이 페이지를 열고 호출해서 폰용 링크를 만들어요 */
 window.chdMakeLink=async o=>PAGE_URL+'#'+await packData(slim(o));
+
+/* ---------- 링크만 넣으면 자동으로 가져오기 ---------- */
+/* 앱(ChdNative)이면 폰이 네이버를 직접 부르고, 웹이면 Cloudflare Worker를 거친다 */
+const WORKER='https://chehumdan-memo.lcjun37.workers.dev/place?u=';
+const IS_APP=typeof window.ChdNative!=='undefined';
+const _ncb={};let _nid=0;
+window.__chdNative=(id,res)=>{const f=_ncb[id];delete _ncb[id];f&&f(res)};
+function nativeGet(url){return new Promise(r=>{const id=String(++_nid);_ncb[id]=r;ChdNative.httpGet(id,url)}).then(s=>{const o=typeof s==='string'?JSON.parse(s):s;if(o.error)throw new Error(o.error);return o})}
+function apolloOf(html){
+  const i=html.indexOf('window.__APOLLO_STATE__');if(i<0)return null;
+  const s=html.indexOf('{',i);let d=0,j=s,q=false,e=false;
+  for(;j<html.length;j++){const c=html[j];if(q){if(e)e=false;else if(c==='\\')e=true;else if(c==='"')q=false;continue}if(c==='"')q=true;else if(c==='{')d++;else if(c==='}'){d--;if(d===0)break}}
+  try{return JSON.parse(html.slice(s,j+1))}catch(x){return null}
+}
+function placeFromHtml(id,finalUrl,html){
+  const st=apolloOf(html);if(!st)return null;
+  const type=(String(finalUrl||'').match(/m\.place\.naver\.com\/([^/]+)\//)||[])[1]||'place';
+  const ents=Object.entries(st);const pick=p=>ents.filter(([k])=>k.startsWith(p)).map(([,v])=>v);
+  const base=pick('PlaceDetailBase')[0]||{};const rq=st.ROOT_QUERY||{};
+  const pd=rq[Object.keys(rq).find(k=>k.startsWith('placeDetail'))||'']||{};
+  let hours=[];
+  try{const nb=(pd.newBusinessHours||[])[0];if(nb&&nb.businessHours){const ord='월화수목금토일';
+    hours=[...nb.businessHours].sort((a,b)=>ord.indexOf(a.day)-ord.indexOf(b.day)).map(x=>[x.day,x.businessHours?`${x.businessHours.start}~${x.businessHours.end}`:(x.description||''),(x.breakHours||[]).map(b=>`브레이크 ${b.start}~${b.end}`).join(', ')].filter(Boolean).join(' '))}}catch(x){}
+  const an=(pick('VisitorReviewStatsResult')[0]||{}).analysis||{};
+  return {id,type,placeUrl:`https://m.place.naver.com/${type}/${id}/home`,name:base.name||'',category:base.category||'',
+    roadAddress:base.roadAddress||'',address:base.address||'',phone:base.virtualPhone||base.phone||'',
+    conveniences:base.conveniences||[],facilities:pick('InformationFacilities').map(v=>v.name).filter(Boolean),payment:base.paymentInfo||[],
+    rating:base.visitorReviewsScore||null,visitorReviews:base.visitorReviewsTotal||0,blogReviews:base.cafeBlogReviewsTotal||0,hours,
+    menus:pick('PlaceMenuItem').map(v=>({name:v.name,price:(v.price&&v.price.displayText)||''})).filter(m=>m.name).slice(0,30),
+    reviewMenus:(an.menus||[]).map(m=>({t:m.label,n:m.count})).slice(0,10),
+    voted:((an.votedKeyword&&an.votedKeyword.details)||[]).map(d=>({t:d.displayName,n:d.count})).slice(0,20),blogs:[]};
+}
+async function fetchPlace(input){
+  input=String(input||'').trim();if(!input)throw new Error('링크를 붙여넣어 주세요');
+  if(!IS_APP){
+    const r=await fetch(WORKER+encodeURIComponent(input));let d={};try{d=await r.json()}catch(x){}
+    if(!r.ok||d.error||!d.name)throw new Error(d.error||'가게 정보를 못 가져왔어요');return d;
+  }
+  let id=/^\d{4,12}$/.test(input)?input:null;
+  if(!id){
+    const m=input.match(/https?:\/\/[^\s]+/);if(!m)throw new Error('네이버 플레이스 링크를 찾지 못했어요');
+    let host='';try{host=new URL(m[0]).hostname}catch(x){}
+    if(!/(^|\.)naver\.(me|com)$/.test(host))throw new Error('네이버 지도/플레이스 링크가 아니에요');
+    let fu=m[0];if(host==='naver.me')fu=(await nativeGet(m[0])).url||'';
+    const mm=fu.match(/place\/(\d+)/)||fu.match(/\/(\d{5,})(?:[/?#]|$)/);if(!mm)throw new Error('가게(플레이스) 링크가 아닌 것 같아요');id=mm[1];
+  }
+  const r=await nativeGet(`https://m.place.naver.com/place/${id}/home`);
+  const d=placeFromHtml(id,r.url,r.body||'');if(!d||!d.name)throw new Error('가게 정보를 못 가져왔어요');return d;
+}
+/* 방문자 키워드 "양이 많아요" -> "양이 많았나요?" */
+function vq(t){
+  const M={'어':'었','아':'았','해':'했','져':'졌','와':'왔','워':'웠','차':'찼','려':'렸','쳐':'쳤','돼':'됐','여':'였','줘':'줬','예':'였','에':'였','나':'났','가':'갔','서':'섰'};
+  const m=String(t).match(/^(.*)(.)요$/);if(!m||!M[m[2]])return '';
+  return m[1]+M[m[2]]+'나요?';
+}
 
 /* ---------- 업종별 설정 ---------- */
 const CATS = {
@@ -668,10 +723,10 @@ function yamlQ(s){return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"')
 function buildMD(){
   const C=CATS[S.cat];const k=kwList();const biz=V('biz');
   const out=['---'];
-  [['type','체험단 경험 메모'],['업체명',biz],['업종',C.label],['지역',V('region')],['방문일',[V('visitDate'),V('when')].filter(Boolean).join(' ')],['작성기한',V('deadline')],['메인키워드',k[0]||''],['필수키워드',k.join(', ')],['플레이스ID',PLACE?PLACE.id:''],['작성일',today()]]
+  [['type','AI 후기 작성용 실제 경험 소스 (후기씨앗)'],['업체명',biz],['업종',C.label],['지역',V('region')],['방문일',[V('visitDate'),V('when')].filter(Boolean).join(' ')],['작성기한',V('deadline')],['메인키워드',k[0]||''],['필수키워드',k.join(', ')],['플레이스ID',PLACE?PLACE.id:''],['작성일',today()]]
     .forEach(([a,b])=>{if(b)out.push(`${a}: ${yamlQ(b)}`)});
-  out.push('---','',`# ${biz||'(업체명)'} 체험단 경험 메모`,'',
-    '> 내가 직접 겪은 것만 정리한 메모. "나도 그랬음 / 달랐음"은 다른 블로거 후기·방문자 키워드를 보고 내가 직접 고른 것.','');
+  out.push('---','',`# ${biz||'(업체명)'} 후기 소스: 내 실제 경험`,'',
+    '> AI로 후기를 쓸 때 넣는 소스예요. 아래 "내 경험" 항목은 내가 실제로 겪고 고르거나 적은 것이고, "나도 그랬음 / 달랐음"은 다른 후기·방문자 키워드와 내 경험을 비교한 것이에요. 업체 기본 정보는 참고용이에요.','');
   let n=0;
   sections().forEach(sec=>{const b=secBody(sec);if(!b.length)return;n++;out.push(`## ${n}. ${sec.title}`,...b,'')});
   const pm=placeMD();
@@ -719,7 +774,13 @@ function refresh(){
 
 /* ---------- 액션 ---------- */
 function fileName(){return `체험단_${(V('biz')||'메모').replace(/[\\/:*?"<>|\s]+/g,'_')}_${V('visitDate')||today()}.md`}
+function shareMD(){
+  const md=buildMD();
+  if(IS_APP){ChdNative.shareText(md);return}
+  if(navigator.share)navigator.share({title:fileName(),text:md}).catch(()=>{});
+}
 $('#btnDown').onclick=()=>{
+  if(IS_APP){ChdNative.saveFile(fileName(),buildMD());return}
   const blob=new Blob([buildMD()],{type:'text/markdown;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fileName();
   document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
@@ -727,10 +788,31 @@ $('#btnDown').onclick=()=>{
 };
 $('#btnCopy').onclick=async()=>{
   const md=buildMD();
+  if(IS_APP){ChdNative.copyText(md);toast('MD를 복사했어요.');return}
   try{await navigator.clipboard.writeText(md)}catch(e){const t=document.createElement('textarea');t.value=md;document.body.append(t);t.select();document.execCommand('copy');t.remove()}
   toast('MD를 복사했어요.');
 };
-$('#btnReset').onclick=()=>{if(!confirm('지금 메모를 지우고 새로 쓸까요?'))return;S=init();setMode('easy')};
+$('#btnReset').onclick=()=>{
+  if(!confirm('새 가게로 시작할까요? 지금 메모는 이 기기에 그대로 저장돼 있어요.'))return;
+  PLACE=null;try{localStorage.removeItem(LAST_KEY)}catch(e){}
+  if(location.hash)history.replaceState(null,'',location.pathname+location.search);
+  KEY='chd-memo-v2';S=init();S.step=0;setMode('easy');
+};
+const LAST_KEY='chd-last-place';
+let PENDING_LINK='';
+function applyPlace(d){
+  PLACE=sanitize(d);if(!PLACE)return;
+  try{localStorage.setItem(LAST_KEY,JSON.stringify(PLACE))}catch(e){}
+  if(location.hash)history.replaceState(null,'',location.pathname+location.search);
+  KEY='chd-memo-v2-'+PLACE.id;S=load()||init();
+  const sb=document.querySelector('#btnSample');if(sb)sb.remove();
+  setMode('easy');toast(PLACE.name+' 정보를 가져왔어요.');
+}
+/* 앱: 네이버 지도 → 공유로 들어온 텍스트 */
+window.chdIncoming=t=>{
+  t=String(t||'');if(!t.trim())return;
+  PLACE=null;KEY='chd-memo-v2';S=init();S.step=0;PENDING_LINK=t;setMode('easy');
+};
 $('#btnMode').onclick=()=>setMode(S.mode==='easy'?'full':'easy');
 
 /* ---------- 쉬운 모드 (질문 카드) ---------- */
@@ -768,11 +850,15 @@ function eText(get,set,ph,big,cls){
   return w;
 }
 function hintPool(){
-  const H=PLACE&&PLACE.hints;if(!H)return[];
+  const H=(PLACE&&PLACE.hints)||{};
   const pool=[];['items','access','space','people','info'].forEach(k=>(H[k]||[]).forEach((h,i)=>pool.push({...h,key:k,i})));
-  pool.sort((a,b)=>(b.n||0)-(a.n||0)||a.i-b.i);
-  const strong=pool.filter(h=>(h.n||0)>=2||h.q);
-  return (strong.length?strong:pool).slice(0,4);
+  if(pool.length){
+    pool.sort((a,b)=>(b.n||0)-(a.n||0)||a.i-b.i);
+    const strong=pool.filter(h=>(h.n||0)>=2||h.q);
+    return (strong.length?strong:pool).slice(0,4);
+  }
+  /* 블로그 힌트가 없으면(자동 가져오기) 플레이스 방문자 키워드로 질문을 만든다 */
+  return ((PLACE&&PLACE.voted)||[]).filter(v=>v.n>0).slice(0,4).map((v,i)=>({t:v.t,n:v.n,q:vq(v.t),key:'voted',i,src:`방문자 ${Number(v.n).toLocaleString()}명이 고른 키워드`}));
 }
 function toggleItem(name,price){
   const idx=S.items.findIndex(i=>i.name===name);
@@ -782,7 +868,16 @@ function toggleItem(name,price){
 }
 function easyCards(){
   const C=CATS[S.cat],visit=S.cat!=='product',cards=[];
-  if(!PLACE)cards.push({id:'start',src:'시작',q:'어디 다녀왔어요?',body:b=>{
+  if(!PLACE)cards.push({id:'start',src:'시작',q:'어디 다녀왔어요?',sub:'네이버 지도에서 가게를 찾아 공유 → 링크 복사 후 붙여넣어 주세요.',nextLabel:'링크 없이 직접 쓰기',body:b=>{
+    const inp=document.createElement('input');inp.type='text';inp.id='placeLink';inp.placeholder='https://naver.me/...';inp.value=PENDING_LINK||'';inp.autocomplete='off';
+    const go2=el('button','e-btn primary','가져오기');go2.type='button';
+    const msg=el('div','e-tip','');
+    const run=async()=>{go2.disabled=true;go2.textContent='가져오는 중…';msg.textContent='';
+      try{applyPlace(await fetchPlace(inp.value))}catch(e){msg.textContent=e.message||String(e);go2.disabled=false;go2.textContent='가져오기'}};
+    go2.onclick=run;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();run()}};
+    b.append(inp,go2,msg);
+    if(PENDING_LINK){PENDING_LINK='';setTimeout(run,50)}
+    b.append(el('div','e-label','링크 없이 쓸 때'));
     b.append(el('div','e-label','업체 이름'),eText(()=>S.f.biz,x=>S.f.biz=x,'예: 춘천 OO닭갈비'));
     b.append(el('div','e-label','종류'));
     const box=el('div','chips');
@@ -798,7 +893,7 @@ function easyCards(){
     b.append(el('div','e-label','얽힌 이야기가 있으면 한 줄 (선택)'),eText(()=>S.f.reasonStory,x=>S.f.reasonStory=x,'예: 출렁다리 갔다가 배고파서 들렀어요',true));
   }});
   const nb=(PLACE&&PLACE.blogs&&PLACE.blogs.length)||5;
-  hintPool().forEach(h=>cards.push({id:'h-'+h.key+'-'+h.t,src:`블로그 ${nb}개 중 ${h.n}개가 말했어요`,q:h.q||`“${h.t}”`,sub:h.q?'':'나도 그랬나요?',hint:h}));
+  hintPool().forEach(h=>cards.push({id:'h-'+h.key+'-'+h.t,src:h.src||`블로그 ${nb}개 중 ${h.n}개가 말했어요`,q:h.q||`“${h.t}”`,sub:h.q?'':'나도 그랬나요?',hint:h}));
   cards.push({id:'menu',src:C.item,q:ITEM_Q[S.cat],sub:'여러 개 골라도 돼요.',body:b=>{
     const pm=(PLACE&&PLACE.menus)||[];
     if(pm.length){
@@ -806,6 +901,14 @@ function easyCards(){
       pm.forEach(m=>{const on=()=>S.items.some(i=>i.name===m.name);const x=el('button','chip'+(on()?' on':''));x.type='button';x.append(m.name);if(m.price)x.append(el('small','',m.price));
         x.onclick=()=>{toggleItem(m.name,m.price);x.classList.toggle('on',on());changed();updTop()};box.append(x)});
       b.append(box);
+      const extra=((PLACE&&PLACE.reviewMenus)||[]).filter(r=>r.t&&!pm.some(m=>norm(m.name).includes(norm(r.t))));
+      if(extra.length){
+        b.append(el('div','e-label','리뷰에 자주 나온 것'));
+        const bx=el('div','chips');
+        extra.forEach(r=>{const on=()=>S.items.some(i=>i.name===r.t);const x=el('button','chip'+(on()?' on':''));x.type='button';x.append(r.t);
+          x.onclick=()=>{toggleItem(r.t,'');x.classList.toggle('on',on());changed();updTop()};bx.append(x)});
+        b.append(bx);
+      }
     }
     const row=el('div','e-row');const inp=document.createElement('input');inp.type='text';inp.placeholder=pm.length?'메뉴판에 없으면 직접 적기':'이름 적고 추가';
     const add=el('button','btn','추가');add.type='button';
@@ -841,11 +944,12 @@ function easyCards(){
   cards.push({id:'free',src:'마지막',q:'사진 넘겨보면서 생각나는 거, 쭉 남겨주세요',sub:'순서도 말투도 상관없어요. 어차피 AI가 정리해요.',body:b=>{
     b.append(eText(()=>S.f.freeMemo,x=>S.f.freeMemo=x,'예: 간판이 낡았는데 오히려 오래된 집 느낌. 메밀전은 얇게 부쳐야 바삭함. 애가 콩국수 맛보기를 두 번 달라고 함…',true,'big'));
   }});
-  cards.push({id:'done',src:'끝',q:'정리 끝! 수고했어요',sub:'MD를 복사해서 AI 채팅창에 붙여넣거나 파일로 받으세요.',done:true,body:b=>{
+  cards.push({id:'done',src:'끝',q:'후기 소스 완성!',sub:'AI에 이 소스를 넣고 후기를 써달라고 하면, 내 진짜 경험이 들어간 글이 나와요.',done:true,body:b=>{
     const ul=el('ul','checks');checks().forEach(([t,ok])=>ul.append(el('li',ok?'ok':'',t)));b.append(ul);
     const ch=el('div','e-choices');
     const B=(label,cls,fn)=>{const x=el('button','e-btn '+cls,label);x.type='button';x.onclick=fn;ch.append(x)};
     B('MD 복사','primary',()=>$('#btnCopy').click());
+    if(IS_APP||navigator.share)B('공유하기 (카톡·텔레그램·AI 앱)','',()=>shareMD());
     B('.md 파일 받기','',()=>$('#btnDown').click());
     B('캠페인 가이드·키워드 적기 (선택)','',()=>setMode('full','sec-campaign'));
     B('자세히 보완하기','',()=>setMode('full'));
@@ -883,10 +987,17 @@ function renderEasy(){
     body.append(ch);
     if(st[h.t]===-1){body.append(el('div','e-label','어떻게 달랐어요? (선택)'),eText(()=>S.hnote[h.t],x=>S.hnote[h.t]=x,'예: 주말 점심인데 오히려 한산했어요',true));showNext=true}
   }else if(c.body)c.body(body);
-  if(showNext){const f=el('div','e-foot');const n=el('button','e-btn primary','다음');n.type='button';n.onclick=()=>go(1);f.append(n);box.append(f)}
+  if(showNext){const f=el('div','e-foot');const n=el('button','e-btn '+(c.nextLabel?'ghost':'primary'),c.nextLabel||'다음');n.type='button';n.onclick=()=>go(1);f.append(n);box.append(f)}
   updTop();window.scrollTo(0,0);
 }
 function goStep(n){if(REC)REC.stop();S.step=n;save();renderEasy()}
+/* 앱 뒤로가기: 이전 카드로. 더 뒤로 갈 곳이 없으면 false */
+window.chdBack=()=>{
+  const pv=document.querySelector('#previewPane.open');if(pv){pv.classList.remove('open');return true}
+  if(S.mode==='full'){setMode('easy');return true}
+  if(S.step>0){goStep(S.step-1);return true}
+  return false;
+};
 function go(d){goStep((S.step||0)+d)}
 function setMode(m,anchor){
   S.mode=m;document.body.classList.toggle('easy',m==='easy');$('#btnMode').textContent=m==='easy'?'자세히 쓰기':'쉽게 쓰기';
@@ -926,10 +1037,14 @@ async function boot(){
     try{PLACE=await unpackData(h)}
     catch(e){setTimeout(()=>toast('링크 데이터를 읽지 못했어요. 직접 입력 모드로 열어요.'),300)}
   }
+  const incoming=IS_APP&&ChdNative.takeIncoming?ChdNative.takeIncoming():'';
+  if(!PLACE&&!h&&!incoming){try{PLACE=JSON.parse(localStorage.getItem(LAST_KEY)||'null')}catch(e){}}
   PLACE=sanitize(PLACE);
+  if(PLACE&&h)try{localStorage.setItem(LAST_KEY,JSON.stringify(PLACE))}catch(e){}
   KEY='chd-memo-v2'+(PLACE?'-'+PLACE.id:'');
   S=load()||init();
   if(PLACE)$('#btnSample').remove();
+  if(incoming){window.chdIncoming(incoming);return}
   setMode(S.mode||'easy');
 }
 boot();
