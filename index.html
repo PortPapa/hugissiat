@@ -1123,7 +1123,7 @@ $('#actBg').onclick=closeAct;
 /* ---------- 내 프로필 ---------- */
 function getProfile(){try{return JSON.parse(localStorage.getItem('chd-profile')||'{}')||{}}catch(e){return {}}}
 const WITH_OPTS=['혼자','남편/아내','연인','아이','부모님','친구','친구 아이','직장 동료','반려견'];
-const ME_TAGS=['엄마','아빠','아이 하나','아이 둘','아이 셋','직장인','프리랜서','자영업','20대','30대','40대','50대','맛집 탐방 좋아함','매운 거 못 먹음','술 좋아함','술 안 마심','다이어트 중','반려견 키움'];
+const ME_TAGS_UNUSED=['엄마','아빠','아이 하나','아이 둘','아이 셋','직장인','프리랜서','자영업','20대','30대','40대','50대','맛집 탐방 좋아함','매운 거 못 먹음','술 좋아함','술 안 마심','다이어트 중','반려견 키움'];
 function setProfile(p){try{localStorage.setItem('chd-profile',JSON.stringify(p))}catch(e){}}
 function profileMe(p){return [...(p.meTags||[]),(p.meText||'').trim()].filter(Boolean).join(', ')||(p.me||'')}
 function josaRang(w){const c=w.charCodeAt(w.length-1);return c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28?'이랑':'랑'}
@@ -1748,12 +1748,10 @@ function renderMe(){
   );
 }
 function profileSheet(){openAct(b=>{
-  const p=getProfile();if(!p.meTags&&p.me){p.meText=p.me;p.meTags=[]}
-  const st={meTags:[...(p.meTags||[])],meText:p.meText||''};
-  const keep=()=>{const q=getProfile();q.meTags=st.meTags;q.meText=st.meText.trim();q.me=profileMe(q);setProfile(q);renderMe()};
-  b.append(el('h3','','내 프로필'),el('div','e-label','나는 어떤 사람?'),
-    eChips(ME_TAGS,t=>st.meTags.includes(t),t=>{const i=st.meTags.indexOf(t);i>=0?st.meTags.splice(i,1):st.meTags.push(t);keep()}));
-  const mt=document.createElement('input');mt.type='text';mt.value=st.meText;mt.placeholder='더 적기 (예: 15년차 제빵사)';mt.oninput=()=>{st.meText=mt.value;keep()};
+  const st={meText:profileMe(getProfile())};
+  const keep=()=>{const q=getProfile();q.meText=st.meText.trim();q.me=q.meText;delete q.meTags;setProfile(q);renderMe()};
+  b.append(el('h3','','내 프로필'),el('div','e-label','나는 어떤 사람?'));
+  const mt=document.createElement('textarea');mt.value=st.meText;mt.placeholder='예: 두 아이 엄마, 매운 거 잘 못 먹음, 15년차 제빵사';mt.oninput=()=>{st.meText=mt.value;keep()};
   b.append(mt,el('div','e-label','자주 가는 조합'));
   const list=el('div','set-box');const gs=getGroups();
   gs.forEach(g=>{const r=el('button','set-row');r.type='button';const l=el('span','set-l g2');l.append(el('b','',g.name||groupName(g.with)));if(g.detail)l.append(el('small','',g.detail));
