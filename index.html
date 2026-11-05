@@ -190,6 +190,8 @@ body[data-tab=home] #viewHome{display:block}
 .sub-h{font-size:12.5px;font-weight:700;color:var(--sub);margin:14px 4px 4px}
 .due{margin-left:6px;font-size:11px;font-weight:700;border-radius:999px;padding:1px 7px;background:var(--line);color:var(--sub);vertical-align:2px}
 .due.hot{background:#ffe3dd;color:#d23b1e}
+.pf{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:1px}
+.li .sub b.wd{color:var(--acc-ink);font-weight:700}.li .sub b.wd.tbd{color:var(--sub)}
 .li .tx{flex:1;min-width:0}.li .nm{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .li .sub{font-size:12px;color:var(--sub)}
 .li img.th,.li .th{width:46px;height:46px;border-radius:13px}
@@ -423,7 +425,7 @@ function placeFromHtml(id,finalUrl,html){
     menus:pick('PlaceMenuItem').map(v=>({name:v.name,price:(v.price&&v.price.displayText)||''})).filter(m=>m.name).slice(0,30),
     reviewMenus:(an.menus||[]).map(m=>({t:m.label,n:m.count})).slice(0,10),
     voted:((an.votedKeyword&&an.votedKeyword.details)||[]).map(d=>({t:d.displayName,n:d.count})).slice(0,20),blogs:[],
-    photos:pick('PlaceDetailTopPhotoItem').map(p=>p.originalUrl||p.thumbnailUrl).filter(Boolean).slice(0,5)};
+    photos:(()=>{const a=pick('PlaceDetailTopPhotoItem').map(p=>p.originalUrl||p.thumbnailUrl).filter(Boolean).slice(0,5);if(!a.length){const m=html.match(/property="og:image" content="([^"]+)"/);if(m)a.push(m[1].replace(/&amp;/g,'&'))}return a})()};
 }
 async function fetchPlace(input){
   input=String(input||'').trim();if(!input)throw new Error('링크를 붙여넣어 주세요');
@@ -527,8 +529,6 @@ function init(){
     s.cat=guessCat(PLACE);s.photos=flowOf(s.cat);
     s.f.biz=PLACE.name||'';
     s.f.region=(PLACE.roadAddress||PLACE.address||'').split(' ').slice(0,3).join(' ');
-    if(PLACE.hours&&PLACE.hours.length)s.f.hours=PLACE.hours.join(' / ');
-    s.f.price=priceRange();
   }
   /* 내 프로필(한 번 저장하면 매번 자동) */
   const pf=getProfile();
@@ -539,7 +539,7 @@ function init(){
 }
 let S=null;
 function save(){if(S)S.updated=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
-function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.cat&&CATS[x.cat]){x.h=x.h||{};x.hnote=x.hnote||{};x.items.forEach(i=>i.h=i.h||{});return x}return null}catch(e){return null}}
+function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.cat&&CATS[x.cat]){x.h=x.h||{};x.hnote=x.hnote||{};if(x.f){if(PLACE&&x.f.hours===(PLACE.hours||[]).join(' / '))delete x.f.hours;if(typeof x.f.price==='string'&&/메뉴판 기준/.test(x.f.price))delete x.f.price}x.items.forEach(i=>i.h=i.h||{});return x}return null}catch(e){return null}}
 
 /* ---------- 유틸 ---------- */
 const $=s=>document.querySelector(s);
@@ -616,7 +616,7 @@ function sections(){
       M('react','반응',['또 오자고 함','아이가 잘 먹음/좋아함','부모님이 만족하심','말없이 먹기만 함','사진 찍기 바빴음','포장해 감','추가 주문함']),
       A('reactStory','구체적인 장면','예: 아들이 메밀전을 직접 뒤집겠다고 두 번이나 부침')
     ]},
-    (PLACE&&PLACE.voted&&PLACE.voted.length)?{id:'voted',title:'방문자 키워드, 나는?',desc:'플레이스 방문자들이 많이 고른 키워드예요(숫자는 투표 수). 내 경험과 비교해 보세요.',type:'voted'}:null,
+    (PLACE&&PLACE.voted&&PLACE.voted.length)?{id:'voted',title:'다른 방문자 평가와 비교',desc:'플레이스 방문자들이 많이 고른 키워드예요(숫자는 투표 수). 내 경험과 비교해 보세요.',type:'voted'}:null,
     {id:'cons',title:'솔직히 아쉬웠던 점',desc:'한두 가지 아쉬움이 후기의 신뢰를 올려요.',fields:[
       M('cons','아쉬운 점',['딱히 없었어요',...C.cons]),
       A('consMemo','아쉬움 디테일','예: 평일엔 4시에 닫아서 늦게 가면 못 먹음'),
@@ -869,13 +869,8 @@ function switchCat(k){
 /* ---------- MD 생성 ---------- */
 function triLines(store,yesLabel,noLabel){
   if(!store)return[];
-  const y=Object.keys(store).filter(k=>store[k]===1),n=Object.keys(store).filter(k=>store[k]===-1),mid=Object.keys(store).filter(k=>store[k]===2);
-  const out=[];
-  if(mid.length)out.push(`- **보통이었음**: ${mid.join(', ')}`);
-  if(y.length)out.push(`- **${yesLabel||'남들도 말한 것 중 나도 그랬음'}**: ${y.join(', ')}`);
-  const nt=k=>{const x=S.hnote&&S.hnote[k];return x&&x.trim()?`${k} (내 경험: ${x.trim()})`:k};
-  if(n.length)out.push(`- **${noLabel||'남들 후기와 내 경험이 달랐음'}**: ${n.map(nt).join(', ')}`);
-  return out;
+  const lab={1:yesLabel||'그랬음',2:'보통',[-1]:noLabel||'아니었음'};
+  return Object.keys(store).filter(k=>lab[store[k]]).map(k=>{const x=S.hnote&&S.hnote[k];return `- ${k} → ${lab[store[k]]}${x&&x.trim()?' ('+x.trim()+')':''}`});
 }
 function itemsMD(){
   const C=CATS[S.cat];const out=[...triLines(S.h.items)];let n=0;
@@ -902,7 +897,7 @@ function photosMD(){
 function secBody(sec){
   if(sec.type==='items')return itemsMD();
   if(sec.type==='photopick')return [];
-  if(sec.type==='voted')return triLines(S.h.voted,'그랬음','아니었음');
+  if(sec.type==='voted')return triLines(S.h.voted);
   const body=[...triLines(S.h[sec.id])];
   sec.fields.forEach(fd=>{
     if(fd.id==='consTone'&&!(V('cons')||V('consMemo')||body.length))return;
@@ -915,39 +910,35 @@ function secBody(sec){
 }
 function placeMD(){
   if(!PLACE)return[];
-  const L=[];
-  const add=(k,v)=>{if(v)L.push(`- **${k}**: ${v}`)};
-  add('업체명',PLACE.name);add('카테고리',PLACE.category);add('주소',PLACE.roadAddress);add('전화',PLACE.phone);
+  const L=[];const add=(k,v)=>{if(v)L.push(`- **${k}**: ${v}`)};
+  add('주소',PLACE.roadAddress);
   add('영업시간',(PLACE.hours||[]).join(' / '));
-  add('편의',uniq([...(PLACE.conveniences||[]),...(PLACE.facilities||[])]).join(', '));
-  add('결제',(PLACE.payment||[]).join(', '));
-  if(PLACE.rating)add('평점·리뷰',`${PLACE.rating} / 방문자 리뷰 ${PLACE.visitorReviews} / 블로그 리뷰 ${PLACE.blogReviews}`);
   if(PLACE.menus&&PLACE.menus.length)add('메뉴판',PLACE.menus.map(m=>`${m.name} ${m.price}`.trim()).join(' · '));
-  if(PLACE.reviewMenus&&PLACE.reviewMenus.length)add('리뷰에서 많이 언급된 메뉴',PLACE.reviewMenus.slice(0,6).map(m=>`${m.t}(${m.n})`).join(', '));
+  add('편의',uniq([...(PLACE.conveniences||[]),...(PLACE.facilities||[])]).join(', '));
   add('플레이스',PLACE.placeUrl);
   return L;
 }
 function yamlQ(s){return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"'}
 function buildMD(){
-  const C=CATS[S.cat];const k=kwList();const biz=V('biz');
+  const C=CATS[S.cat];const biz=V('biz');
+  const plan=PLACE?getPlans().find(p=>String(p.id)===String(PLACE.id)):null;
   const out=['---'];
-  [['type','AI 후기 작성용 실제 경험 소스 (후기씨앗)'],['업체명',biz],['업종',C.label],['지역',V('region')],['방문일',[V('visitDate'),V('when')].filter(Boolean).join(' ')],['작성기한',V('deadline')],['메인키워드',k[0]||''],['필수키워드',k.join(', ')],['플레이스ID',PLACE?PLACE.id:''],['작성일',today()]]
+  [['업체명',biz],['업종',(PLACE&&PLACE.category)||C.label],['지역',V('region')],['방문일',V('visitDate')],['플레이스ID',PLACE?PLACE.id:''],['작성일',today()]]
     .forEach(([a,b])=>{if(b)out.push(`${a}: ${yamlQ(b)}`)});
-  out.push('---','',`# ${biz||'(업체명)'} 후기 소스: 내 실제 경험`,'',
-    '> AI로 후기를 쓸 때 넣는 소스예요. 아래 "내 경험" 항목은 내가 실제로 겪고 고르거나 적은 것이고, "나도 그랬음 / 달랐음"은 다른 후기·방문자 키워드와 내 경험을 비교한 것이에요. 업체 기본 정보는 참고용이에요.','');
-  let n=0;
-  sections().forEach(sec=>{const b=secBody(sec);if(!b.length)return;n++;out.push(`## ${n}. ${sec.title}`,...b,'')});
+  out.push('---','',`# ${biz||'(업체명)'} 후기 소스`,'');
+  out.push('## 내 경험','');
+  sections().forEach(sec=>{if(sec.id==='campaign')return;const b=secBody(sec);if(!b.length)return;out.push(`### ${sec.title}`,...b,'')});
   const qm=PLACE?getQM(PLACE.id):[];
-  if(qm.length){n++;out.push(`## ${n}. 현장 메모 (시간순, 매장에서 바로 적은 것)`,...qm.map(m=>`- ${hhmm(m.t)} ${m.text}`),'')}
-  if(PHOTOS.length){n++;out.push(`## ${n}. 첨부 사진 (고른 순서)`,'> 사진에 무엇이 찍혔는지는 적지 않았어요. AI가 사진을 직접 보고 판단해주세요.',...PHOTOS.map((p,i)=>`- 사진 ${i+1}: ${p.name}`),'')}
+  if(qm.length)out.push('### 현장 메모 (매장에서 바로 적은 것)',...qm.map(m=>`- ${hhmm(m.t)} ${m.text}`),'');
+  if(PHOTOS.length)out.push('### 첨부 사진','- 사진 내용은 AI가 직접 보고 판단',...PHOTOS.map((p,i)=>`- 사진 ${i+1}: ${p.name}`),'');
   const pm=placeMD();
-  if(pm.length){n++;out.push(`## ${n}. 업체 기본 정보 (플레이스 기준, 내 경험 아님)`,...pm,'')}
+  if(pm.length)out.push('## 업체 정보 (참고, 내 경험 아님)',...pm,'');
   if(PLACE&&PLACE.blogs&&PLACE.blogs.length){
-    n++;out.push(`## ${n}. 참고한 블로그 리뷰 (추천순, 겹치지 않게 참고용)`);
-    PLACE.blogs.forEach(b=>out.push(`- [${b.title}](${b.url}) · ${b.author||''} ${b.date||''}`.trim()));
+    out.push('## 참고한 블로그 리뷰 (겹치지 않게)');
+    PLACE.blogs.forEach(b=>out.push(`- [${b.title}](${b.url})`));
     out.push('');
   }
-  return out.join('\n');
+  return out.join('\n').replace(/\n{3,}/g,'\n\n');
 }
 
 /* ---------- 체크·목차·미리보기 ---------- */
@@ -1086,7 +1077,24 @@ function openQuickMemo(place){
 /* ---------- 갈 곳 미리 등록 + 다녀온 뒤 알림 ---------- */
 function getPlans(){try{return JSON.parse(localStorage.getItem('chd-plans')||'[]')||[]}catch(e){return []}}
 function setPlans(a){try{localStorage.setItem('chd-plans',JSON.stringify(a))}catch(e){}syncWidget()}
-const PLATFORMS=['레뷰','강남맛집','리뷰노트','디너의여왕','오픈채팅','직접 섭외','기타'];
+const PCOLORS=['#2FB463','#FF6B4A','#3B82F6','#8B5CF6','#F5A623','#F06292','#14B8A6','#64748B'];
+function getPlatforms(){try{return JSON.parse(localStorage.getItem('chd-platforms')||'[]')||[]}catch(e){return []}}
+function setPlatforms(a){try{localStorage.setItem('chd-platforms',JSON.stringify(a))}catch(e){}}
+function pColor(name){const p=getPlatforms().find(x=>x.name===name);return p?p.color:'#64748B'}
+function pBadge(name){const b=el('span','pf',name);const c=pColor(name);b.style.background=c+'22';b.style.color=c;return b}
+function platformEditor(onDone,init){openAct(b=>{
+  const st={name:(init&&init.name)||'',color:(init&&init.color)||PCOLORS[getPlatforms().length%PCOLORS.length]};
+  b.append(el('h3','',init?'플랫폼 수정':'플랫폼 추가'));
+  const inp=document.createElement('input');inp.type='text';inp.placeholder='예: 레뷰, 강남맛집';inp.value=st.name;inp.oninput=()=>st.name=inp.value;
+  const sw=el('div','swatches');
+  PCOLORS.forEach(c=>{const x=el('button','sw'+(st.color===c?' on':''));x.type='button';x.style.background=c;x.onclick=()=>{st.color=c;sw.querySelectorAll('.sw').forEach(y=>y.classList.toggle('on',y===x))};sw.append(x)});
+  const save=el('button','e-btn primary','저장');save.type='button';
+  save.onclick=()=>{const n=st.name.trim();if(!n){inp.focus();return}
+    const a=getPlatforms().filter(p=>p.name!==(init&&init.name)&&p.name!==n);a.push({name:n,color:st.color});setPlatforms(a);
+    if(init&&init.name!==n)setPlans(getPlans().map(p=>p.platform===init.name?{...p,platform:n}:p));
+    closeAct();onDone&&onDone(n)};
+  b.append(inp,el('div','e-label','색'),sw,save);setTimeout(()=>inp.focus(),250);
+})}
 function dday(due){if(!due)return '';const [y,m,d]=due.split('-').map(Number);const t=new Date();t.setHours(0,0,0,0);const n=Math.round((new Date(y,m-1,d)-t)/864e5);return n>0?'마감 D-'+n:n===0?'마감 오늘':'마감 지남'}
 function planLabel(p){
   const parts=[];
@@ -1129,10 +1137,11 @@ function afterFetch(d){
     b.append(ch);
   });
 }
-function openPlanSheet(P){
+function openPlanSheet(P,keep){
+  const reopen=k=>openPlanSheet(P,k);
   const ex=getPlans().find(p=>String(p.id)===String(P.id))||{};
-  const st={day:ex.when===null&&ex.id?'미정':'오늘',date:'',slot:'저녁',time:'',platform:ex.platform||'',due:ex.due||''};
-  if(ex.when){const d=new Date(ex.when);st.day='날짜 선택';st.date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const st=keep||{day:ex.when===null&&ex.id?'미정':'오늘',date:'',slot:'저녁',time:'',platform:ex.platform||'',due:ex.due||''};
+  if(!keep&&ex.when){const d=new Date(ex.when);st.day='날짜 선택';st.date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     if(ex.label==='점심'||ex.label==='저녁')st.slot=ex.label;else{st.slot='시간 선택';st.time=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}}
   openAct(b=>{
     b.append(el('h3','',P.name));
@@ -1143,7 +1152,13 @@ function openPlanSheet(P){
     b.append(el('div','e-label','방문'),eChips(['오늘','내일','모레','날짜 선택','미정'],t=>st.day===t,t=>{st.day=t;dIn.hidden=t!=='날짜 선택';slotW.hidden=t==='미정'}),dIn);
     slotW.append(el('div','e-label','시간'),eChips(['점심','저녁','시간 선택'],t=>st.slot===t,t=>{st.slot=t;tIn.hidden=t!=='시간 선택'}),tIn);slotW.hidden=st.day==='미정';
     b.append(slotW);
-    b.append(el('div','e-label','플랫폼'),eChips(PLATFORMS,t=>st.platform===t,t=>{st.platform=st.platform===t?'':t}));
+    const pfBox=el('div');
+    const drawPf=()=>{pfBox.innerHTML='';const box=el('div','chips');
+      getPlatforms().forEach(p=>{const x=el('button','chip'+(st.platform===p.name?' on':''));x.type='button';x.append(p.name);x.style.borderColor=p.color;if(st.platform===p.name){x.style.background=p.color+'22';x.style.color=p.color}
+        x.onclick=()=>{st.platform=st.platform===p.name?'':p.name;drawPf()};box.append(x)});
+      const ad=el('button','chip etc','+ 추가');ad.type='button';ad.onclick=()=>{const keep={...st};platformEditor(n=>{keep.platform=n;reopen(keep)})};box.append(ad);pfBox.append(box)};
+    drawPf();
+    b.append(el('div','e-label','플랫폼'),pfBox);
     b.append(el('div','e-label','후기 마감일'),dueIn);
     const save=el('button','e-btn primary','저장');save.type='button';
     save.onclick=()=>{
@@ -1611,7 +1626,16 @@ function renderMe(){
   sF.append(fc);
   const sP=el('div','me-sec');sP.append(el('h4','','배경 무늬'));
   sP.append(eChips(Object.values(PATTERNS),t=>PATTERNS[getLook().pattern]===t,t=>{const k=Object.keys(PATTERNS).find(x=>PATTERNS[x]===t);setLook({pattern:k});renderMe()}));
-  v.append(sT,sF,sP,s1,s2,s3);
+  const sPF=el('div','me-sec');sPF.append(el('h4','','플랫폼'));
+  const pl=el('div','chips');
+  getPlatforms().forEach(p=>{const x=el('button','chip');x.type='button';x.append(p.name);x.style.borderColor=p.color;x.style.color=p.color;x.style.background=p.color+'1a';
+    x.onclick=()=>openAct(b=>{b.append(el('h3','',p.name));const ch=el('div','e-choices');
+      const e1=el('button','e-btn','수정');e1.type='button';e1.onclick=()=>platformEditor(()=>renderMe(),p);
+      const e2=el('button','e-btn','삭제');e2.type='button';e2.onclick=()=>{setPlatforms(getPlatforms().filter(q=>q.name!==p.name));closeAct();renderMe()};
+      ch.append(e1,e2);b.append(ch)});pl.append(x)});
+  const ad=el('button','chip etc','+ 추가');ad.type='button';ad.onclick=()=>platformEditor(()=>renderMe());pl.append(ad);
+  sPF.append(pl);
+  v.append(sPF,sT,sF,sP,s1,s2,s3);
 }
 
 /* ---------- 위젯 연동 (앱) ---------- */
@@ -1741,14 +1765,16 @@ function renderHome(){
 }
 function planRow(p){
   const row=el('div','li');
-  const dt=el('div','dt'+(p.when?'':' tbd'));
-  if(p.when){const d=new Date(p.when);dt.append(el('b','',String(d.getDate())),(d.getMonth()+1)+'월 '+WD[d.getDay()])}else dt.append('미정');
+  const th=thumbEl(p.place,'th');
   const tx=el('div','tx');const nm=getQM(p.id).length;
-  const sub=[p.when?p.label:'',p.platform,nm?'메모 '+nm:''].filter(Boolean).join(' · ');
   const nmEl=el('div','nm',p.place.name);
-  tx.append(nmEl,el('div','sub',sub));
-  if(p.due){const dd=dday(p.due);const bd=el('span','due'+(/오늘|지남|D-[12]$/.test(dd)?' hot':''),dd);tx.firstChild.append(bd)}
-  row.append(dt,tx);row.onclick=()=>planMenu(p);return row;
+  if(p.due){const dd=dday(p.due);nmEl.append(el('span','due'+(/오늘|지남|D-[12]$/.test(dd)?' hot':''),dd))}
+  const sub=el('div','sub');
+  let when='날짜 미정';if(p.when){const d=new Date(p.when);when=(d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+') '+(p.label||'')}
+  sub.append(el('b','wd'+(p.when?'':' tbd'),when.trim()));
+  if(p.platform)sub.append(pBadge(p.platform));
+  if(nm)sub.append(' 메모 '+nm);
+  tx.append(nmEl,sub);row.append(th,tx);row.onclick=()=>planMenu(p);return row;
 }
 function recRow(r){
   const row=el('div','li');const tx=el('div','tx');const d=r.updated?new Date(r.updated):null;
