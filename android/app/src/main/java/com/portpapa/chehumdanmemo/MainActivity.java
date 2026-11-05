@@ -90,6 +90,7 @@ public class MainActivity extends Activity {
     private WebView web;
     private String incoming = "";
     private String pendingPlan = "";
+    private String pendingAction = "";
     private final ExecutorService pool = Executors.newFixedThreadPool(2);
 
     @Override
@@ -179,6 +180,13 @@ public class MainActivity extends Activity {
         super.onNewIntent(intent);
         setIntent(intent);
         handleIntent(intent);
+        if (!pendingAction.isEmpty()) {
+            String a = pendingAction;
+            pendingAction = "";
+            incoming = "";
+            web.evaluateJavascript("window.chdAction&&window.chdAction(" + JSONObject.quote(a) + ")", null);
+            return;
+        }
         if (!pendingPlan.isEmpty()) {
             String p = pendingPlan;
             pendingPlan = "";
@@ -205,6 +213,11 @@ public class MainActivity extends Activity {
     }
 
     private void handleIntent(Intent intent) {
+        if (intent != null && intent.getStringExtra("action") != null) {
+            pendingAction = intent.getStringExtra("action");
+            intent.removeExtra("action");
+            return;
+        }
         if (intent != null && intent.getStringExtra("plan") != null) {
             pendingPlan = intent.getStringExtra("plan");
             intent.removeExtra("plan");
@@ -541,6 +554,28 @@ public class MainActivity extends Activity {
             if (!trusted || id == null) return;
             ReminderReceiver.remove(MainActivity.this, id);
             ReminderReceiver.cancel(MainActivity.this, id);
+        }
+
+        @JavascriptInterface
+        public String takeAction() {
+            if (!trusted) return "";
+            String a = pendingAction;
+            pendingAction = "";
+            return a;
+        }
+
+        /** 갈 곳·작성 중 개수를 저장하고 홈 화면 위젯을 새로 그린다 */
+        @JavascriptInterface
+        public void syncWidget(String json) {
+            if (!trusted || json == null) return;
+            getSharedPreferences(Widgets.PREF, 0).edit().putString("data", json).apply();
+            Widgets.updateAll(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public String version() {
+            try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
+            catch (Exception e) { return ""; }
         }
 
         @JavascriptInterface

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">후기씨앗</string>
+    <string name="widget_next">다음 갈 곳</string>
+    <string name="widget_quick">후기씨앗 바로가기</string>
 </resources>
