@@ -4,8 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>후기씨앗</title>
+<link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-4Regular.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-7Bold.woff2">
 <style>
-:root{--on-acc:#fff;--blush:#F6E2E9;--petal:#EFA9C0;--sage:#84A282;--font:"NanumSquareRound",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;--bg:#f6f4ef;--card:#fff;--ink:#1f1f1f;--sub:#6f6a62;--line:#e6e1d6;--acc:#ff6b4a;--acc-ink:#c2410c;--acc-soft:#fff0ea;--ok:#2f9e6e;--ok-soft:#e8f6ee;--no:#d0574f;--no-soft:#fdeceb}
+@font-face{font-family:'Freesentation';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-4Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Freesentation';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-5Medium.woff2') format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:'Freesentation';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-6SemiBold.woff2') format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:'Freesentation';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-7Bold.woff2') format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'Freesentation';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-8ExtraBold.woff2') format('woff2');font-weight:800;font-display:swap}
+:root{--on-acc:#fff;--blush:#F6E2E9;--petal:#EFA9C0;--sage:#84A282;--font:"Freesentation",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;--bg:#f6f4ef;--card:#fff;--ink:#1f1f1f;--sub:#6f6a62;--line:#e6e1d6;--acc:#ff6b4a;--acc-ink:#c2410c;--acc-soft:#fff0ea;--ok:#2f9e6e;--ok-soft:#e8f6ee;--no:#d0574f;--no-soft:#fdeceb}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
@@ -1710,6 +1717,7 @@ const THEMES={
   brand:{n:'세이지',bg:'#FEFAF3',acc:'#6F8E6D',ink2:'#4F6B4C',soft:'#E6EEE3',blush:'#F6E2E9',petal:'#EFA9C0',sage:'#84A282',line:'#ECE6DA'}
 };
 const FONTS={
+  pres:{n:'프리젠테이션',f:'"Freesentation"'},
   round:{n:'나눔스퀘어라운드',f:'"NanumSquareRound"',css:'https://cdn.jsdelivr.net/gh/innks/NanumSquareRound@master/nanumsquareround.min.css'},
   suit:{n:'SUIT',f:'"SUIT"',css:'https://cdn.jsdelivr.net/gh/sun-typeface/SUIT/fonts/static/woff2/SUIT.css'},
   wanted:{n:'원티드 산스',f:'"Wanted Sans Variable"',css:'https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css'},
@@ -1725,15 +1733,15 @@ function patternCss(k,col){
   if(k==='sprout')return ["url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='"+c+"' fill-opacity='.14'%3E%3Cpath d='M16 22c-5 0-8-4-8-7 5 0 8 3 8 7z'/%3E%3Cpath d='M16 20c1-5 4-8 8-8 0 5-4 8-8 8z'/%3E%3Cpath d='M48 54c-5 0-8-4-8-7 5 0 8 3 8 7z'/%3E%3Cpath d='M48 52c1-5 4-8 8-8 0 5-4 8-8 8z'/%3E%3C/g%3E%3C/svg%3E\")",'64px 64px'];
   return ['none','auto'];
 }
-function getLook(){return {theme:'brand',font:'round',pattern:'dots'}}
-function loadFont(k){const f=FONTS[k];if(!f||document.getElementById('font-'+k))return;const l=document.createElement('link');l.rel='stylesheet';l.href=f.css;l.id='font-'+k;document.head.append(l)}
+function getLook(){return {theme:'brand',font:'pres',pattern:'dots'}}
+function loadFont(k){const f=FONTS[k];if(!f||!f.css||document.getElementById('font-'+k))return;const l=document.createElement('link');l.rel='stylesheet';l.href=f.css;l.id='font-'+k;document.head.append(l)}
 function applyLook(){
   const L=getLook();const t=THEMES.brand;const r=document.documentElement.style;
   r.setProperty('--bg',t.bg);r.setProperty('--card',t.card||'#fff');r.setProperty('--ink',t.ink||'#1f1f1f');r.setProperty('--sub',t.sub||'#6f6a62');r.setProperty('--line',t.line||'#e9e6df');
   r.setProperty('--acc',t.acc);r.setProperty('--acc-ink',t.ink2);r.setProperty('--acc-soft',t.soft);r.setProperty('--on-acc',t.on||'#fff');r.setProperty('--blush',t.blush);r.setProperty('--petal',t.petal);r.setProperty('--sage',t.sage);
   document.documentElement.style.colorScheme=L.theme==='dark'?'dark':'light';
   const pt=patternCss(L.pattern,t.sage);r.setProperty('--pat',pt[0]);r.setProperty('--patsz',pt[1]);
-  const f=FONTS[L.font]||FONTS.round;loadFont(L.font in FONTS?L.font:'round');
+  const f=FONTS[L.font]||FONTS.pres;loadFont(L.font);
   r.setProperty('--font',f.f+',-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif');
   if(IS_APP&&ChdNative.setBars)try{ChdNative.setBars(t.bg,L.theme==='dark')}catch(e){}
 }
