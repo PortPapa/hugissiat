@@ -313,7 +313,12 @@ body[data-tab=plans] #viewPlans,body[data-tab=records] #viewRecords,body[data-ta
 .rt-row.open{border-color:var(--acc)}
 .rt-h,.fc-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .rt-l{display:flex;flex-direction:column;min-width:0}.rt-l b{font-size:15px}.rt-l small{font-size:11.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.stars{display:flex;flex:none}.stars .st{border:0;background:none;font-size:26px;line-height:1;padding:0 1px;color:#E3DED3}.stars .st.on{color:#F5B83D}
+.stars{display:flex;align-items:center;flex:none;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:pointer;padding:4px 0}
+.stars .st{position:relative;width:28px;height:28px;display:inline-block}
+.stars .st::before,.stars .st i::before{content:'★';position:absolute;left:0;top:0;width:28px;font-size:27px;line-height:28px;text-align:center}
+.stars .st::before{color:#E3DED3}
+.stars .st i{position:absolute;left:0;top:0;height:100%;width:0;overflow:hidden}.stars .st i::before{color:#F5B83D}
+.st-v{min-width:24px;margin-left:6px;font-size:13px;font-weight:800;color:#C9921F}
 .rt-row .chips{margin-top:8px}.rt-row input,.fc-row input{margin-top:8px}
 .seg{display:flex;flex:none;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .seg button{border:0;border-left:1px solid var(--line);background:var(--card);font:inherit;font-size:12.5px;padding:7px 9px;color:var(--sub)}.seg button:first-child{border-left:0}
@@ -704,8 +709,10 @@ function sections(){
       R('transport','이동 수단',['자차','대중교통','도보','택시']),
       R('findEase','찾기 쉬웠나요',['간판이 커서 바로 찾음','지도 보고 쉽게 찾음','골목 안이라 조금 헤맴','지나칠 뻔함','건물 안이라 입구가 애매함']),
       M('exterior','외관 첫인상',['눈에 확 띔','감성적·예쁨','소박함','노포 느낌','깔끔·모던','주변 풍경이 좋음']),
-      R('parking','주차',['전용 주차장 넉넉','전용 주차장 협소','건물 주차 (무료 시간 있음)','근처 공영주차장','발렛','주차 불가']),
+      R('parking','주차',PARK_OPTS),
       T('parkingDetail','주차 디테일','예: 코너 자리라 나갈 때 좌우를 잘 봐야 했음'),
+      R('wait','기다림',WAIT_OPTS),
+      ...(EXTRA_WAIT[c]?[R(EXTRA_WAIT[c][0],EXTRA_WAIT[c][1],EXTRA_WAIT[c][2])]:[]),
       R('reserve','예약',['예약 필수','예약 권장','워크인 가능','네이버 예약','전화 예약','앱 예약 (캐치테이블 등)'])
     ]}:{id:'usage',title:'사용 맥락',desc:'어떤 상황에서, 얼마나 써봤는지.',fields:[
       R('period','사용 기간',['1회','2~3일','1주일','2주 이상','한 달 이상']),
@@ -719,6 +726,9 @@ function sections(){
       M('vibe','분위기',['아늑함','넓고 쾌적','인테리어 예쁨','활기참','조용함','뷰 맛집','레트로','고급스러움','오래된 전통 느낌']),
       M('spaceOpt',C.spaceLabel,C.space),
       M('amenity','편의',uniq(['아기의자','키즈 공간','화장실 깨끗','반려견 동반 가능','와이파이','유아차 진입 편함',...placeAmen])),
+      M('kid','아이랑',KID_OPTS),
+      A('kidStory','아이 반응·장면','예: 아기밥 한 그릇 더 챙겨주심'),
+      ...(c==='stay'?[M('bbq','바베큐',BBQ_OPTS),M('room','방·시설',ROOM_OPTS),A('stayMemo','숙소에서 기억나는 장면','예: 사장님이 야외에서 먹어도 된다고 안내')]:[]),
       A('spaceMemo','공간에서 기억나는 장면','예: 벽에 방송 출연 사진이 빼곡해서 구경하는 재미')
     ]}:null,
     {id:'items',title:C.item,desc:'"맛있다/좋다" 말고 구체적으로. 예상과 달랐던 점, 실제 행동(몇 번 리필했는지 등)이 핵심이에요.',type:'items'},
@@ -756,7 +766,7 @@ function sections(){
       T('oneLine','내 말로 한 줄 총평','예: 산 다녀와서 국수 한 그릇에 메밀전까지 부쳐 먹는 재미가 있는 집'),
       A('freeMemo','생각나는 대로 남긴 메모','순서·말투 상관없이 떠오르는 것')
     ]},
-    {id:'photos',title:'사진',desc:'사진첩에서 후기에 쓸 사진만 골라주세요. 사진 내용은 AI가 직접 보고 판단해요.',type:'photopick'}
+    {id:'photos',title:'사진',desc:'',type:'photopick'}
   ];
   return list.filter(Boolean);
 }
@@ -1006,6 +1016,13 @@ function itemsMD(){
   return out;
 }
 /* ---------- 별점 평가 + 객관식 + 한 줄 ---------- */
+const PARK_OPTS=['전용 주차장 넉넉','전용 주차장 좁음','건물 주차 (무료 시간)','근처 유료·공영 (지원 있음)','근처 유료·공영','골목·길가 주차','주차 불가','차 없이 감'];
+const WAIT_OPTS=['바로 입장','예약해서 바로','10분 이내 웨이팅','30분 이상 웨이팅'];
+const EXTRA_WAIT={food:['serve','음식 나오기까지',['10분 이내','20분쯤','30분 이상']],cafe:['serve','음료 나오기까지',['5분 이내','10분쯤','20분 이상']],
+  beauty:['duration','시술 시간',['1시간 이내','1~2시간','2시간 이상']],stay:['checkin','체크인',['바로 입실','조금 기다림','얼리 체크인 해줌']],activity:['duration','머문 시간',['1시간 이내','1~2시간','3시간 이상']]};
+const KID_OPTS=['유아의자 있음','유아의자 부족','아기 식기·수저','아이 메뉴·아기밥','놀이 공간','기저귀 교환대','유모차 들어가기 편함','아이가 잘 먹음','아이가 지루해함'];
+const BBQ_OPTS=['개별 바베큐','공용 바베큐','숯·그릴 준비해 줌','시간 제한 없음','불이 약했음','바베큐 없음'];
+const ROOM_OPTS=['넓음','깨끗함','화장실 넓음','수압 좋음','뷰 좋음','방음 아쉬움','침구 푹신','어메니티 충분'];
 const RATE_SETS={food:['맛','양','가격 대비','친절','청결','분위기'],cafe:['맛','가격 대비','분위기','좌석','친절','청결'],
   beauty:['실력·결과','상담·친절','청결','가격 대비','분위기','시간 약속'],stay:['청결','침구·편안함','위치','시설','친절','가격 대비'],
   product:['품질','사용 편함','디자인','가격 대비','배송·포장'],activity:['재미','시설','안전','친절','청결','가격 대비']};
@@ -1018,15 +1035,29 @@ const RATE_CHIPS={'맛':['간이 딱 좋음','짠 편','싱거운 편','담백�
   '디자인':['예쁨','깔끔함','사진보다 나음','사진과 다름'],'배송·포장':['빠름','꼼꼼한 포장','과대 포장','파손 없음']};
 const RATE_HINT=[[/맛|맛있/,'맛'],[/양이|양 /,'양'],[/친절/,'친절'],[/깨끗|청결|위생/,'청결'],[/가성비|가격|저렴/,'가격 대비'],[/분위기|인테리어|뷰|아늑/,'분위기'],[/좌석|자리/,'좌석'],[/시설/,'시설'],[/위치|접근/,'위치'],[/재미|즐거/,'재미'],[/잘해|실력|만족/,'실력·결과'],[/상담|설명/,'상담·친절']];
 function rateHints(){const out={};((PLACE&&PLACE.voted)||[]).forEach(v=>{const m=RATE_HINT.find(x=>x[0].test(v.t));if(m&&!out[m[1]])out[m[1]]=v});return out}
-function stars(n,set){const w=el('div','stars');for(let i=1;i<=5;i++){const s=el('button','st'+(i<=n?' on':''),'★');s.type='button';s.setAttribute('aria-label',i+'점');s.onclick=()=>set(i===n?0:i);w.append(s)}return w}
+/* 별점: 누르거나 좌우로 끌어서 0.5점 단위 (저장은 0~10) */
+function stars(p,set){
+  const w=el('div','stars');w.setAttribute('role','slider');w.setAttribute('aria-valuemin','0');w.setAttribute('aria-valuemax','10');
+  const fills=[];for(let i=0;i<5;i++){const s=el('span','st');const f=el('i');s.append(f);w.append(s);fills.push(f)}
+  const lab=el('span','st-v');w.append(lab);
+  const paint=v=>{fills.forEach((f,i)=>{f.style.width=Math.max(0,Math.min(2,v-i*2))*50+'%'});lab.textContent=v?String(v/2):'';w.setAttribute('aria-valuenow',String(v))};
+  paint(p);
+  let cur=p,moved=false,down=false;
+  const at=e=>{const a=w.children[0].getBoundingClientRect(),b=w.children[4].getBoundingClientRect();const x=Math.max(0,Math.min(b.right-a.left,e.clientX-a.left));return Math.max(1,Math.ceil(x/(b.right-a.left)*10))};
+  w.onpointerdown=e=>{if(e.target===lab)return;down=true;moved=false;try{w.setPointerCapture(e.pointerId)}catch(x){}cur=at(e);paint(cur)};
+  w.onpointermove=e=>{if(!down)return;const v=at(e);if(v!==cur){moved=true;cur=v;paint(cur)}};
+  w.onpointerup=()=>{if(!down)return;down=false;if(!moved&&cur===p){cur=0;paint(0)}set(cur)};
+  w.onpointercancel=()=>{down=false;cur=p;paint(p)};
+  return w;
+}
 function rateCard(b){
   S.rate=S.rate||{};const hints=rateHints();
   (RATE_SETS[S.cat]||RATE_SETS.food).forEach(k=>{
-    const r=S.rate[k]||{s:0,c:[],t:''};const row=el('div','rt-row'+(r.s?' open':''));
+    const r=S.rate[k]||{p:0,c:[],t:''};if(r.s&&!r.p){r.p=r.s*2;delete r.s}const row=el('div','rt-row'+(r.p?' open':''));
     const h=el('div','rt-h');const lb=el('div','rt-l');lb.append(el('b','',k));
     if(hints[k])lb.append(el('small','','방문자 '+hints[k].n+'명 “'+hints[k].t+'”'));
-    h.append(lb,stars(r.s,v=>{const cur=S.rate[k]||{s:0,c:[],t:''};cur.s=v;S.rate[k]=cur;if(!v&&!cur.c.length&&!cur.t)delete S.rate[k];changed();renderEasyKeep()}));row.append(h);
-    if(r.s){
+    h.append(lb,stars(r.p||0,v=>{const cur=S.rate[k]||{p:0,c:[],t:''};const was=!!cur.p;cur.p=v;delete cur.s;S.rate[k]=cur;if(!v&&!cur.c.length&&!cur.t)delete S.rate[k];changed();if(was!==!!v)renderEasyKeep()}));row.append(h);
+    if(r.p){
       const ch=RATE_CHIPS[k]||[];
       if(ch.length)row.append(eChips(ch,t=>((S.rate[k]&&S.rate[k].c)||[]).includes(t),t=>{const cur=S.rate[k];const i=cur.c.indexOf(t);i>=0?cur.c.splice(i,1):cur.c.push(t);changed()}));
       const inp=document.createElement('input');inp.type='text';inp.placeholder='한 줄 (선택)';inp.value=r.t||'';inp.oninput=()=>{S.rate[k].t=inp.value;changed()};row.append(inp);
@@ -1054,7 +1085,7 @@ function facCard(b){
 }
 function rateMD(){
   const L=[];const hints=rateHints();
-  Object.entries(S.rate||{}).forEach(([k,r])=>{if(!r||!r.s)return;const parts=['★'.repeat(r.s)+'☆'.repeat(5-r.s)+' ('+r.s+'/5)'];
+  Object.entries(S.rate||{}).forEach(([k,r])=>{const p=r&&(r.p||(r.s?r.s*2:0));if(!p)return;const parts=['★'.repeat(Math.floor(p/2))+(p%2?'½':'')+' ('+(p/2)+'/5)'];
     if(r.c&&r.c.length)parts.push(r.c.join(', '));if(r.t&&r.t.trim())parts.push(r.t.trim());
     if(hints[k])parts.push('방문자 '+hints[k].n+'명 “'+hints[k].t+'”');L.push('- **'+k+'**: '+parts.join(' · '))});
   return L;
@@ -1101,7 +1132,6 @@ function buildMD(){
   out.push('## 내 경험','');
   sections().forEach(sec=>{if(sec.id==='campaign')return;const b=secBody(sec);if(!b.length)return;out.push(`### ${sec.title}`,...b,'')});
   const rm=rateMD();if(rm.length)out.push('### 평가',...rm,'');
-  const fm=facMD();if(fm.length)out.push('### 시설·편의',...fm,'');
   const qm=PLACE?getQM(PLACE.id):[];
   if(qm.length)out.push('### 현장 메모',...qm.map(m=>`- ${hhmm(m.t)} ${m.text}`),'');
   if(PHOTOS.length)out.push('### 사진',...PHOTOS.map(p=>`- ${p.name}`),'');
@@ -1613,7 +1643,18 @@ function easyCards(){
   }});
   const nb=(PLACE&&PLACE.blogs&&PLACE.blogs.length)||5;
   cards.push({id:'rate',src:'평가',q:'어땠어요?',body:b=>rateCard(b)});
-  if(visit)cards.push({id:'fac',src:'시설',q:'있었나요?',body:b=>facCard(b)});
+  if(visit)cards.push({id:'arrive',src:'현장',q:'도착해 보니 어땠어요?',body:b=>{
+    b.append(el('div','e-label','주차'),rChips('parking',PARK_OPTS),eText(()=>S.f.parkingDetail,x=>S.f.parkingDetail=x,'예: 근처 유료주차장 2시간 지원 / 바로 옆 건물 지하'));
+    b.append(el('div','e-label','붐빔'),rChips('crowd',['한산함','적당함','거의 만석','웨이팅 있음']),eText(()=>S.f.crowdStory,x=>S.f.crowdStory=x,'예: 평일 11시 반 도착, 두 자리 빼고 만석'));
+    b.append(el('div','e-label','기다림'),rChips('wait',WAIT_OPTS));
+    const ex=EXTRA_WAIT[S.cat];if(ex)b.append(el('div','e-label',ex[1]),rChips(ex[0],ex[2]));
+  }});
+  if(visit&&((S.f.with&&S.f.with.sel)||[]).includes('아이'))cards.push({id:'kid',src:'아이',q:'아이랑은 어땠어요?',body:b=>{
+    b.append(mChips('kid',KID_OPTS),el('div','e-label','아이 반응·장면'),eText(()=>S.f.kidStory,x=>S.f.kidStory=x,'예: 아기밥 한 그릇 더 챙겨주심 / 볼풀에서 깔깔대며 뒹굴었음',true));
+  }});
+  if(S.cat==='stay')cards.push({id:'stay',src:'숙소',q:'숙소는 어땠어요?',body:b=>{
+    b.append(el('div','e-label','바베큐'),mChips('bbq',BBQ_OPTS),el('div','e-label','방·시설'),mChips('room',ROOM_OPTS),eText(()=>S.f.stayMemo,x=>S.f.stayMemo=x,'예: 사장님이 야외 공간에서 먹어도 된다고 안내해 주심',true));
+  }});
   cards.push({id:'menu',src:C.item,q:ITEM_Q[S.cat],body:b=>{
     let pm=(PLACE&&PLACE.menus)||[];
     const pr=preset();
