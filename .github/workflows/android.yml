@@ -1,0 +1,52 @@
+name: android
+
+on:
+  push:
+    branches: [main]
+    paths: ['android/**', 'index.html', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+
+      - name: 페이지를 앱 assets로 복사
+        run: |
+          mkdir -p android/app/src/main/assets
+          cp index.html android/app/src/main/assets/index.html
+
+      - name: 테스트용 APK 빌드
+        run: gradle -p android assembleDebug --no-daemon --stacktrace
+
+      - name: 이름 정리
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk hugissiat-test.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hugissiat-test
+          path: hugissiat-test.apk
+
+      - name: 테스트 빌드 릴리스에 올리기 (폰에서 바로 받기용)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: test-build
+          name: 테스트 빌드 (최신)
+          prerelease: true
+          body: |
+            후기씨앗 테스트용 APK입니다. 폰에서 아래 파일을 받아 설치하세요.
+            커밋: ${{ github.sha }}
+          files: hugissiat-test.apk
