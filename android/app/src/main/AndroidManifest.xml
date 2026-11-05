@@ -7,6 +7,10 @@
     <!-- 다녀온 뒤 알림 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 가게 나오면 알림 (켰을 때만 요청) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <queries>
         <intent>
@@ -38,6 +42,10 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+            <!-- 앱 아이콘 길게 누르기: 지금 메모 / 가게 추가 -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <receiver
@@ -72,6 +80,10 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name=".GeoReceiver"
+            android:exported="false" />
 
         <!-- 보내기: 캐시의 MD·사진을 다른 앱에 읽기 권한으로 넘긴다 -->
         <provider

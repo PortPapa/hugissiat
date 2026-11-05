@@ -76,13 +76,18 @@ public class ReminderReceiver extends BroadcastReceiver {
                 JSONObject r = o.optJSONObject(id);
                 if (r != null) schedule(c, id, r.optLong("at"), r.optString("title"), r.optString("body"));
             }
+            GeoKeeper.register(c);
             return;
         }
         if (!ACTION.equals(a)) return;
         String id = intent.getStringExtra("id");
         if (id == null) return;
         remove(c, id);
+        notifyPlan(c, id, intent.getStringExtra("title"), intent.getStringExtra("body"));
+    }
 
+    /** 알림을 누르면 그 가게 질문 카드로 바로 들어간다 */
+    static void notifyPlan(Context c, String id, String title, String body) {
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         if (nm == null) return;
         nm.createNotificationChannel(new NotificationChannel(CHANNEL, "다녀온 뒤 알림", NotificationManager.IMPORTANCE_DEFAULT));
@@ -93,9 +98,9 @@ public class ReminderReceiver extends BroadcastReceiver {
         Notification n = new Notification.Builder(c, CHANNEL)
                 .setSmallIcon(R.drawable.ic_stat)
                 .setColor(0xFF6F8E6D)
-                .setContentTitle(intent.getStringExtra("title"))
-                .setContentText(intent.getStringExtra("body"))
-                .setStyle(new Notification.BigTextStyle().bigText(intent.getStringExtra("body")))
+                .setContentTitle(title)
+                .setContentText(body)
+                .setStyle(new Notification.BigTextStyle().bigText(body))
                 .setAutoCancel(true)
                 .setContentIntent(tap)
                 .build();

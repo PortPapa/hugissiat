@@ -573,7 +573,7 @@ public class MainActivity extends Activity {
     }
 
     /* ---------- 말로 남기기: 폰 음성 인식. 말이 끊겨도 5분까지 자동으로 다시 듣는다 ---------- */
-    private static final int REQ_MIC = 51, REQ_NOTI = 52;
+    private static final int REQ_MIC = 51, REQ_NOTI = 52, REQ_LOC = 53, REQ_BG = 54;
     private static final long VOICE_MAX = 300_000;
     private long rmsAt = 0;
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -670,9 +670,35 @@ public class MainActivity extends Activity {
         }
     };
 
+    private void geoEvent(String st) {
+        String js = "window.chdGeo&&window.chdGeo(" + JSONObject.quote(st) + ")";
+        runOnUiThread(() -> web.evaluateJavascript(js, null));
+    }
+
+    /** 위치 권한: 먼저 '앱 사용 중', 그다음 '항상 허용' */
+    private void geoAsk() {
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, REQ_LOC);
+            return;
+        }
+        if (checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "위치 권한에서 '항상 허용'을 골라주세요", Toast.LENGTH_LONG).show();
+            requestPermissions(new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, REQ_BG);
+            return;
+        }
+        GeoKeeper.prefs(this).edit().putBoolean("on", true).apply();
+        GeoKeeper.register(this);
+        geoEvent("on");
+    }
+
     @Override
     public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
         super.onRequestPermissionsResult(req, perms, res);
+        if (req == REQ_LOC || req == REQ_BG) {
+            boolean ok = res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED;
+            if (ok) geoAsk(); else geoEvent("denied");
+            return;
+        }
         if (req == REQ_MIC) {
             if (res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED) beginVoice();
             else { voiceEvent("error", "마이크 권한을 허용하면 말로 남길 수 있어요"); voiceEvent("end", ""); }
@@ -896,6 +922,41 @@ public class MainActivity extends Activity {
         public void driveUnlink() {
             if (!trusted) return;
             appPrefs().edit().putBoolean("drive", false).apply();
+        }
+
+        @JavascriptInterface
+        public String geoStatus() {
+            if (!trusted) return "off";
+            return GeoKeeper.enabled(MainActivity.this) && GeoKeeper.hasPermission(MainActivity.this) ? "on" : "off";
+        }
+
+        @JavascriptInterface
+        public void geoEnable() {
+            if (!trusted) return;
+            runOnUiThread(MainActivity.this::geoAsk);
+        }
+
+        @JavascriptInterface
+        public void geoDisable() {
+            if (!trusted) return;
+            GeoKeeper.prefs(MainActivity.this).edit().putBoolean("on", false).apply();
+            GeoKeeper.register(MainActivity.this);
+        }
+
+        /** fences = [{id,name,lat,lng,from,to}] */
+        @JavascriptInterface
+        public void geoSet(String fences) {
+            if (!trusted) return;
+            GeoKeeper.save(MainActivity.this, fences);
+            GeoKeeper.register(MainActivity.this);
+        }
+
+        /** 지오펜스로 잰 머문 시간 {in,out} (ms) */
+        @JavascriptInterface
+        public String geoStay(String id) {
+            if (!trusted || id == null) return "{}";
+            SharedPreferences p = GeoKeeper.prefs(MainActivity.this);
+            return "{\"in\":" + p.getLong("in_" + id, 0) + ",\"out\":" + p.getLong("out_" + id, 0) + "}";
         }
 
         /** job = {path:[...], mdName, md, key} */
