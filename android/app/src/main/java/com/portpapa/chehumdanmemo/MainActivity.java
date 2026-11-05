@@ -302,12 +302,17 @@ public class MainActivity extends Activity {
     }
 
     private String thumbOf(File f) {
+        return imageData(f, 240, 70);
+    }
+
+    /** 사진을 max px 이하로 줄여 data URL로 (크게 보기용은 1600) */
+    private String imageData(File f, int max, int quality) {
         try {
             BitmapFactory.Options o = new BitmapFactory.Options();
             o.inJustDecodeBounds = true;
             BitmapFactory.decodeFile(f.getAbsolutePath(), o);
             int s = 1;
-            while (Math.max(o.outWidth, o.outHeight) / (s * 2) >= 240) s *= 2;
+            while (Math.max(o.outWidth, o.outHeight) / (s * 2) >= max) s *= 2;
             o = new BitmapFactory.Options();
             o.inSampleSize = s;
             Bitmap b = BitmapFactory.decodeFile(f.getAbsolutePath(), o);
@@ -323,7 +328,7 @@ public class MainActivity extends Activity {
                 b = Bitmap.createBitmap(b, 0, 0, b.getWidth(), b.getHeight(), m, true);
             }
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            b.compress(Bitmap.CompressFormat.JPEG, 70, out);
+            b.compress(Bitmap.CompressFormat.JPEG, quality, out);
             return "data:image/jpeg;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
         } catch (Exception e) {
             return "";
@@ -852,6 +857,13 @@ public class MainActivity extends Activity {
         public String getPhotos() {
             if (!trusted) return "[]";
             return photosJson();
+        }
+
+        @JavascriptInterface
+        public String photoFull(String name) {
+            if (!trusted || name == null || name.contains("/") || name.contains("..")) return "";
+            File f = new File(photoDir(), name);
+            return f.exists() ? imageData(f, 1600, 85) : "";
         }
 
         @JavascriptInterface
