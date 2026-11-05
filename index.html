@@ -262,6 +262,11 @@ body[data-tab=plans] #viewPlans,body[data-tab=records] #viewRecords,body[data-ta
 .set-c{display:flex;color:#b9b3a8}.set-c svg{width:18px;height:18px}
 .set-dots{display:flex;align-items:center;gap:4px}.set-dots i,.pdot{display:inline-block;width:10px;height:10px;border-radius:50%}
 .set-dots span{font-size:12px;margin-left:2px}
+.chips.groups{align-items:flex-start}
+.chips.groups .chip{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;border-radius:14px;padding:8px 12px;text-align:left}
+.chips.groups .chip b{font-size:14px}.chips.groups .chip small{font-size:11.5px;color:var(--sub);font-weight:400}
+.set-l.g2{flex-direction:column;align-items:flex-start;gap:1px;padding:8px 0}.set-l.g2 small{font-size:12px;color:var(--sub)}
+.chips.sug{margin-top:10px}
 .done-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
 .done-row .e-btn{text-align:center;font-weight:700;margin:0}
 .e-btn.drive{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:8px;font-weight:700}
@@ -575,8 +580,6 @@ function init(){
   /* 내 프로필(한 번 저장하면 매번 자동) */
   const pf=getProfile();
   if(pf.me)s.f.me=pf.me;
-  if(pf.with&&pf.with.length)s.f.with={sel:[...pf.with],other:''};
-  if(pf.withDetail)s.f.withDetail=pf.withDetail;
   return s;
 }
 let S=null;
@@ -1119,6 +1122,36 @@ $('#actBg').onclick=closeAct;
 
 /* ---------- 내 프로필 ---------- */
 function getProfile(){try{return JSON.parse(localStorage.getItem('chd-profile')||'{}')||{}}catch(e){return {}}}
+const WITH_OPTS=['혼자','남편/아내','연인','아이','부모님','친구','친구 아이','직장 동료','반려견'];
+const ME_TAGS=['엄마','아빠','아이 하나','아이 둘','아이 셋','직장인','프리랜서','자영업','20대','30대','40대','50대','맛집 탐방 좋아함','매운 거 못 먹음','술 좋아함','술 안 마심','다이어트 중','반려견 키움'];
+function setProfile(p){try{localStorage.setItem('chd-profile',JSON.stringify(p))}catch(e){}}
+function profileMe(p){return [...(p.meTags||[]),(p.meText||'').trim()].filter(Boolean).join(', ')||(p.me||'')}
+function josaRang(w){const c=w.charCodeAt(w.length-1);return c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28?'이랑':'랑'}
+function groupName(w){const m=(w||[]).filter(x=>x!=='혼자');if(!m.length)return (w||[]).length?'혼자':'';
+  if(m.length===1)return m[0]+josaRang(m[0])+' 둘이';return m.join(' + ')}
+function getGroups(){const p=getProfile();
+  if(!p.groups&&p.with&&p.with.length){p.groups=[{id:'g'+Date.now(),with:p.with,detail:p.withDetail||''}];delete p.with;delete p.withDetail;setProfile(p)}
+  return p.groups||[]}
+function setGroups(gs){const p=getProfile();p.groups=gs;delete p.with;delete p.withDetail;setProfile(p)}
+const GROUP_SUGGEST=[['혼자'],['아이'],['남편/아내','아이'],['친구'],['친구','아이'],['친구','친구 아이','아이']];
+const sameSet=(a,b)=>a.length===b.length&&a.every(x=>b.includes(x));
+function groupEditor(g,after){openAct(b=>{
+  const st={with:[...(g&&g.with||[])],detail:g&&g.detail||'',name:g&&g.name||''};
+  b.append(el('h3','',g?'조합 수정':'조합 추가'),el('div','e-label','누구랑'),
+    eChips(WITH_OPTS,t=>st.with.includes(t),t=>{const i=st.with.indexOf(t);i>=0?st.with.splice(i,1):st.with.push(t);nm.placeholder=groupName(st.with)||'이름 (선택)'}));
+  const dt=document.createElement('input');dt.type='text';dt.value=st.detail;dt.placeholder='예: 7살 아들, 친구 딸 5살';dt.oninput=()=>st.detail=dt.value;
+  const nm=document.createElement('input');nm.type='text';nm.value=st.name;nm.placeholder=groupName(st.with)||'이름 (선택)';nm.oninput=()=>st.name=nm.value;
+  b.append(el('div','e-label','자세히'),dt,el('div','e-label','이름'),nm);
+  const ch=el('div','done-row');
+  const sv=el('button','e-btn primary','저장');sv.type='button';
+  sv.onclick=()=>{if(!st.with.length){toast('누구랑인지 골라주세요');return}
+    const gs=getGroups();const item={id:g?g.id:'g'+Date.now(),with:st.with,detail:st.detail.trim(),name:st.name.trim()};
+    const i=gs.findIndex(x=>x.id===item.id);i>=0?gs[i]=item:gs.push(item);setGroups(gs);toast('저장했어요');after&&after()};
+  ch.append(sv);
+  if(g){const dl=el('button','e-btn','삭제');dl.type='button';dl.onclick=()=>{setGroups(getGroups().filter(x=>x.id!==g.id));after&&after()};ch.append(dl)}
+  else ch.style.gridTemplateColumns='1fr';
+  b.append(ch);
+})}
 function saveProfile(){
   const p={me:(S.f.me||'').trim(),with:((S.f.with&&S.f.with.sel)||[]).filter(x=>x!=='기타'),withDetail:(S.f.withDetail||'').trim()};
   try{localStorage.setItem('chd-profile',JSON.stringify(p))}catch(e){}
@@ -1407,11 +1440,18 @@ function easyCards(){
     }
   }});
   cards.push({id:'with',src:'누구랑',q:visit?'누구랑 갔어요?':'누구랑 같이 썼어요?',body:b=>{
-    const pf=getProfile();
-    b.append(mChips('with',['혼자','남편/아내','연인','아이','부모님','친구','직장 동료','반려견']));
+    const gs=getGroups();const cur=(S.f.with&&S.f.with.sel)||[];
+    if(gs.length){const gc=el('div','chips groups');
+      gs.forEach(g=>{const on=sameSet(cur,g.with)&&(S.f.withDetail||'')===(g.detail||'');
+        const x=el('button','chip'+(on?' on':''));x.type='button';x.append(el('b','',g.name||groupName(g.with)));if(g.detail)x.append(el('small','',g.detail));
+        x.onclick=()=>{S.f.with={sel:on?[]:[...g.with],other:''};S.f.withDetail=on?'':(g.detail||'');changed();renderEasy()};gc.append(x)});
+      b.append(gc,el('div','e-label','직접 고르기'))}
+    b.append(mChips('with',WITH_OPTS));
     b.append(el('div','e-label','자세히'),eText(()=>S.f.withDetail,x=>S.f.withDetail=x,'예: 남편, 7살·5살 아들 둘'));
-    b.append(el('div','e-label','나는 어떤 사람?'),eText(()=>S.f.me,x=>S.f.me=x,'예: 두 아이 엄마, 매운 거 잘 못 먹음, 15년차 제빵사'));
-    const sv=el('button','mic','프로필로 저장');sv.type='button';sv.onclick=saveProfile;b.append(sv);
+    if(cur.length&&!gs.some(g=>sameSet(cur,g.with)&&(g.detail||'')===(S.f.withDetail||'').trim())){
+      const sv=el('button','mic','+ 자주 가는 조합으로 저장');sv.type='button';
+      sv.onclick=()=>{setGroups([...gs,{id:'g'+Date.now(),with:[...cur],detail:(S.f.withDetail||'').trim(),name:''}]);toast('조합을 저장했어요');renderEasy()};b.append(sv)}
+    if(!getProfile().meTags&&!getProfile().me&&!getProfile().meText){b.append(el('div','e-label','나는 어떤 사람?'),eText(()=>S.f.me,x=>S.f.me=x,'예: 두 아이 엄마, 매운 거 잘 못 먹음'))}
   }});
   cards.push({id:'why',src:'왜',q:visit?'왜 가게 됐어요?':'왜 써보게 됐어요?',body:b=>{
     b.append(mChips('reason',visit?['체험단 선정','여행 중','등산·나들이 후','집·회사 근처','기념일','부모님 효도','데이트','평소 궁금했던 곳','재방문']:['체험단 선정','평소 필요했던 제품','기존 제품 교체','선물용','후기 보고 궁금']));
@@ -1691,7 +1731,7 @@ function renderMe(){
   /* 프로필 카드 */
   const pc=el('button','set-prof');pc.type='button';
   const av=$('#tabMe').cloneNode(true);av.removeAttribute('id');av.className='set-av';
-  const pt=el('div','set-pt');pt.append(el('b','',pf.me||'나를 소개해 주세요'),el('span','',(pf.with&&pf.with.length?'주로 '+pf.with.join(', ')+'와':'자주 같이 가는 사람')+(pf.withDetail?' · '+pf.withDetail:'')));
+  const pt=el('div','set-pt');const gsN=getGroups();pt.append(el('b','',profileMe(getProfile())||'나를 소개해 주세요'),el('span','',gsN.length?'자주 가는 조합 '+gsN.length+'개 · '+gsN.slice(0,3).map(g=>g.name||groupName(g.with)).join(', '):'자주 가는 조합을 저장해 두세요'));
   const pcv=el('span','set-c');pcv.innerHTML=CHEV;
   pc.append(av,pt,pcv);pc.onclick=()=>profileSheet();
   /* 플랫폼 미리보기 점 */
@@ -1708,14 +1748,24 @@ function renderMe(){
   );
 }
 function profileSheet(){openAct(b=>{
-  const pf=getProfile();const st={me:pf.me||'',with:[...(pf.with||[])],withDetail:pf.withDetail||''};
-  b.append(el('h3','','내 프로필'));
-  const me=document.createElement('textarea');me.value=st.me;me.placeholder='나는 어떤 사람? 예: 두 아이 엄마, 매운 거 못 먹음';me.oninput=()=>st.me=me.value;
-  const wd=document.createElement('input');wd.type='text';wd.value=st.withDetail;wd.placeholder='예: 남편, 7살·5살 아들';wd.oninput=()=>st.withDetail=wd.value;
-  const sv=el('button','e-btn primary','저장');sv.type='button';
-  sv.onclick=()=>{try{localStorage.setItem('chd-profile',JSON.stringify({me:st.me.trim(),with:st.with,withDetail:st.withDetail.trim()}))}catch(e){}closeAct();toast('저장했어요');renderMe()};
-  b.append(me,el('div','e-label','자주 같이 가는 사람'),eChips(['혼자','남편/아내','연인','아이','부모님','친구','직장 동료','반려견'],t=>st.with.includes(t),t=>{const i=st.with.indexOf(t);i>=0?st.with.splice(i,1):st.with.push(t)}),wd,sv);
+  const p=getProfile();if(!p.meTags&&p.me){p.meText=p.me;p.meTags=[]}
+  const st={meTags:[...(p.meTags||[])],meText:p.meText||''};
+  const keep=()=>{const q=getProfile();q.meTags=st.meTags;q.meText=st.meText.trim();q.me=profileMe(q);setProfile(q);renderMe()};
+  b.append(el('h3','','내 프로필'),el('div','e-label','나는 어떤 사람?'),
+    eChips(ME_TAGS,t=>st.meTags.includes(t),t=>{const i=st.meTags.indexOf(t);i>=0?st.meTags.splice(i,1):st.meTags.push(t);keep()}));
+  const mt=document.createElement('input');mt.type='text';mt.value=st.meText;mt.placeholder='더 적기 (예: 15년차 제빵사)';mt.oninput=()=>{st.meText=mt.value;keep()};
+  b.append(mt,el('div','e-label','자주 가는 조합'));
+  const list=el('div','set-box');const gs=getGroups();
+  gs.forEach(g=>{const r=el('button','set-row');r.type='button';const l=el('span','set-l g2');l.append(el('b','',g.name||groupName(g.with)));if(g.detail)l.append(el('small','',g.detail));
+    r.append(l,el('span','set-v','수정'));r.onclick=()=>groupEditor(g,profileSheet);list.append(r)});
+  const ad=el('button','set-row add');ad.type='button';ad.append(el('span','set-l','+ 조합 추가'));ad.onclick=()=>groupEditor(null,profileSheet);list.append(ad);
+  b.append(list);
+  const sug=GROUP_SUGGEST.filter(w=>!gs.some(g=>sameSet(g.with,w)));
+  if(sug.length){const sc=el('div','chips sug');sug.forEach(w=>{const x=el('button','chip etc','+ '+groupName(w));x.type='button';
+    x.onclick=()=>{setGroups([...getGroups(),{id:'g'+Date.now()+Math.random().toString(36).slice(2,5),with:w,detail:'',name:''}]);profileSheet();renderMe()};sc.append(x)});b.append(sc)}
+  const dn=el('button','e-btn primary','완료');dn.type='button';dn.onclick=()=>{keep();closeAct()};b.append(dn);
 })}
+
 function platformSheet(){openAct(b=>{
   b.append(el('h3','','체험단 플랫폼'));
   const list=el('div','set-box');
