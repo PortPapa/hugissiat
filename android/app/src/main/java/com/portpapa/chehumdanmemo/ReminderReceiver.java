@@ -92,7 +92,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification n = new Notification.Builder(c, CHANNEL)
                 .setSmallIcon(R.drawable.ic_stat)
-                .setColor(0xFFFF6B4A)
+                .setColor(0xFF6F8E6D)
                 .setContentTitle(intent.getStringExtra("title"))
                 .setContentText(intent.getStringExtra("body"))
                 .setStyle(new Notification.BigTextStyle().bigText(intent.getStringExtra("body")))
