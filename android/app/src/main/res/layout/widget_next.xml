@@ -7,28 +7,24 @@
     android:orientation="vertical"
     android:padding="14dp">
 
-    <TextView
+    <ImageView
         android:id="@+id/w_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:text="후기씨앗"
-        android:textColor="#1F1F1F"
-        android:textSize="16sp"
-        android:textStyle="bold" />
+        android:layout_width="wrap_content"
+        android:layout_height="20dp"
+        android:adjustViewBounds="true"
+        android:contentDescription="후기씨앗"
+        android:scaleType="fitStart" />
 
-    <TextView
+    <ImageView
         android:id="@+id/w_sub"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textColor="#6F6A62"
-        android:textSize="12sp" />
+        android:layout_width="wrap_content"
+        android:layout_height="15dp"
+        android:layout_marginTop="4dp"
+        android:adjustViewBounds="true"
+        android:contentDescription="요약"
+        android:scaleType="fitStart" />
 
-    <View
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
@@ -38,30 +34,30 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <TextView
+        <ImageView
             android:id="@+id/w_btn1"
             android:layout_width="0dp"
             android:layout_height="40dp"
             android:layout_weight="1"
             android:background="@drawable/widget_btn"
-            android:gravity="center"
-            android:textColor="#1F1F1F"
-            android:textSize="13sp"
-            android:textStyle="bold" />
+            android:contentDescription="링크로 시작"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:scaleType="centerInside" />
 
-        <View
+        <FrameLayout
             android:layout_width="8dp"
             android:layout_height="1dp" />
 
-        <TextView
+        <ImageView
             android:id="@+id/w_btn2"
             android:layout_width="0dp"
             android:layout_height="40dp"
             android:layout_weight="1"
             android:background="@drawable/widget_btn_primary"
-            android:gravity="center"
-            android:textColor="#FFFFFF"
-            android:textSize="13sp"
-            android:textStyle="bold" />
+            android:contentDescription="현장 메모"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:scaleType="centerInside" />
     </LinearLayout>
 </LinearLayout>

@@ -25,6 +25,11 @@ import android.widget.Toast;
 import android.window.OnBackInvokedDispatcher;
 
 import androidx.core.content.FileProvider;
+import com.google.android.gms.auth.api.identity.AuthorizationRequest;
+import com.google.android.gms.auth.api.identity.AuthorizationResult;
+import com.google.android.gms.auth.api.identity.Identity;
+import com.google.android.gms.common.api.Scope;
+import java.net.URLEncoder;
 import androidx.webkit.WebViewAssetLoader;
 
 import android.graphics.Bitmap;
@@ -238,14 +243,31 @@ public class MainActivity extends Activity {
     /* ---------- 사진: 고른 사진을 캐시에 01.jpg, 02.jpg…로 복사해 두고 보내기 때 같이 보낸다 ---------- */
     private static final int REQ_PICK = 41;
 
-    private File photoDir() {
-        File d = new File(getCacheDir(), "share/photos");
+    /** 가게(플레이스 ID)마다 사진 폴더를 따로 둔다: files/photos/<key>/ */
+    private volatile String photoKey = "_";
+
+    private static String safeKey(String k) {
+        if (k == null) return "_";
+        String s = k.replaceAll("[^0-9A-Za-z_-]", "");
+        return s.isEmpty() ? "_" : s;
+    }
+
+    private File photoDirOf(String key) {
+        File d = new File(getFilesDir(), "photos/" + safeKey(key));
         d.mkdirs();
         return d;
     }
 
+    private File photoDir() {
+        return photoDirOf(photoKey);
+    }
+
     private File[] photoFiles() {
-        File[] fs = photoDir().listFiles(f -> f.isFile() && !f.getName().startsWith("."));
+        return photoFilesOf(photoKey);
+    }
+
+    private File[] photoFilesOf(String key) {
+        File[] fs = photoDirOf(key).listFiles(f -> f.isFile() && !f.getName().startsWith("."));
         if (fs == null) return new File[0];
         Arrays.sort(fs, (a, b) -> a.getName().compareTo(b.getName()));
         return fs;
@@ -308,9 +330,193 @@ public class MainActivity extends Activity {
         });
     }
 
+    /* ---------- 구글 드라이브: 후기씨앗/2026년 11월/06 가게이름/ 에 MD + 사진 저장 ---------- */
+    private static final int REQ_DRIVE = 61;
+    private static final String DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+    private String pendingDriveJob = null;
+
+    private SharedPreferences appPrefs() {
+        return getSharedPreferences("chd", 0);
+    }
+
+    private void driveCb(boolean ok, JSONObject o) {
+        try { o.put("ok", ok); } catch (Exception ignored) {}
+        String js = "window.chdDrive&&window.chdDrive(" + JSONObject.quote(o.toString()) + ")";
+        runOnUiThread(() -> web.evaluateJavascript(js, null));
+    }
+
+    private void driveFail(String msg) {
+        JSONObject o = new JSONObject();
+        try { o.put("error", msg); } catch (Exception ignored) {}
+        driveCb(false, o);
+    }
+
+    private void driveAuth(String job) {
+        AuthorizationRequest req = AuthorizationRequest.builder()
+                .setRequestedScopes(Arrays.asList(new Scope(DRIVE_SCOPE))).build();
+        Identity.getAuthorizationClient(this).authorize(req)
+                .addOnSuccessListener(r -> {
+                    if (r.hasResolution() && r.getPendingIntent() != null) {
+                        pendingDriveJob = job;
+                        try {
+                            startIntentSenderForResult(r.getPendingIntent().getIntentSender(), REQ_DRIVE, null, 0, 0, 0, null);
+                        } catch (Exception e) {
+                            driveFail("구글 연결 화면을 열 수 없어요");
+                        }
+                    } else {
+                        driveToken(r.getAccessToken(), job);
+                    }
+                })
+                .addOnFailureListener(e -> driveFail("구글 연결에 실패했어요"));
+    }
+
+    private void driveToken(String token, String job) {
+        if (token == null || token.isEmpty()) { driveFail("구글 연결에 실패했어요"); return; }
+        appPrefs().edit().putBoolean("drive", true).apply();
+        if (job == null) {
+            JSONObject o = new JSONObject();
+            try { o.put("connected", true); } catch (Exception ignored) {}
+            driveCb(true, o);
+            return;
+        }
+        pool.execute(() -> driveUpload(token, job));
+    }
+
+    private static String q(String s) {
+        return s.replace("\\", "\\\\").replace("'", "\\'");
+    }
+
+    private JSONObject driveCall(String token, String method, String url, String ctype, byte[] body) throws Exception {
+        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+        c.setConnectTimeout(15000);
+        c.setReadTimeout(60000);
+        c.setRequestProperty("Authorization", "Bearer " + token);
+        if ("PATCH".equals(method)) {
+            c.setRequestMethod("POST");
+            c.setRequestProperty("X-HTTP-Method-Override", "PATCH");
+        } else {
+            c.setRequestMethod(method);
+        }
+        if (body != null) {
+            c.setDoOutput(true);
+            c.setRequestProperty("Content-Type", ctype);
+            c.setFixedLengthStreamingMode(body.length);
+            try (OutputStream os = c.getOutputStream()) { os.write(body); }
+        }
+        int code = c.getResponseCode();
+        InputStream in = code < 400 ? c.getInputStream() : c.getErrorStream();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        if (in != null) {
+            byte[] b = new byte[8192];
+            int n;
+            while ((n = in.read(b)) > 0) out.write(b, 0, n);
+            in.close();
+        }
+        String s = out.toString("UTF-8");
+        if (code >= 400) throw new Exception("HTTP " + code + " " + s);
+        return s.isEmpty() ? new JSONObject() : new JSONObject(s);
+    }
+
+    private String driveFind(String token, String name, String parent, boolean folder) throws Exception {
+        String qs = "name = '" + q(name) + "' and '" + parent + "' in parents and trashed = false"
+                + (folder ? " and mimeType = 'application/vnd.google-apps.folder'" : "");
+        JSONObject r = driveCall(token, "GET", "https://www.googleapis.com/drive/v3/files?fields=files(id)&spaces=drive&q="
+                + URLEncoder.encode(qs, "UTF-8"), null, null);
+        JSONArray a = r.optJSONArray("files");
+        return a != null && a.length() > 0 ? a.getJSONObject(0).getString("id") : null;
+    }
+
+    private String driveFolder(String token, String name, String parent) throws Exception {
+        String id = driveFind(token, name, parent, true);
+        if (id != null) return id;
+        JSONObject m = new JSONObject();
+        m.put("name", name);
+        m.put("mimeType", "application/vnd.google-apps.folder");
+        m.put("parents", new JSONArray().put(parent));
+        return driveCall(token, "POST", "https://www.googleapis.com/drive/v3/files?fields=id",
+                "application/json; charset=UTF-8", m.toString().getBytes(StandardCharsets.UTF_8)).getString("id");
+    }
+
+    private void driveCreate(String token, String parent, String name, String mime, byte[] data) throws Exception {
+        String bd = "chd" + System.nanoTime();
+        JSONObject m = new JSONObject();
+        m.put("name", name);
+        m.put("parents", new JSONArray().put(parent));
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        b.write(("--" + bd + "\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n" + m + "\r\n--" + bd
+                + "\r\nContent-Type: " + mime + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+        b.write(data);
+        b.write(("\r\n--" + bd + "--").getBytes(StandardCharsets.UTF_8));
+        driveCall(token, "POST", "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+                "multipart/related; boundary=" + bd, b.toByteArray());
+    }
+
+    private static byte[] readAll(File f) throws Exception {
+        try (InputStream in = new FileInputStream(f)) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] b = new byte[65536];
+            int n;
+            while ((n = in.read(b)) > 0) out.write(b, 0, n);
+            return out.toByteArray();
+        }
+    }
+
+    private void driveUpload(String token, String jobJson) {
+        try {
+            JSONObject job = new JSONObject(jobJson);
+            JSONArray path = job.getJSONArray("path");
+            String parent = "root";
+            for (int i = 0; i < path.length(); i++) {
+                String nm = path.getString(i).replaceAll("[\\\\/]", "_").trim();
+                if (!nm.isEmpty()) parent = driveFolder(token, nm, parent);
+            }
+            String mdName = job.optString("mdName", "후기 소스.md").replaceAll("[\\\\/:*?\"<>|]", "_");
+            byte[] md = job.optString("md", "").getBytes(StandardCharsets.UTF_8);
+            String mdId = driveFind(token, mdName, parent, false);
+            if (mdId != null) {
+                driveCall(token, "PATCH", "https://www.googleapis.com/upload/drive/v3/files/" + mdId + "?uploadType=media",
+                        "text/markdown; charset=UTF-8", md);
+            } else {
+                driveCreate(token, parent, mdName, "text/markdown; charset=UTF-8", md);
+            }
+            int added = 0, total = 0;
+            for (File f : photoFilesOf(job.optString("key", photoKey))) {
+                total++;
+                if (driveFind(token, f.getName(), parent, false) != null) continue;
+                String ext = f.getName().replaceAll("^.*\\.", "").toLowerCase(java.util.Locale.ROOT);
+                String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+                driveCreate(token, parent, f.getName(), mime == null ? "image/jpeg" : mime, readAll(f));
+                added++;
+            }
+            JSONObject o = new JSONObject();
+            o.put("folder", parent);
+            o.put("url", "https://drive.google.com/drive/folders/" + parent);
+            o.put("added", added);
+            o.put("photos", total);
+            o.put("path", path);
+            driveCb(true, o);
+        } catch (Exception e) {
+            String m = String.valueOf(e.getMessage());
+            if (m.contains("HTTP 401")) appPrefs().edit().putBoolean("drive", false).apply();
+            driveFail(m.contains("HTTP 401") ? "구글 연결이 끊겼어요. 다시 연결해 주세요" : "드라이브에 저장하지 못했어요");
+        }
+    }
+
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == REQ_DRIVE) {
+            String job = pendingDriveJob;
+            pendingDriveJob = null;
+            if (res != RESULT_OK) { driveFail("연결을 취소했어요"); return; }
+            try {
+                AuthorizationResult r = Identity.getAuthorizationClient(this).getAuthorizationResultFromIntent(data);
+                driveToken(r.getAccessToken(), job);
+            } catch (Exception e) {
+                driveFail("구글 연결에 실패했어요");
+            }
+            return;
+        }
         if (req != REQ_PICK || res != RESULT_OK || data == null) return;
         final ArrayList<Uri> uris = new ArrayList<>();
         if (data.getClipData() != null) {
@@ -630,6 +836,47 @@ public class MainActivity extends Activity {
         public void clearPhotos() {
             if (!trusted) return;
             for (File f : photoFiles()) f.delete();
+        }
+
+        /** 지금 쓰는 가게를 알려주면 그 가게 사진 폴더로 바꾼다 */
+        @JavascriptInterface
+        public void setPhotoKey(String key) {
+            if (!trusted) return;
+            photoKey = safeKey(key);
+        }
+
+        /** 기록을 지울 때 그 가게 사진도 지운다 */
+        @JavascriptInterface
+        public void deletePhotos(String key) {
+            if (!trusted) return;
+            File d = photoDirOf(key);
+            File[] fs = d.listFiles();
+            if (fs != null) for (File f : fs) f.delete();
+            d.delete();
+        }
+
+        @JavascriptInterface
+        public boolean driveLinked() {
+            return trusted && appPrefs().getBoolean("drive", false);
+        }
+
+        @JavascriptInterface
+        public void driveConnect() {
+            if (!trusted) return;
+            runOnUiThread(() -> driveAuth(null));
+        }
+
+        @JavascriptInterface
+        public void driveUnlink() {
+            if (!trusted) return;
+            appPrefs().edit().putBoolean("drive", false).apply();
+        }
+
+        /** job = {path:[...], mdName, md, key} */
+        @JavascriptInterface
+        public void driveSave(String job) {
+            if (!trusted || job == null) return;
+            runOnUiThread(() -> driveAuth(job));
         }
 
         /** MD 파일 + 고른 사진을 카톡·메일·드라이브 등으로 한 번에 보낸다 */

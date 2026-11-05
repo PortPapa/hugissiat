@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 갈 곳 일정 위젯: 이번 달 캘린더에 방문 날짜 표시 + 미정 개수 -->
+<!-- 갈 곳 일정 위젯: 이번 달 캘린더에 방문 날짜 표시 + 미정 개수. 글자는 프리젠테이션 글꼴 그림 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_root"
     android:layout_width="match_parent"
@@ -10,31 +10,35 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="28dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <TextView
+        <ImageView
             android:id="@+id/w_title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="갈 곳"
-            android:textColor="#2E3A2D"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:layout_width="wrap_content"
+            android:layout_height="19dp"
+            android:adjustViewBounds="true"
+            android:contentDescription="갈 곳"
+            android:scaleType="fitStart" />
 
-        <TextView
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <ImageView
             android:id="@+id/w_tbd"
             android:layout_width="wrap_content"
             android:layout_height="28dp"
+            android:adjustViewBounds="true"
             android:background="@drawable/widget_btn_blush"
-            android:gravity="center"
+            android:contentDescription="미정"
             android:paddingStart="10dp"
+            android:paddingTop="7dp"
             android:paddingEnd="10dp"
-            android:textColor="#9C5A70"
-            android:textSize="12sp"
-            android:textStyle="bold" />
+            android:paddingBottom="7dp"
+            android:scaleType="fitCenter" />
 
         <TextView
             android:id="@+id/w_add"

@@ -30,6 +30,35 @@ public final class Widgets {
 
     private Widgets() {}
 
+    /* 위젯 글자는 앱 브랜드 글꼴(프리젠테이션)로 그림을 만들어 넣는다. RemoteViews는 글꼴 지정이 안 되기 때문 */
+    private static Typeface tfBold, tfReg;
+
+    static Typeface font(Context c, boolean bold) {
+        try {
+            if (bold) {
+                if (tfBold == null) tfBold = Typeface.createFromAsset(c.getAssets(), "fonts/Freesentation-7Bold.ttf");
+                return tfBold;
+            }
+            if (tfReg == null) tfReg = Typeface.createFromAsset(c.getAssets(), "fonts/Freesentation-4Regular.ttf");
+            return tfReg;
+        } catch (Exception e) {
+            return Typeface.create(Typeface.DEFAULT, bold ? Typeface.BOLD : Typeface.NORMAL);
+        }
+    }
+
+    static Bitmap text(Context c, String s, int color, boolean bold) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setTypeface(font(c, bold));
+        p.setTextSize(64);
+        p.setColor(color);
+        Paint.FontMetrics fm = p.getFontMetrics();
+        int w = Math.max(1, (int) Math.ceil(p.measureText(s)) + 4);
+        int h = Math.max(1, (int) Math.ceil(fm.descent - fm.ascent));
+        Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        new Canvas(b).drawText(s, 2, -fm.ascent, p);
+        return b;
+    }
+
     static JSONObject data(Context c) {
         try { return new JSONObject(c.getSharedPreferences(PREF, 0).getString("data", "{}")); }
         catch (Exception e) { return new JSONObject(); }
@@ -47,11 +76,11 @@ public final class Widgets {
         JSONObject d = data(c);
         JSONArray tb = d.optJSONArray("tbd");
         Calendar now = Calendar.getInstance();
-        v.setTextViewText(R.id.w_title, (now.get(Calendar.MONTH) + 1) + "월 갈 곳");
+        v.setImageViewBitmap(R.id.w_title, text(c, (now.get(Calendar.MONTH) + 1) + "월 갈 곳", 0xFF2E3A2D, true));
         int nt = tb == null ? 0 : tb.length();
         v.setViewVisibility(R.id.w_tbd, nt > 0 ? View.VISIBLE : View.GONE);
-        v.setTextViewText(R.id.w_tbd, "미정 " + nt);
-        v.setImageViewBitmap(R.id.w_cal, calendar(d, now));
+        v.setImageViewBitmap(R.id.w_tbd, text(c, "미정 " + nt, 0xFF9C5A70, true));
+        v.setImageViewBitmap(R.id.w_cal, calendar(c, d, now));
         v.setOnClickPendingIntent(R.id.w_add, open(c, "addplan", 13));
         v.setOnClickPendingIntent(R.id.w_tbd, open(c, "tab:plans", 16));
         v.setOnClickPendingIntent(R.id.w_cal, open(c, "tab:plans", 17));
@@ -64,7 +93,7 @@ public final class Widgets {
     }
 
     /** 이번 달 캘린더 그림. 방문일은 플랫폼 색 동그라미, 오늘은 테두리 */
-    static Bitmap calendar(JSONObject d, Calendar now) {
+    static Bitmap calendar(Context c, JSONObject d, Calendar now) {
         int W = 700, H = 520;
         Bitmap bm = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
         Canvas cv = new Canvas(bm);
@@ -87,7 +116,7 @@ public final class Widgets {
         float headH = 56, cw = W / 7f, ch = (H - headH) / rows;
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setTextAlign(Paint.Align.CENTER);
-        p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+        p.setTypeface(font(c, true));
         String[] wd = {"일", "월", "화", "수", "목", "금", "토"};
         p.setTextSize(28);
         for (int i = 0; i < 7; i++) {
@@ -130,10 +159,10 @@ public final class Widgets {
     static RemoteViews quick(Context c) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_next);
         JSONObject d = data(c);
-        v.setTextViewText(R.id.w_title, "후기씨앗");
-        v.setTextViewText(R.id.w_sub, "갈 곳 " + d.optInt("plans") + " · 작성 중 " + d.optInt("drafts"));
-        v.setTextViewText(R.id.w_btn1, "링크로 시작");
-        v.setTextViewText(R.id.w_btn2, "현장 메모");
+        v.setImageViewBitmap(R.id.w_title, text(c, "후기씨앗", 0xFF1F1F1F, true));
+        v.setImageViewBitmap(R.id.w_sub, text(c, "갈 곳 " + d.optInt("plans") + " · 작성 중 " + d.optInt("drafts"), 0xFF6F6A62, false));
+        v.setImageViewBitmap(R.id.w_btn1, text(c, "링크로 시작", 0xFF1F1F1F, true));
+        v.setImageViewBitmap(R.id.w_btn2, text(c, "현장 메모", 0xFFFFFFFF, true));
         v.setOnClickPendingIntent(R.id.w_btn1, open(c, "start", 21));
         v.setOnClickPendingIntent(R.id.w_btn2, open(c, "memo:", 22));
         v.setOnClickPendingIntent(R.id.w_root, open(c, "start", 23));

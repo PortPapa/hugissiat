@@ -241,8 +241,32 @@ body[data-tab=plans] #viewPlans,body[data-tab=records] #viewRecords,body[data-ta
 .sw{width:40px;height:40px;border-radius:50%;border:3px solid var(--card);box-shadow:0 0 0 1px var(--line);padding:0;cursor:pointer}
 .sw.on{box-shadow:0 0 0 2px var(--ink)}
 .sw-l{font-size:11px;color:var(--sub);margin-top:3px}
+/* 설정 */
+#viewMe{padding-bottom:110px}
+.set-prof{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:18px;padding:14px;margin:4px 0 18px;color:var(--ink);font:inherit}
+.set-av{flex:none;width:48px;height:48px;border-radius:50%;background:var(--blush);display:flex;align-items:center;justify-content:center;color:var(--acc-ink);border:0;pointer-events:none}
+.set-av svg{width:30px;height:30px}
+.set-pt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.set-pt b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.set-pt span{font-size:12.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.set-g{margin-bottom:18px}
+.set-h{font-size:12.5px;font-weight:700;color:var(--sub);margin:0 6px 6px}
+.set-box{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.set-row{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:0 14px;border:0;border-top:1px solid var(--line);background:none;font:inherit;color:var(--ink);text-align:left}
+.set-box>.set-row:first-child{border-top:0}
+.set-row.static{cursor:default}
+.set-l{flex:1;display:flex;align-items:center;gap:8px;font-size:15px}
+.set-v{color:var(--sub);font-size:14px;display:flex;align-items:center;gap:4px}
+.set-row.on .set-v{color:var(--acc-ink);font-weight:700}
+.set-row.add .set-l{color:var(--acc-ink);font-weight:700}
+.set-c{display:flex;color:#b9b3a8}.set-c svg{width:18px;height:18px}
+.set-dots{display:flex;align-items:center;gap:4px}.set-dots i,.pdot{display:inline-block;width:10px;height:10px;border-radius:50%}
+.set-dots span{font-size:12px;margin-left:2px}
 .done-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
 .done-row .e-btn{text-align:center;font-weight:700;margin:0}
+.e-btn.drive{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:8px;font-weight:700}
+.e-btn.drive svg{width:18px;height:18px}.e-btn.drive:disabled{opacity:.6}
+.drive-path{text-align:center;margin-top:6px;font-size:12px}
 .done-links{display:flex;justify-content:center;align-items:center;gap:10px;margin:16px 0 8px;color:var(--sub);font-size:14px}
 .done-links button{border:0;background:none;color:var(--sub);font:inherit;padding:6px 4px;text-decoration:underline;text-underline-offset:3px}
 .md-view{font-size:14.5px;line-height:1.65;color:var(--ink);padding-bottom:6px}
@@ -1032,6 +1056,37 @@ function pickPhotos(){
 }
 function removePhoto(i){const p=PHOTOS[i];if(!p)return;if(IS_APP&&ChdNative.removePhoto)ChdNative.removePhoto(p.name);PHOTOS.splice(i,1);changed();rerenderPhotos()}
 function rerenderPhotos(){if(!S)return;if(S.mode==='easy')renderEasy();else{const y=window.scrollY;renderForm();window.scrollTo(0,y)}}
+/* 사진은 가게마다 따로 보관 (앱: files/photos/<플레이스ID>) */
+function usePhotoKey(id){
+  if(IS_APP&&ChdNative.setPhotoKey){ChdNative.setPhotoKey(String(id));return}
+  let own='';try{own=localStorage.getItem('chd-photo-owner')||''}catch(e){}
+  if(own&&own!==String(id))clearPhotos();
+  try{localStorage.setItem('chd-photo-owner',String(id))}catch(e){}
+}
+/* ---------- 구글 드라이브: 후기씨앗 / 2026년 11월 / 06 가게이름 / 후기 소스.md + 사진 ---------- */
+const canDrive=()=>IS_APP&&!!ChdNative.driveSave;
+const driveLinked=()=>{try{return canDrive()&&ChdNative.driveLinked()}catch(e){return false}};
+function drivePath(){
+  const d=(V('visitDate')||today()).split('-');
+  const nm=(V('biz')||(PLACE&&PLACE.name)||'가게').replace(/[\\/]/g,' ').trim();
+  return ['후기씨앗',(+d[0])+'년 '+(+d[1])+'월',String(+d[2]).padStart(2,'0')+' '+nm];
+}
+function driveLbl(t){const s=document.querySelector('#btnDrive .lbl');if(s)s.textContent=t}
+function saveDrive(){
+  if(!canDrive()){toast('앱을 최신 버전으로 업데이트해 주세요');return}
+  if(!PLACE)return;
+  const b=$('#btnDrive');if(b){b.disabled=true;driveLbl('저장하는 중…')}
+  ChdNative.driveSave(JSON.stringify({path:drivePath(),mdName:'후기 소스.md',md:buildMD(),key:String(PLACE.id)}));
+}
+window.chdDrive=s=>{
+  let o={};try{o=JSON.parse(s)}catch(e){}
+  const b=$('#btnDrive');if(b){b.disabled=false;driveLbl(S&&S.drive?'드라이브에 다시 저장':'드라이브에 저장')}
+  if(o.ok&&o.connected){toast('구글 드라이브를 연결했어요');if(TAB==='me')renderMe();return}
+  if(o.ok){if(S){S.drive={at:Date.now(),url:o.url||''};save()}driveLbl('드라이브에 다시 저장');
+    toast('드라이브에 저장했어요'+(o.added?' · 사진 '+o.added+'장':''));if(TAB==='me')renderMe();return}
+  toast(o.error||'저장하지 못했어요');if(TAB==='me')renderMe();
+};
+function svgIcon(){const s=document.createElement('span');s.style.display='inline-flex';s.innerHTML="<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M6.173 21a2.03 2.03 0 0 1-1.652-.954l-2.369-4.103c-.229-.464-.312-.949-.176-1.459l.176-.426L7.985 3.955A2.04 2.04 0 0 1 9.638 3h4.724c.3.016.484.044.765.169c.38.17.664.44.888.786l5.833 10.103a2.03 2.03 0 0 1 0 1.885l-2.369 4.103a2.04 2.04 0 0 1-.888.786c-.281.125-.465.153-.765.168Zm2.94-5l-1.732 3l10.389-.005L19.506 16Zm-5.187-1l1.723 3l5.196-9l-1.732-3Zm6.342-1h3.464L12 11Zm.577-9l5.197 9h3.464l-5.2-8.994Z\"/></svg>";return s}
 function clearPhotos(){PHOTOS=[];if(IS_APP&&ChdNative.clearPhotos)ChdNative.clearPhotos()}
 function photoBlock(){
   const w=el('div');
@@ -1232,10 +1287,7 @@ function applyPlace(d){
   try{localStorage.setItem(LAST_KEY,JSON.stringify(PLACE));localStorage.setItem('chd-place-'+PLACE.id,JSON.stringify(PLACE))}catch(e){}
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);
   KEY='chd-memo-v2-'+PLACE.id;S=load()||init();
-  /* 고른 사진은 가게별: 다른 가게를 열면 비운다 */
-  let own='';try{own=localStorage.getItem('chd-photo-owner')||''}catch(e){}
-  if(own&&own!==String(PLACE.id))clearPhotos();
-  try{localStorage.setItem('chd-photo-owner',String(PLACE.id))}catch(e){}
+  usePhotoKey(PLACE.id);
   loadPhotos();
   const sb=document.querySelector('#btnSample');if(sb)sb.remove();
   closeAct();
@@ -1426,6 +1478,9 @@ function easyCards(){
     const s=el('button','e-btn primary','보내기');s.type='button';s.onclick=()=>sendAll();
     const c=el('button','e-btn','복사하기');c.type='button';c.onclick=()=>$('#btnCopy').click();
     row.append(s,c);b.append(row);
+    if(canDrive()){const dv=el('button','e-btn drive');dv.type='button';dv.id='btnDrive';
+      dv.append(svgIcon(),el('span','lbl',S.drive?'드라이브에 다시 저장':'드라이브에 저장'));dv.onclick=saveDrive;b.append(dv);
+      b.append(el('div','e-tip drive-path',drivePath().join(' / ')))}
     const lk=el('div','done-links');
     const e1=el('button','','자세히 수정하기');e1.type='button';e1.onclick=()=>setMode('full');
     const e2=el('button','','미리보기');e2.type='button';e2.onclick=()=>openMdView();
@@ -1568,6 +1623,7 @@ function getRecords(){
   return out.sort((a,b)=>b.updated-a.updated);
 }
 function deleteRecord(id){
+  if(IS_APP&&ChdNative.deletePhotos)try{ChdNative.deletePhotos(String(id))}catch(e){}
   ['chd-memo-v2-','chd-place-','chd-qm-'].forEach(p=>{try{localStorage.removeItem(p+id)}catch(e){}});
   removePlan(id);
   try{const l=JSON.parse(localStorage.getItem(LAST_KEY)||'null');if(l&&String(l.id)===String(id))localStorage.removeItem(LAST_KEY)}catch(e){}
@@ -1624,39 +1680,66 @@ function getSettings(){let o={};try{o=JSON.parse(localStorage.getItem('chd-setti
 function setSettings(o){try{localStorage.setItem('chd-settings',JSON.stringify(Object.assign(getSettings(),o)))}catch(e){}}
 function renderMe(){
   const v=$('#viewMe');v.innerHTML='';
+  const pf=getProfile();
+  const CHEV='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const group=(title,rows)=>{const g=el('div','set-g');if(title)g.append(el('div','set-h',title));const box=el('div','set-box');rows.filter(Boolean).forEach(r=>box.append(r));g.append(box);return g};
+  const row=(label,value,fn,o={})=>{const r=el('button','set-row'+(o.cls?' '+o.cls:''));r.type='button';
+    const l=el('span','set-l',label);r.append(l);
+    const val=el('span','set-v');if(value instanceof Node)val.append(value);else val.textContent=value||'';r.append(val);
+    if(!o.noChev){const c=el('span','set-c');c.innerHTML=CHEV;r.append(c)}
+    r.onclick=fn;return r};
+  /* 프로필 카드 */
+  const pc=el('button','set-prof');pc.type='button';
+  const av=$('#tabMe').cloneNode(true);av.removeAttribute('id');av.className='set-av';
+  const pt=el('div','set-pt');pt.append(el('b','',pf.me||'나를 소개해 주세요'),el('span','',(pf.with&&pf.with.length?'주로 '+pf.with.join(', ')+'와':'자주 같이 가는 사람')+(pf.withDetail?' · '+pf.withDetail:'')));
+  const pcv=el('span','set-c');pcv.innerHTML=CHEV;
+  pc.append(av,pt,pcv);pc.onclick=()=>profileSheet();
+  /* 플랫폼 미리보기 점 */
+  const pls=getPlatforms();const dots=el('span','set-dots');
+  pls.slice(0,5).forEach(p=>{const d=el('i');d.style.background=p.color;dots.append(d)});
+  if(!pls.length)dots.textContent='없음';else if(pls.length>5)dots.append(el('span','','+'+(pls.length-5)));
+  const st=getSettings();
+  let ver='';try{ver=IS_APP&&ChdNative.version?ChdNative.version():''}catch(e){}
+  const dOn=driveLinked();
+  v.append(pc,
+    group('일정',[row('체험단 플랫폼',dots,()=>platformSheet()),row('다녀온 뒤 알림',st.remindH+'시간 뒤',()=>remindSheet())]),
+    canDrive()?group('저장',[row('구글 드라이브',dOn?'연결됨':'연결 안 됨',()=>driveSheet(),{cls:dOn?'on':''})]):'',
+    group('정보',[row('사용법','',()=>document.body.classList.add('sheet')),ver?row('버전',ver,null,{noChev:true,cls:'static'}):null])
+  );
+}
+function profileSheet(){openAct(b=>{
   const pf=getProfile();const st={me:pf.me||'',with:[...(pf.with||[])],withDetail:pf.withDetail||''};
-  const s1=el('div','me-sec');s1.append(el('h4','','내 프로필'));
+  b.append(el('h3','','내 프로필'));
   const me=document.createElement('textarea');me.value=st.me;me.placeholder='나는 어떤 사람? 예: 두 아이 엄마, 매운 거 못 먹음';me.oninput=()=>st.me=me.value;
   const wd=document.createElement('input');wd.type='text';wd.value=st.withDetail;wd.placeholder='예: 남편, 7살·5살 아들';wd.oninput=()=>st.withDetail=wd.value;
   const sv=el('button','e-btn primary','저장');sv.type='button';
-  sv.onclick=()=>{try{localStorage.setItem('chd-profile',JSON.stringify({me:st.me.trim(),with:st.with,withDetail:st.withDetail.trim()}))}catch(e){}toast('저장했어요')};
-  s1.append(me,el('div','e-label','자주 같이 가는 사람'),eChips(['혼자','남편/아내','연인','아이','부모님','친구','직장 동료','반려견'],t=>st.with.includes(t),t=>{const i=st.with.indexOf(t);i>=0?st.with.splice(i,1):st.with.push(t)}),wd,sv);
-  const s2=el('div','me-sec');s2.append(el('h4','','다녀온 뒤 알림'));
-  s2.append(eChips(['1시간','2시간','3시간','5시간'],t=>getSettings().remindH+'시간'===t,t=>{setSettings({remindH:parseInt(t,10)});toast(t+' 뒤에 알려드려요')}));
-  const s3=el('div','me-sec');s3.append(el('h4','','정보'));
-  const hb=el('button','e-btn','사용법');hb.type='button';hb.onclick=()=>document.body.classList.add('sheet');
-  let ver='';try{ver=IS_APP&&ChdNative.version?ChdNative.version():''}catch(e){}
-  s3.append(hb);if(ver)s3.append(el('div','e-tip','버전 '+ver));
-  const sT=el('div','me-sec');sT.append(el('h4','','테마 색'));const sw=el('div','swatches');
-  Object.entries(THEMES).forEach(([k,t])=>{const w=el('div','sw-w');const b=el('button','sw'+(getLook().theme===k?' on':''));b.type='button';b.style.background=t.acc;b.setAttribute('aria-label',t.n);
-    b.onclick=()=>{setLook({theme:k});renderMe()};w.append(b,el('div','sw-l',t.n));sw.append(w)});
-  sT.append(sw);
-  const sF=el('div','me-sec');sF.append(el('h4','','글꼴'));const fc=el('div','chips');
-  Object.entries(FONTS).forEach(([k,f])=>{loadFont(k);const b=el('button','chip'+(getLook().font===k?' on':''),f.n);b.type='button';b.style.fontFamily=f.f;b.onclick=()=>{setLook({font:k});renderMe()};fc.append(b)});
-  sF.append(fc);
-  const sP=el('div','me-sec');sP.append(el('h4','','배경 무늬'));
-  sP.append(eChips(Object.values(PATTERNS),t=>PATTERNS[getLook().pattern]===t,t=>{const k=Object.keys(PATTERNS).find(x=>PATTERNS[x]===t);setLook({pattern:k});renderMe()}));
-  const sPF=el('div','me-sec');sPF.append(el('h4','','플랫폼'));
-  const pl=el('div','chips');
-  getPlatforms().forEach(p=>{const x=el('button','chip');x.type='button';x.append(p.name);x.style.borderColor=p.color;x.style.color=p.color;x.style.background=p.color+'1a';
-    x.onclick=()=>openAct(b=>{b.append(el('h3','',p.name));const ch=el('div','e-choices');
-      const e1=el('button','e-btn','수정');e1.type='button';e1.onclick=()=>platformEditor(()=>renderMe(),p);
-      const e2=el('button','e-btn','삭제');e2.type='button';e2.onclick=()=>{setPlatforms(getPlatforms().filter(q=>q.name!==p.name));closeAct();renderMe()};
-      ch.append(e1,e2);b.append(ch)});pl.append(x)});
-  const ad=el('button','chip etc','+ 추가');ad.type='button';ad.onclick=()=>platformEditor(()=>renderMe());pl.append(ad);
-  sPF.append(pl);
-  v.append(sPF,s1,s2,s3);
-}
+  sv.onclick=()=>{try{localStorage.setItem('chd-profile',JSON.stringify({me:st.me.trim(),with:st.with,withDetail:st.withDetail.trim()}))}catch(e){}closeAct();toast('저장했어요');renderMe()};
+  b.append(me,el('div','e-label','자주 같이 가는 사람'),eChips(['혼자','남편/아내','연인','아이','부모님','친구','직장 동료','반려견'],t=>st.with.includes(t),t=>{const i=st.with.indexOf(t);i>=0?st.with.splice(i,1):st.with.push(t)}),wd,sv);
+})}
+function platformSheet(){openAct(b=>{
+  b.append(el('h3','','체험단 플랫폼'));
+  const list=el('div','set-box');
+  getPlatforms().forEach(p=>{const r=el('button','set-row');r.type='button';const d=el('i','pdot');d.style.background=p.color;
+    const l=el('span','set-l');l.append(d,p.name);r.append(l,el('span','set-v','수정'));
+    r.onclick=()=>openAct(bb=>{bb.append(el('h3','',p.name));const ch=el('div','e-choices');
+      const e1=el('button','e-btn','수정');e1.type='button';e1.onclick=()=>platformEditor(()=>{renderMe();platformSheet()},p);
+      const e2=el('button','e-btn','삭제');e2.type='button';e2.onclick=()=>{setPlatforms(getPlatforms().filter(q=>q.name!==p.name));renderMe();platformSheet()};
+      ch.append(e1,e2);bb.append(ch)});
+    list.append(r)});
+  const ad=el('button','set-row add');ad.type='button';ad.append(el('span','set-l','+ 플랫폼 추가'));ad.onclick=()=>platformEditor(()=>{renderMe();platformSheet()});list.append(ad);
+  b.append(list);
+})}
+function remindSheet(){openAct(b=>{
+  b.append(el('h3','','다녀온 뒤 알림'),el('div','e-tip','방문 시간이 지나고 얼마 뒤에 기록하라고 알려드릴까요?'));
+  b.append(eChips(['1시간','2시간','3시간','5시간'],t=>getSettings().remindH+'시간'===t,t=>{setSettings({remindH:parseInt(t,10)});closeAct();renderMe();toast(t+' 뒤에 알려드려요')}));
+})}
+function driveSheet(){openAct(b=>{
+  const on=driveLinked();
+  b.append(el('h3','','구글 드라이브'),el('div','e-tip',on?'후기씨앗 / 년 월 / 일 가게이름 폴더에 MD와 사진이 저장돼요':'연결하면 가게별 폴더에 MD와 사진을 저장할 수 있어요'));
+  const db=el('button','e-btn'+(on?'':' primary'),on?'연결 해제':'구글 드라이브 연결');db.type='button';
+  db.onclick=()=>{closeAct();if(on){ChdNative.driveUnlink();toast('연결을 해제했어요');renderMe()}else ChdNative.driveConnect()};
+  b.append(db);
+})}
 
 /* ---------- 위젯 연동 (앱) ---------- */
 function syncWidget(){
@@ -1901,6 +1984,7 @@ async function boot(){
   KEY='chd-memo-v2'+(PLACE?'-'+PLACE.id:'');
   S=load()||init();
   if(!PLACE){S.step=0;S.mode='easy'}
+  if(PLACE)usePhotoKey(PLACE.id);
   loadPhotos();
   if(PLACE)$('#btnSample').remove();
   document.body.dataset.tab=TAB;
