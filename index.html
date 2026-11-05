@@ -269,6 +269,14 @@ body[data-tab=plans] #viewPlans,body[data-tab=todo] #viewTodo,body[data-tab=reco
 .set-dots{display:flex;align-items:center;gap:4px}.set-dots i,.pdot{display:inline-block;width:10px;height:10px;border-radius:50%}
 .set-dots span{font-size:12px;margin-left:2px}
 .chips.groups{align-items:flex-start}
+.presets{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.preset{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:58px;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:10px 14px;text-align:left;font:inherit;color:var(--ink)}
+.preset b{font-size:15px}.preset small{font-size:12px;color:var(--sub)}
+.preset.on{background:var(--acc);border-color:var(--acc);color:#fff}.preset.on small{color:rgba(255,255,255,.8)}
+.raw-tg{display:block;width:100%;margin:12px 0 0;border:1px dashed var(--line);background:none;border-radius:14px;padding:12px;font:inherit;font-size:14px;color:var(--acc-ink);text-align:center}
+.raw-tg.open{border:0;padding:6px 2px;text-align:left;color:var(--sub);font-size:13px;font-weight:600}
+.raw-box{display:flex;flex-direction:column;gap:8px}
+.e-sub2{font-size:13px;color:var(--sub);font-weight:600;margin-top:14px}
 .chips.groups .chip{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;border-radius:14px;padding:8px 12px;text-align:left}
 .chips.groups .chip b{font-size:14px}.chips.groups .chip small{font-size:11.5px;color:var(--sub);font-weight:400}
 .set-l.g2{flex-direction:column;align-items:flex-start;gap:1px;padding:8px 0}.set-l.g2 small{font-size:12px;color:var(--sub)}
@@ -1588,7 +1596,7 @@ function accordionize(body,id){
   });
 }
 function renderEasyKeep(){const y=window.scrollY;try{NO_CONFETTI=true;renderEasy()}finally{NO_CONFETTI=false}window.scrollTo(0,y)}
-let NO_CONFETTI=false;
+let NO_CONFETTI=false,WITH_RAW=false;
 $('#actBg').onclick=closeAct;
 
 /* ---------- 내 프로필 ---------- */
@@ -1923,18 +1931,32 @@ function easyCards(){
     }
   }});
   cards.push({id:'with',src:'누구랑',q:visit?'누구랑 갔어요?':'누구랑 같이 썼어요?',body:b=>{
-    const gs=getGroups();const cur=(S.f.with&&S.f.with.sel)||[];
-    if(gs.length){const gc=el('div','chips groups');
-      gs.forEach(g=>{const on=sameSet(cur,g.with)&&(S.f.withDetail||'')===(g.detail||'');
-        const x=el('button','chip'+(on?' on':''));x.type='button';x.append(el('b','',g.name||groupName(g.with)));if(g.detail)x.append(el('small','',g.detail));
-        x.onclick=()=>{S.f.with={sel:on?[]:[...g.with],other:''};S.f.withDetail=on?'':(g.detail||'');changed();renderEasy()};gc.append(x)});
-      b.append(gc,el('div','e-label','직접 고르기'))}
-    b.append(mChips('with',WITH_OPTS));
-    b.append(el('div','e-label','자세히'),eText(()=>S.f.withDetail,x=>S.f.withDetail=x,'예: 남편, 7살·5살 아들 둘'));
-    if(cur.length&&!gs.some(g=>sameSet(cur,g.with)&&(g.detail||'')===(S.f.withDetail||'').trim())){
-      const sv=el('button','mic','+ 자주 가는 조합으로 저장');sv.type='button';
-      sv.onclick=()=>{setGroups([...gs,{id:'g'+Date.now(),with:[...cur],detail:(S.f.withDetail||'').trim(),name:''}]);toast('조합을 저장했어요');renderEasy()};b.append(sv)}
-    if(!getProfile().meTags&&!getProfile().me&&!getProfile().meText){b.append(el('div','e-label','나는 어떤 사람?'),eText(()=>S.f.me,x=>S.f.me=x,'예: 두 아이 엄마, 매운 거 잘 못 먹음'))}
+    const saved=getGroups().slice().sort((x,y)=>(y.used||0)-(x.used||0));
+    const presets=saved.length?saved:GROUP_SUGGEST.map(w=>({with:w,detail:'',sug:true}));
+    const cur=(S.f.with&&S.f.with.sel)||[],curD=(S.f.withDetail||'').trim();
+    const isOn=g=>cur.length&&sameSet(cur,g.with)&&(g.sug||(g.detail||'')===curD);
+    const hit=presets.some(isOn);
+    const pb=el('div','presets');
+    presets.forEach(g=>{const on=isOn(g);const x=el('button','preset'+(on?' on':''));x.type='button';
+      x.append(el('b','',g.name||groupName(g.with)));if(g.detail)x.append(el('small','',g.detail));
+      x.onclick=()=>{
+        if(on){S.f.with={sel:[],other:''};S.f.withDetail='';changed();renderEasy();return}
+        S.f.with={sel:[...g.with],other:''};S.f.withDetail=g.detail||'';
+        const gs=getGroups();if(g.sug)gs.push({id:'g'+Date.now(),with:[...g.with],detail:'',name:'',used:Date.now()});else{const t=gs.find(z=>z.id===g.id);if(t)t.used=Date.now()}setGroups(gs);
+        changed();pb.querySelectorAll('.preset').forEach(z=>z.classList.remove('on'));x.classList.add('on');buzz(8);setTimeout(()=>go(1),220)};
+      pb.append(x)});
+    b.append(pb);
+    const open=WITH_RAW||(cur.length&&!hit);
+    const tg=el('button','raw-tg'+(open?' open':''),open?'직접 고르기':'+ 다른 사람과 갔어요');tg.type='button';
+    tg.onclick=()=>{WITH_RAW=!open;renderEasyKeep()};b.append(tg);
+    if(open){const raw=el('div','raw-box');
+      raw.append(mChips('with',WITH_OPTS));
+      raw.append(el('div','e-sub2','자세히'),eText(()=>S.f.withDetail,x=>S.f.withDetail=x,'예: 남편, 7살·5살 아들 둘'));
+      if(cur.length&&!saved.some(g=>sameSet(cur,g.with)&&(g.detail||'')===curD)){
+        const sv=el('button','mic','+ 자주 가는 조합으로 저장');sv.type='button';
+        sv.onclick=()=>{setGroups([...getGroups(),{id:'g'+Date.now(),with:[...cur],detail:curD,name:'',used:Date.now()}]);WITH_RAW=false;toast('저장했어요. 다음부터 한 번에 골라요');renderEasy()};raw.append(sv)}
+      b.append(raw)}
+    if(!getProfile().meTags&&!getProfile().me&&!getProfile().meText){b.append(el('div','e-sub2','나는 어떤 사람? (한 번만)'),eText(()=>S.f.me,x=>S.f.me=x,'예: 두 아이 엄마, 매운 거 잘 못 먹음'))}
   }});
   cards.push({id:'why',src:'왜',q:visit?'왜 가게 됐어요?':'왜 써보게 됐어요?',body:b=>{
     b.append(mChips('reason',visit?['체험단 선정','여행 중','등산·나들이 후','집·회사 근처','기념일','부모님 효도','데이트','평소 궁금했던 곳','재방문']:['체험단 선정','평소 필요했던 제품','기존 제품 교체','선물용','후기 보고 궁금']));
@@ -2109,12 +2131,12 @@ function renderEasy(){
     opt('네',1);opt('보통',2);opt('아니요',-1);
     body.append(ch);
     if(st[h.t]===-1){body.append(el('div','e-label','어땠어요?'),eText(()=>S.hnote[h.t],x=>S.hnote[h.t]=x,'예: 주말 점심인데 오히려 한산했어요',true));showNext=true}
-  }else if(c.body){if(c.done)maybeAskRate();c.body(body);if(!['done','start'].includes(c.id))accordionize(body,c.id)}
+  }else if(c.body){if(c.done)maybeAskRate();c.body(body);if(!['done','start','with'].includes(c.id))accordionize(body,c.id)}
   if(showNext){const f=el('div','e-foot');const n=el('button','e-btn '+(c.nextLabel?'ghost':'primary'),c.nextLabel||'다음');n.type='button';n.onclick=()=>c.nextFn?c.nextFn():go(1);f.append(n);box.append(f)}
   if(c.done&&!S.done){S.done=true;save()}
   updTop();window.scrollTo(0,0);updChrome();
 }
-function goStep(n){if(REC)REC.stop();if(VOICE)voiceStop();S.step=n;save();renderEasy()}
+function goStep(n){WITH_RAW=false;if(REC)REC.stop();if(VOICE)voiceStop();S.step=n;save();renderEasy()}
 /* 앱 뒤로가기: 이전 카드로. 더 뒤로 갈 곳이 없으면 false */
 /* 폰 뒤로가기: 열린 창 닫기 → 질문 한 칸 뒤로 → 홈 → 홈 탭 → 그때만 앱 종료 */
 window.chdBack=()=>{
@@ -2182,7 +2204,7 @@ function updChrome(){
 }
 document.querySelectorAll('.pills button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 $('#tabMe').onclick=()=>setTab('me');
-function goHome(){document.querySelectorAll('.conf').forEach(x=>x.remove());
+function goHome(){document.querySelectorAll('.conf').forEach(x=>x.remove());WITH_RAW=false;
   if(PLACE)RESUME=PLACE;PLACE=null;
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);
   KEY='chd-memo-v2';S=init();S.step=0;S.mode='easy';if(!TABS.includes(TAB))TAB='home';document.body.dataset.tab=TAB;setMode('easy');
