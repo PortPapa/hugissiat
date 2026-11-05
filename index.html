@@ -234,6 +234,17 @@ body[data-tab=plans] #viewPlans,body[data-tab=records] #viewRecords,body[data-ta
 .sw{width:40px;height:40px;border-radius:50%;border:3px solid var(--card);box-shadow:0 0 0 1px var(--line);padding:0;cursor:pointer}
 .sw.on{box-shadow:0 0 0 2px var(--ink)}
 .sw-l{font-size:11px;color:var(--sub);margin-top:3px}
+.done-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.done-row .e-btn{text-align:center;font-weight:700;margin:0}
+.done-links{display:flex;justify-content:center;align-items:center;gap:10px;margin:16px 0 8px;color:var(--sub);font-size:14px}
+.done-links button{border:0;background:none;color:var(--sub);font:inherit;padding:6px 4px;text-decoration:underline;text-underline-offset:3px}
+.md-view{font-size:14.5px;line-height:1.65;color:var(--ink);padding-bottom:6px}
+.md-view h2{font-size:19px;margin:4px 0 10px}.md-view h3{font-size:16px;margin:18px 0 6px;color:var(--acc-ink)}.md-view h4{font-size:14.5px;margin:14px 0 4px}
+.md-view ul{margin:0 0 6px;padding-left:18px}.md-view li{margin:2px 0}
+.md-view p{margin:6px 0}.md-view a{color:var(--acc-ink)}
+.md-view blockquote{margin:6px 0;padding:6px 10px;border-left:3px solid var(--sage);background:var(--acc-soft);border-radius:6px;color:var(--sub)}
+.md-meta{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0 0 10px}
+.md-meta dt{color:var(--sub)}.md-meta dd{margin:0;font-weight:700}
 /* 사용법 Bottom Sheet */
 #sheetBg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:70;opacity:0;pointer-events:none;transition:opacity .2s}
 #sheet{position:fixed;left:0;right:0;bottom:0;z-index:71;background:var(--card);border-radius:20px 20px 0 0;padding:10px 22px 28px;max-height:82dvh;overflow:auto;transform:translateY(100%);transition:transform .25s ease-out;max-width:560px;margin:0 auto}
@@ -1404,15 +1415,14 @@ function easyCards(){
   }});
   cards.push({id:'done',src:'끝',q:'꽃이 폈어요!',done:true,body:b=>{
     const bl=el('div','bloom');bl.innerHTML=sproutSvg(3);bl.append(el('div','e-tip','후기 소스 완성'+(PHOTOS.length?' · 사진 '+PHOTOS.length+'장':'')));b.append(bl);confetti();
-    const ch=el('div','e-choices');
-    const B=(label,cls,fn)=>{const x=el('button','e-btn '+cls,label);x.type='button';x.onclick=fn;ch.append(x)};
-    B(`보내기 (카톡·메일·드라이브)${PHOTOS.length?' · 사진 '+PHOTOS.length+'장':''}`,'primary',()=>sendAll());
-    B('MD만 복사','',()=>$('#btnCopy').click());
-    B('폰에 파일로 저장','',()=>$('#btnDown').click());
-    B('자세히 보완하기','',()=>setMode('full'));
-    B('처음부터 다시 보기','ghost',()=>goStep(0));
-    b.append(ch);
-    const d=el('details');d.append(el('summary','','MD 미리보기'));const pre=el('pre');pre.textContent=buildMD();d.append(pre);b.append(d);
+    const row=el('div','done-row');
+    const s=el('button','e-btn primary','보내기');s.type='button';s.onclick=()=>sendAll();
+    const c=el('button','e-btn','복사하기');c.type='button';c.onclick=()=>$('#btnCopy').click();
+    row.append(s,c);b.append(row);
+    const lk=el('div','done-links');
+    const e1=el('button','','자세히 수정하기');e1.type='button';e1.onclick=()=>setMode('full');
+    const e2=el('button','','미리보기');e2.type='button';e2.onclick=()=>openMdView();
+    lk.append(e1,el('span','','·'),e2);b.append(lk);
   }});
   return cards;
 }
@@ -1840,6 +1850,33 @@ $('#dkSearch').onclick=()=>openAct(b=>{
     if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*0.6||Date.now()-t0>600)return;
     const i=TABS.indexOf(TAB);const j=dx<0?Math.min(TABS.length-1,i+1):Math.max(0,i-1);if(j!==i)setTab(TABS[j])},{passive:true});
 })();
+
+
+/* ---------- 미리보기: MD를 정리된 모양으로 ---------- */
+function mdEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function mdInline(s){return mdEsc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\[([^\]]+)\]\((https:[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')}
+function mdToHtml(md){
+  let out='',inList=false;const lines=md.split('\n');let i=0;
+  const close=()=>{if(inList){out+='</ul>';inList=false}};
+  if(lines[0]==='---'){const end=lines.indexOf('---',1);if(end>0){out+='<dl class="md-meta">';lines.slice(1,end).forEach(l=>{const m=l.match(/^([^:]+):\s*"?(.*?)"?$/);if(m)out+='<dt>'+mdEsc(m[1])+'</dt><dd>'+mdEsc(m[2])+'</dd>'});out+='</dl>';i=end+1}}
+  for(;i<lines.length;i++){const l=lines[i];
+    if(/^###\s/.test(l)){close();out+='<h4>'+mdInline(l.slice(4))+'</h4>'}
+    else if(/^##\s/.test(l)){close();out+='<h3>'+mdInline(l.slice(3))+'</h3>'}
+    else if(/^#\s/.test(l)){close();out+='<h2>'+mdInline(l.slice(2))+'</h2>'}
+    else if(/^\s*-\s/.test(l)){if(!inList){out+='<ul>';inList=true}out+='<li>'+mdInline(l.replace(/^\s*-\s/,''))+'</li>'}
+    else if(/^>\s?/.test(l)){close();out+='<blockquote>'+mdInline(l.replace(/^>\s?/,''))+'</blockquote>'}
+    else if(l.trim()){close();out+='<p>'+mdInline(l)+'</p>'}
+    else close();
+  }
+  close();return out;
+}
+function openMdView(){openAct(b=>{
+  const v=el('div','md-view');v.innerHTML=mdToHtml(buildMD());b.append(v);
+  const row=el('div','done-row');
+  const s=el('button','e-btn primary','보내기');s.type='button';s.onclick=()=>{closeAct();sendAll()};
+  const c=el('button','e-btn','복사하기');c.type='button';c.onclick=()=>$('#btnCopy').click();
+  row.append(s,c);b.append(row);
+})}
 
 async function boot(){
   const h=decodeURIComponent(location.hash.slice(1));
