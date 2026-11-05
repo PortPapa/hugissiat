@@ -7,6 +7,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.widget.RemoteViews;
 
+import android.view.View;
+
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 /** 홈 화면 위젯 2종: 다음 갈 곳 / 바로가기. 데이터는 앱 화면이 syncWidget으로 넣어준다. */
@@ -26,26 +29,43 @@ public final class Widgets {
         return PendingIntent.getActivity(c, code, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
+    private static final int[][] ROWS = {
+            {R.id.r1, R.id.r1_day, R.id.r1_name, R.id.r1_sub},
+            {R.id.r2, R.id.r2_day, R.id.r2_name, R.id.r2_sub},
+            {R.id.r3, R.id.r3_day, R.id.r3_name, R.id.r3_sub}};
+
+    /** 갈 곳 일정: 방문 날짜가 정해진 곳 최대 3개, 그 아래 미정 */
     static RemoteViews nextPlan(Context c) {
-        RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_next);
+        RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_plans);
         JSONObject d = data(c);
-        JSONObject nx = d.optJSONObject("next");
-        if (nx != null) {
-            String id = nx.optString("id");
-            v.setTextViewText(R.id.w_title, nx.optString("name"));
-            v.setTextViewText(R.id.w_sub, nx.optString("label"));
-            v.setTextViewText(R.id.w_btn1, "메모");
-            v.setTextViewText(R.id.w_btn2, "다녀옴");
-            v.setOnClickPendingIntent(R.id.w_btn1, open(c, "memo:" + id, 11));
-            v.setOnClickPendingIntent(R.id.w_btn2, open(c, "plan:" + id, 12));
-        } else {
-            v.setTextViewText(R.id.w_title, "갈 곳 없음");
-            v.setTextViewText(R.id.w_sub, "후기씨앗");
-            v.setTextViewText(R.id.w_btn1, "추가");
-            v.setTextViewText(R.id.w_btn2, "열기");
-            v.setOnClickPendingIntent(R.id.w_btn1, open(c, "addplan", 13));
-            v.setOnClickPendingIntent(R.id.w_btn2, open(c, "start", 14));
+        JSONArray fx = d.optJSONArray("fixed");
+        JSONArray tb = d.optJSONArray("tbd");
+        int n = fx == null ? 0 : Math.min(3, fx.length());
+        v.setTextViewText(R.id.w_title, "갈 곳 " + d.optInt("plans"));
+        for (int i = 0; i < 3; i++) {
+            int[] r = ROWS[i];
+            if (i < n) {
+                JSONObject p = fx.optJSONObject(i);
+                v.setViewVisibility(r[0], View.VISIBLE);
+                v.setTextViewText(r[1], p.optString("day"));
+                v.setTextViewText(r[2], p.optString("name"));
+                v.setTextViewText(r[3], p.optString("sub"));
+                v.setOnClickPendingIntent(r[0], open(c, "planmenu:" + p.optString("id"), 30 + i));
+            } else {
+                v.setViewVisibility(r[0], View.GONE);
+            }
         }
+        v.setViewVisibility(R.id.w_empty, n == 0 ? View.VISIBLE : View.GONE);
+        if (tb != null && tb.length() > 0) {
+            StringBuilder sb = new StringBuilder("미정 " + tb.length() + " · ");
+            for (int i = 0; i < tb.length(); i++) { if (i > 0) sb.append(", "); sb.append(tb.optString(i)); }
+            v.setViewVisibility(R.id.w_tbd, View.VISIBLE);
+            v.setTextViewText(R.id.w_tbd, sb.toString());
+        } else {
+            v.setViewVisibility(R.id.w_tbd, View.GONE);
+        }
+        v.setOnClickPendingIntent(R.id.w_btn1, open(c, "addplan", 13));
+        v.setOnClickPendingIntent(R.id.w_btn2, open(c, "memo:", 12));
         v.setOnClickPendingIntent(R.id.w_root, open(c, "start", 15));
         return v;
     }

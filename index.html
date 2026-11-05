@@ -186,6 +186,10 @@ body[data-tab=home] #viewHome{display:block}
 .li:active{background:var(--line)}
 .li .dt{width:46px;height:46px;border-radius:13px;background:var(--acc-soft);color:var(--acc-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-weight:700;line-height:1.15;flex:none}
 .li .dt b{font-size:17px}
+.li .dt.tbd{background:var(--line);color:var(--sub);font-size:12px}
+.sub-h{font-size:12.5px;font-weight:700;color:var(--sub);margin:14px 4px 4px}
+.due{margin-left:6px;font-size:11px;font-weight:700;border-radius:999px;padding:1px 7px;background:var(--line);color:var(--sub);vertical-align:2px}
+.due.hot{background:#ffe3dd;color:#d23b1e}
 .li .tx{flex:1;min-width:0}.li .nm{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .li .sub{font-size:12px;color:var(--sub)}
 .li img.th,.li .th{width:46px;height:46px;border-radius:13px}
@@ -865,8 +869,9 @@ function switchCat(k){
 /* ---------- MD 생성 ---------- */
 function triLines(store,yesLabel,noLabel){
   if(!store)return[];
-  const y=Object.keys(store).filter(k=>store[k]===1),n=Object.keys(store).filter(k=>store[k]===-1);
+  const y=Object.keys(store).filter(k=>store[k]===1),n=Object.keys(store).filter(k=>store[k]===-1),mid=Object.keys(store).filter(k=>store[k]===2);
   const out=[];
+  if(mid.length)out.push(`- **보통이었음**: ${mid.join(', ')}`);
   if(y.length)out.push(`- **${yesLabel||'남들도 말한 것 중 나도 그랬음'}**: ${y.join(', ')}`);
   const nt=k=>{const x=S.hnote&&S.hnote[k];return x&&x.trim()?`${k} (내 경험: ${x.trim()})`:k};
   if(n.length)out.push(`- **${noLabel||'남들 후기와 내 경험이 달랐음'}**: ${n.map(nt).join(', ')}`);
@@ -897,7 +902,7 @@ function photosMD(){
 function secBody(sec){
   if(sec.type==='items')return itemsMD();
   if(sec.type==='photopick')return [];
-  if(sec.type==='voted')return triLines(S.h.voted,'공감','공감 안 됨 (내 경험은 달랐음)');
+  if(sec.type==='voted')return triLines(S.h.voted,'그랬음','아니었음');
   const body=[...triLines(S.h[sec.id])];
   sec.fields.forEach(fd=>{
     if(fd.id==='consTone'&&!(V('cons')||V('consMemo')||body.length))return;
@@ -1081,17 +1086,32 @@ function openQuickMemo(place){
 /* ---------- 갈 곳 미리 등록 + 다녀온 뒤 알림 ---------- */
 function getPlans(){try{return JSON.parse(localStorage.getItem('chd-plans')||'[]')||[]}catch(e){return []}}
 function setPlans(a){try{localStorage.setItem('chd-plans',JSON.stringify(a))}catch(e){}syncWidget()}
-function planLabel(p){const d=new Date(p.when);return `${d.getMonth()+1}/${d.getDate()}(${WD[d.getDay()]}) ${p.label||''}`.trim()}
+const PLATFORMS=['레뷰','강남맛집','리뷰노트','디너의여왕','오픈채팅','직접 섭외','기타'];
+function dday(due){if(!due)return '';const [y,m,d]=due.split('-').map(Number);const t=new Date();t.setHours(0,0,0,0);const n=Math.round((new Date(y,m-1,d)-t)/864e5);return n>0?'마감 D-'+n:n===0?'마감 오늘':'마감 지남'}
+function planLabel(p){
+  const parts=[];
+  if(p.when){const d=new Date(p.when);parts.push(`${d.getMonth()+1}/${d.getDate()}(${WD[d.getDay()]}) ${p.label||''}`.trim())}else parts.push('날짜 미정');
+  if(p.platform)parts.push(p.platform);
+  if(p.due)parts.push(dday(p.due));
+  return parts.join(' · ');
+}
+function sortPlans(a){return a.sort((x,y)=>(x.when?0:1)-(y.when?0:1)||String(x.when||'').localeCompare(String(y.when||''))||String(x.due||'9').localeCompare(String(y.due||'9')))}
 const fmtTime=d=>`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-function addPlan(place,when,label){
-  const a=getPlans().filter(p=>String(p.id)!==String(place.id));
-  const remindAt=new Date(when.getTime()+getSettings().remindH*3600e3);
-  a.push({id:place.id,place:slim(place),when:when.toISOString(),label,remindAt:remindAt.toISOString()});
-  a.sort((x,y)=>x.when.localeCompare(y.when));setPlans(a);
-  if(IS_APP&&ChdNative.scheduleReminder)ChdNative.scheduleReminder(String(place.id),String(remindAt.getTime()),place.name+' 다녀오셨어요?','기억날 때 30초만 답해주세요. 누르면 바로 시작해요.');
+function addPlan(place,o){
+  o=o||{};const id=String(place.id);
+  const a=getPlans().filter(p=>String(p.id)!==id);
+  const when=o.when||null;
+  const remindAt=when?new Date(when.getTime()+getSettings().remindH*3600e3):null;
+  a.push({id:place.id,place:slim(place),when:when?when.toISOString():null,label:o.label||'',platform:o.platform||'',due:o.due||'',remindAt:remindAt?remindAt.toISOString():null});
+  setPlans(sortPlans(a));
+  if(IS_APP&&ChdNative.cancelReminder){ChdNative.cancelReminder(id);ChdNative.cancelReminder(id+'-due')}
+  if(IS_APP&&ChdNative.scheduleReminder){
+    if(remindAt&&remindAt>Date.now())ChdNative.scheduleReminder(id,String(remindAt.getTime()),place.name+' 다녀오셨어요?','기억날 때 30초만 답해주세요. 누르면 바로 시작해요.');
+    if(o.due){const [y,m,d]=o.due.split('-').map(Number);const at=new Date(y,m-1,d-1,9,0,0);if(at>Date.now())ChdNative.scheduleReminder(id+'-due',String(at.getTime()),place.name+' 후기 마감이 내일이에요',(o.platform?o.platform+' · ':'')+'후기 소스부터 정리해 볼까요?')}
+  }
   return remindAt;
 }
-function removePlan(id){setPlans(getPlans().filter(p=>String(p.id)!==String(id)));if(IS_APP&&ChdNative.cancelReminder)ChdNative.cancelReminder(String(id))}
+function removePlan(id){setPlans(getPlans().filter(p=>String(p.id)!==String(id)));if(IS_APP&&ChdNative.cancelReminder){ChdNative.cancelReminder(String(id));ChdNative.cancelReminder(String(id)+'-due')}}
 window.chdOpenPlan=id=>{
   const p=getPlans().find(x=>String(x.id)===String(id));let place=p&&p.place;
   if(!place){try{const l=JSON.parse(localStorage.getItem(LAST_KEY)||'null');if(l&&String(l.id)===String(id))place=l}catch(e){}}
@@ -1104,34 +1124,44 @@ function afterFetch(d){
     const ch=el('div','e-choices');
     const B=(l,s,cls,fn)=>{const x=el('button','e-btn '+cls,l);x.type='button';x.onclick=fn;ch.append(x)};
     B('다녀왔어요','지금 바로 질문에 답하기','primary',()=>{closeAct();applyPlace(P)});
-    B('지금 매장이에요','현장 메모 남기기'+(IS_APP?' · 3시간 뒤 알림':''),'',()=>{const r=addPlan(P,new Date(),'방문 중');openQuickMemo(P);if(IS_APP)toast(fmtTime(r)+'에 알려드릴게요')});
+    B('지금 매장이에요','현장 메모 남기기'+(IS_APP?' · 3시간 뒤 알림':''),'',()=>{const r=addPlan(P,{when:new Date(),label:'방문 중'});openQuickMemo(P);if(IS_APP)toast(fmtTime(r)+'에 알려드릴게요')});
     B('갈 예정이에요','날짜 정해두면 '+(IS_APP?'다녀온 뒤 알려드려요':'갈 곳 목록에 저장돼요'),'',()=>openPlanSheet(P));
     b.append(ch);
   });
 }
 function openPlanSheet(P){
-  const st={day:'오늘',date:'',slot:'저녁',time:''};
+  const ex=getPlans().find(p=>String(p.id)===String(P.id))||{};
+  const st={day:ex.when===null&&ex.id?'미정':'오늘',date:'',slot:'저녁',time:'',platform:ex.platform||'',due:ex.due||''};
+  if(ex.when){const d=new Date(ex.when);st.day='날짜 선택';st.date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(ex.label==='점심'||ex.label==='저녁')st.slot=ex.label;else{st.slot='시간 선택';st.time=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}}
   openAct(b=>{
-    b.append(el('h3','',P.name+' 언제 가요?'));
-    const dIn=document.createElement('input');dIn.type='date';dIn.hidden=true;dIn.oninput=()=>{st.date=dIn.value};
-    b.append(el('div','e-label','날짜'),eChips(['오늘','내일','모레','날짜 선택'],t=>st.day===t,t=>{st.day=t;dIn.hidden=t!=='날짜 선택'}),dIn);
-    const tIn=document.createElement('input');tIn.type='time';tIn.hidden=true;tIn.oninput=()=>{st.time=tIn.value};
-    b.append(el('div','e-label','시간'),eChips(['점심','저녁','시간 선택'],t=>st.slot===t,t=>{st.slot=t;tIn.hidden=t!=='시간 선택'}),tIn);
-    const save=el('button','e-btn primary','등록하기');save.type='button';
+    b.append(el('h3','',P.name));
+    const dIn=document.createElement('input');dIn.type='date';dIn.value=st.date;dIn.hidden=st.day!=='날짜 선택';dIn.oninput=()=>{st.date=dIn.value};
+    const tIn=document.createElement('input');tIn.type='time';tIn.value=st.time;tIn.hidden=st.slot!=='시간 선택';tIn.oninput=()=>{st.time=tIn.value};
+    const slotW=el('div');
+    const dueIn=document.createElement('input');dueIn.type='date';dueIn.value=st.due;dueIn.oninput=()=>{st.due=dueIn.value};
+    b.append(el('div','e-label','방문'),eChips(['오늘','내일','모레','날짜 선택','미정'],t=>st.day===t,t=>{st.day=t;dIn.hidden=t!=='날짜 선택';slotW.hidden=t==='미정'}),dIn);
+    slotW.append(el('div','e-label','시간'),eChips(['점심','저녁','시간 선택'],t=>st.slot===t,t=>{st.slot=t;tIn.hidden=t!=='시간 선택'}),tIn);slotW.hidden=st.day==='미정';
+    b.append(slotW);
+    b.append(el('div','e-label','플랫폼'),eChips(PLATFORMS,t=>st.platform===t,t=>{st.platform=st.platform===t?'':t}));
+    b.append(el('div','e-label','후기 마감일'),dueIn);
+    const save=el('button','e-btn primary','저장');save.type='button';
     save.onclick=()=>{
-      let d=new Date();d.setSeconds(0,0);
-      if(st.day==='내일')d.setDate(d.getDate()+1);else if(st.day==='모레')d.setDate(d.getDate()+2);
-      else if(st.day==='날짜 선택'){if(!st.date){toast('날짜를 골라주세요');return}const [y,m,dd]=st.date.split('-').map(Number);d=new Date(y,m-1,dd)}
-      let hh=18,mm=30,label='저녁';
-      if(st.slot==='점심'){hh=12;mm=0;label='점심'}
-      else if(st.slot==='시간 선택'){if(!st.time){toast('시간을 골라주세요');return}[hh,mm]=st.time.split(':').map(Number);label=st.time}
-      d.setHours(hh,mm,0,0);
-      const r=addPlan(P,d,label);closeAct();
-      toast(IS_APP?`등록했어요. ${fmtTime(r)}에 알려드릴게요`:'갈 곳에 등록했어요');
-      if(S&&S.mode==='easy')renderEasy();
+      let when=null,label='';
+      if(st.day!=='미정'){
+        let d=new Date();d.setSeconds(0,0);
+        if(st.day==='내일')d.setDate(d.getDate()+1);else if(st.day==='모레')d.setDate(d.getDate()+2);
+        else if(st.day==='날짜 선택'){if(!st.date){toast('날짜를 골라주세요');return}const [y,m,dd]=st.date.split('-').map(Number);d=new Date(y,m-1,dd)}
+        let hh=18,mm=30;label='저녁';
+        if(st.slot==='점심'){hh=12;mm=0;label='점심'}
+        else if(st.slot==='시간 선택'){if(!st.time){toast('시간을 골라주세요');return}[hh,mm]=st.time.split(':').map(Number);label=st.time}
+        d.setHours(hh,mm,0,0);when=d;
+      }
+      const r=addPlan(P,{when,label,platform:st.platform,due:st.due});closeAct();
+      toast(r&&IS_APP?`저장했어요. ${fmtTime(r)}에 알려드릴게요`:'저장했어요');
+      if(inFlow()){if(S.mode==='easy')renderEasy()}else renderView();
     };
-    const cancel=el('button','e-btn ghost','뒤로');cancel.type='button';cancel.onclick=()=>afterFetch(P);
-    b.append(save,cancel);
+    b.append(save);
   });
 }
 
@@ -1395,9 +1425,9 @@ function renderEasy(){
     const opt=(label,val)=>{const b=el('button','e-btn'+(val&&st[h.t]===val?' on':''),label);b.type='button';
       b.onclick=()=>{if(val)st[h.t]=val;else delete st[h.t];if(val!==-1)delete S.hnote[h.t];changed();
         if(val===-1){renderEasy();setTimeout(()=>{const t=document.querySelector('#easy textarea');t&&t.focus()},60)}else setTimeout(()=>go(1),160)};ch.append(b)};
-    opt('네, 나도 그랬어요',1);opt('아니요, 달랐어요',-1);opt('잘 모르겠어요',0);
+    opt('네',1);opt('보통',2);opt('아니요',-1);
     body.append(ch);
-    if(st[h.t]===-1){body.append(el('div','e-label','어떻게?'),eText(()=>S.hnote[h.t],x=>S.hnote[h.t]=x,'예: 주말 점심인데 오히려 한산했어요',true));showNext=true}
+    if(st[h.t]===-1){body.append(el('div','e-label','어땠어요?'),eText(()=>S.hnote[h.t],x=>S.hnote[h.t]=x,'예: 주말 점심인데 오히려 한산했어요',true));showNext=true}
   }else if(c.body)c.body(body);
   if(showNext){const f=el('div','e-foot');const n=el('button','e-btn '+(c.nextLabel?'ghost':'primary'),c.nextLabel||'다음');n.type='button';n.onclick=()=>c.nextFn?c.nextFn():go(1);f.append(n);box.append(f)}
   if(c.done&&!S.done){S.done=true;save()}
@@ -1538,19 +1568,11 @@ function recordMenu(r){openAct(b=>{
 /* ---------- 갈 곳 ---------- */
 function renderPlans(){
   const v=$('#viewPlans');v.innerHTML='';
-  const add=el('button','e-btn primary','+ 갈 곳 추가');add.type='button';add.onclick=addPlanFlow;v.append(add);
   const ps=getPlans();
-  if(!ps.length){v.append(el('div','empty','등록한 곳이 없어요'));return}
-  v.append(el('div','e-label',''));
-  ps.forEach(p=>{
-    const row=el('div','plan');const info=el('div','plan-i');const nm=getQM(p.id).length;
-    info.append(el('b','',p.place.name),el('span','',planLabel(p)+(nm?' · 메모 '+nm:'')));
-    info.style.cursor='pointer';info.onclick=()=>openPlanSheet(p.place);
-    const m=el('button','btn sm','메모');m.type='button';m.onclick=()=>openQuickMemo(p.place);
-    const g=el('button','btn sm primary','다녀옴');g.type='button';g.onclick=()=>{removePlan(p.id);applyPlace(p.place)};
-    const x=el('button','btn sm','×');x.type='button';x.onclick=()=>{if(confirm('뺄까요?')){removePlan(p.id);renderPlans()}};
-    row.append(info,m,g,x);v.append(row);
-  });
+  if(!ps.length){const h=el('div','hello');h.innerHTML=sproutSvg(0);h.append(el('b','','등록한 곳이 없어요'));v.append(h);return}
+  const fx=ps.filter(p=>p.when),tb=ps.filter(p=>!p.when);
+  if(fx.length){v.append(el('div','sub-h','방문 예정 '+fx.length));fx.forEach(p=>v.append(planRow(p)))}
+  if(tb.length){v.append(el('div','sub-h','미정 '+tb.length));tb.forEach(p=>v.append(planRow(p)))}
 }
 function addPlanFlow(){openAct(b=>{
   b.append(el('h3','','갈 곳 추가'));
@@ -1598,7 +1620,9 @@ function syncWidget(){
   try{
     const ps=getPlans();const nx=ps.find(p=>new Date(p.when).getTime()>Date.now()-6*3600e3)||ps[0];
     const drafts=getRecords().filter(r=>!r.sent&&!r.done).length;
-    ChdNative.syncWidget(JSON.stringify({next:nx?{id:String(nx.id),name:nx.place.name,label:planLabel(nx)}:null,plans:ps.length,drafts}));
+    const fx=ps.filter(p=>p.when&&new Date(p.when).getTime()>Date.now()-12*3600e3).slice(0,3).map(p=>{const d=new Date(p.when);return {id:String(p.id),day:(d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+')',name:p.place.name,sub:[p.label,p.platform,p.due?dday(p.due):''].filter(Boolean).join(' · ')}});
+    const tb=ps.filter(p=>!p.when).map(p=>p.place.name);
+    ChdNative.syncWidget(JSON.stringify({next:nx?{id:String(nx.id),name:nx.place.name,label:planLabel(nx)}:null,fixed:fx,tbd:tb,plans:ps.length,drafts}));
   }catch(e){}
 }
 /* 위젯·알림에서 들어온 동작 */
@@ -1606,6 +1630,7 @@ window.chdAction=a=>{
   a=String(a||'');const k=a.split(':')[0],id=a.slice(k.length+1);
   if(k==='memo'){const p=getPlans().find(x=>String(x.id)===id)||getPlans()[0];if(p){setTab('plans');openQuickMemo(p.place)}else setTab('plans')}
   else if(k==='plan')window.chdOpenPlan(id);
+  else if(k==='planmenu'){const p=getPlans().find(x=>String(x.id)===id);setTab('home');if(p)planMenu(p)}
   else if(k==='addplan'){setTab('plans');addPlanFlow()}
   else if(k==='start'){goHome();setTimeout(()=>window.chdFocus&&window.chdFocus(),300)}
 };
@@ -1705,7 +1730,8 @@ function renderHome(){
   }
   if(ps.length){
     v.append(secHead('plans','갈 곳'));
-    if(HOME_OPEN.plans)ps.slice(0,5).forEach(p=>v.append(planRow(p)));
+    if(HOME_OPEN.plans){const fx=ps.filter(p=>p.when),tb=ps.filter(p=>!p.when);fx.slice(0,5).forEach(p=>v.append(planRow(p)));
+      if(tb.length){const h=el('div','sub-h','미정 '+tb.length);v.append(h);tb.slice(0,5).forEach(p=>v.append(planRow(p)))}}
   }
   const done=rs.filter(r=>r.sent||r.done);
   if(done.length){
@@ -1714,9 +1740,14 @@ function renderHome(){
   }
 }
 function planRow(p){
-  const d=new Date(p.when);const row=el('div','li');
-  const dt=el('div','dt');dt.append(el('b','',String(d.getDate())),(d.getMonth()+1)+'월 '+WD[d.getDay()]);
-  const tx=el('div','tx');const nm=getQM(p.id).length;tx.append(el('div','nm',p.place.name),el('div','sub',(p.label||'')+(nm?' · 메모 '+nm:'')));
+  const row=el('div','li');
+  const dt=el('div','dt'+(p.when?'':' tbd'));
+  if(p.when){const d=new Date(p.when);dt.append(el('b','',String(d.getDate())),(d.getMonth()+1)+'월 '+WD[d.getDay()])}else dt.append('미정');
+  const tx=el('div','tx');const nm=getQM(p.id).length;
+  const sub=[p.when?p.label:'',p.platform,nm?'메모 '+nm:''].filter(Boolean).join(' · ');
+  const nmEl=el('div','nm',p.place.name);
+  tx.append(nmEl,el('div','sub',sub));
+  if(p.due){const dd=dday(p.due);const bd=el('span','due'+(/오늘|지남|D-[12]$/.test(dd)?' hot':''),dd);tx.firstChild.append(bd)}
   row.append(dt,tx);row.onclick=()=>planMenu(p);return row;
 }
 function recRow(r){
