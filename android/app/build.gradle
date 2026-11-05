@@ -14,9 +14,28 @@ android {
         versionName '0.2.0'
     }
 
+    // 고정 서명 키: GitHub Actions에서 환경변수로 받는다(키 파일은 저장소에 없음).
+    // 매 빌드 같은 키로 서명해야 폰에서 덮어쓰기 업데이트가 된다.
+    def ks = System.getenv('SIGNING_KEYSTORE')
+    signingConfigs {
+        fixed {
+            if (ks) {
+                storeFile file(ks)
+                storeType 'pkcs12'
+                storePassword System.getenv('SIGNING_PASSWORD')
+                keyAlias System.getenv('SIGNING_ALIAS') ?: 'upload'
+                keyPassword System.getenv('SIGNING_PASSWORD')
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            if (ks) signingConfig signingConfigs.fixed
+        }
         release {
             minifyEnabled false
+            if (ks) signingConfig signingConfigs.fixed
         }
     }
 
