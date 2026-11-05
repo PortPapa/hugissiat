@@ -292,7 +292,11 @@ async function fetchPlace(input){
 /* 방문자 키워드 "양이 많아요" -> "양이 많았나요?" */
 function vq(t){
   const M={'어':'었','아':'았','해':'했','져':'졌','와':'왔','워':'웠','차':'찼','려':'렸','쳐':'쳤','돼':'됐','여':'였','줘':'줬','예':'였','에':'였','나':'났','가':'갔','서':'섰'};
-  const m=String(t).match(/^(.*)(.)요$/);if(!m||!M[m[2]])return '';
+  t=String(t);
+  if(/이에요$/.test(t))return t.replace(/이에요$/,'이었나요?');
+  if(/예요$/.test(t))return t.replace(/예요$/,'였나요?');
+  M['라']='랐';M['하']='했';
+  const m=t.match(/^(.*)(.)요$/);if(!m||!M[m[2]])return '';
   return m[1]+M[m[2]]+'나요?';
 }
 
@@ -343,8 +347,9 @@ const CATS = {
 };
 function guessCat(p){
   const c=(p.category||'')+' '+(p.type||'');
+  if(/키즈|놀이|체험|공방|클래스|필라테스|요가|헬스|골프|볼링|방탈출|수영|서핑|스키|레저|테마파크|아쿠아리움|동물원|사진관|스튜디오/.test(c))return'activity';
   if(/카페|디저트|베이커리|제과|빵|커피|찻집|cafe/i.test(c))return'cafe';
-  if(/hairshop|nailshop|미용|헤어|네일|피부|마사지|에스테틱|왁싱|속눈썹|두피|뷰티/.test(c))return'beauty';
+  if(/hairshop|nailshop|안마|지압|발관리|스파|테라피|반영구|미용|헤어|네일|피부|마사지|에스테틱|왁싱|속눈썹|두피|뷰티/.test(c))return'beauty';
   if(/accommodation|호텔|펜션|모텔|리조트|게스트|풀빌라|캠핑|글램핑|숙박|한옥스테이/.test(c))return'stay';
   if(/restaurant|음식|식당|국수|고기|한식|일식|중식|양식|분식|술집|주점|요리|횟집|치킨|피자|뷔페/.test(c))return'food';
   return'activity';
@@ -858,8 +863,9 @@ async function sendAll(){
 $('#btnHelp').onclick=()=>document.body.classList.add('sheet');
 $('#sheetClose').onclick=$('#sheetBg').onclick=()=>document.body.classList.remove('sheet');
 let PENDING_LINK='';
+let RESUME=null;
 function applyPlace(d){
-  PLACE=sanitize(d);if(!PLACE)return;
+  PLACE=sanitize(d);if(!PLACE)return;RESUME=null;
   try{localStorage.setItem(LAST_KEY,JSON.stringify(PLACE))}catch(e){}
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);
   KEY='chd-memo-v2-'+PLACE.id;S=load()||init();
@@ -886,7 +892,26 @@ window.chdIncoming=t=>{
 $('#btnMode').onclick=()=>setMode(S.mode==='easy'?'full':'easy');
 
 /* ---------- 쉬운 모드 (질문 카드) ---------- */
-const ITEM_Q={food:'뭐 드셨어요?',cafe:'뭐 드셨어요?',beauty:'어떤 시술 받으셨어요?',stay:'어떤 객실·시설 이용하셨어요?',product:'어떤 제품 써보셨어요?',activity:'어떤 프로그램 하셨어요?'};
+const ITEM_Q={food:'뭐 드셨어요?',cafe:'뭐 드셨어요?',beauty:'어떤 관리·시술 받으셨어요?',stay:'뭐 이용하셨어요?',product:'어떤 제품 써보셨어요?',activity:'뭐 하고 왔어요?'};
+/* 메뉴판이 없는 업종(마사지·네일·숙소·키즈카페 등)은 고를 거리를 미리 둠 */
+const PRESETS={
+  massage:{items:['전신 마사지','발 마사지','스포츠 마사지','아로마','타이 마사지','얼굴·두피 관리','커플 관리'],
+    tags:['시원함','압 세기 딱 좋음','압이 좀 셈','뭉친 곳을 잘 찾아줌','개운함','잠들 뻔함','따뜻한 베드','향이 좋음','시간 넉넉함','상담 자세함']},
+  nail:{items:['젤네일','젤페디','아트·파츠','케어','연장','제거']},
+  hair:{items:['커트','펌','염색','클리닉','매직','드라이']},
+  skin:{items:['기본 피부관리','수분 관리','여드름 관리','리프팅','왕싱','속눈썹']},
+  stay:{items:['객실','침구·욕실','수영장','바비큐','스파·자쿠지','조식','키즈 시설','테라스·뷰','주변 산책·관광']},
+  kids:{items:['놀이 공간','트램펄린','볼풀','체험 프로그램','식음료','보호자 공간'],
+    tags:['아이가 좋아함','놀거리 많음','깨끗함','안전 관리 잘함','보호자 쉬기 편함','시간 금방 감','붐빔','가격 합리적']},
+  activity:{items:['수업·클래스','체험 프로그램','시설 이용','결과물·기념품','부대시설']}
+};
+function preset(){
+  const c=(PLACE&&PLACE.category)||'';
+  if(S.cat==='beauty'){if(/마사지|안마|지압|발관리|스파|테라피/.test(c))return PRESETS.massage;if(/네일/.test(c))return PRESETS.nail;if(/헤어|미용/.test(c))return PRESETS.hair;return PRESETS.skin}
+  if(S.cat==='stay')return PRESETS.stay;
+  if(S.cat==='activity')return /키즈|놀이/.test(c)?PRESETS.kids:PRESETS.activity;
+  return null;
+}
 function mv(id){let v=S.f[id];if(!v||typeof v!=='object'){v={sel:[],other:''};S.f[id]=v}if(!Array.isArray(v.sel))v.sel=v.sel?[v.sel]:[];return v}
 function rv(id){let v=S.f[id];if(!v||typeof v!=='object'){v={sel:'',other:''};S.f[id]=v}if(Array.isArray(v.sel))v.sel=v.sel[0]||'';return v}
 function eChips(opts,isOn,toggle,showN){
@@ -945,6 +970,12 @@ function easyCards(){
     const run=async()=>{go2.disabled=true;go2.textContent='가져오는 중…';msg.textContent='';
       try{applyPlace(await fetchPlace(inp.value))}catch(e){msg.textContent=e.message||String(e);go2.disabled=false;go2.textContent='가져오기'}};
     go2.onclick=run;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();run()}};
+    if(RESUME&&RESUME.name){
+      const r=RESUME;let st=0;try{st=(JSON.parse(localStorage.getItem('chd-memo-v2-'+r.id)||'{}').step||0)}catch(e){}
+      const rb=el('button','e-btn on',`이어서 쓰기: ${r.name}${st?` (${st+1}번째 질문부터)`:''}`);rb.type='button';
+      rb.onclick=()=>{RESUME=null;applyPlace(r)};
+      b.append(rb,el('div','e-label','다른 가게라면 링크를 붙여넣어 주세요'));
+    }
     b.append(inp,go2,msg);
     if(PENDING_LINK){PENDING_LINK='';setTimeout(run,50)}
 
@@ -966,7 +997,9 @@ function easyCards(){
   const nb=(PLACE&&PLACE.blogs&&PLACE.blogs.length)||5;
   hintPool().forEach(h=>cards.push({id:'h-'+h.key+'-'+h.t,src:h.src||`블로그 ${nb}개 중 ${h.n}개가 말했어요`,q:h.q||`“${h.t}”`,sub:h.q?'':'나도 그랬나요?',hint:h}));
   cards.push({id:'menu',src:C.item,q:ITEM_Q[S.cat],sub:'여러 개 골라도 돼요.',body:b=>{
-    const pm=(PLACE&&PLACE.menus)||[];
+    let pm=(PLACE&&PLACE.menus)||[];
+    const pr=preset();
+    if(!pm.length&&pr)pm=pr.items.map(n=>({name:n,price:''}));
     if(pm.length){
       const box=el('div','chips');
       pm.forEach(m=>{const on=()=>S.items.some(i=>i.name===m.name);const x=el('button','chip'+(on()?' on':''));x.type='button';x.append(m.name);if(m.price)x.append(el('small','',m.price));
@@ -993,7 +1026,7 @@ function easyCards(){
     it.h=it.h||{};if(!it.tags||!Array.isArray(it.tags.sel))it.tags={sel:[],other:''};
     const mh=menuHintsFor(it.name);
     if(mh.length)b.append(el('div','e-label','다른 블로거들 얘기. 나도 그랬으면 눌러주세요'),hChips(it.h,mh));
-    b.append(el('div','e-label','내 느낌'),eChips(C.tags,t=>it.tags.sel.includes(t),t=>{const s=it.tags.sel;const i=s.indexOf(t);i>=0?s.splice(i,1):s.push(t)}));
+    b.append(el('div','e-label','내 느낌'),eChips((preset()&&preset().tags)||C.tags,t=>it.tags.sel.includes(t),t=>{const s=it.tags.sel;const i=s.indexOf(t);i>=0?s.splice(i,1):s.push(t)}));
     b.append(el('div','e-label','한 줄 (선택)'),eText(()=>it.detail,x=>it.detail=x,C.detailPh,true));
   }}));
   const w=sel('with').filter(x=>x!=='기타');
@@ -1109,11 +1142,13 @@ async function boot(){
     catch(e){setTimeout(()=>toast('링크 데이터를 읽지 못했어요. 직접 입력 모드로 열어요.'),300)}
   }
   const incoming=(IS_APP&&ChdNative.takeIncoming?ChdNative.takeIncoming():'')||clipLink();
-  if(!PLACE&&!h&&!incoming){try{PLACE=JSON.parse(localStorage.getItem(LAST_KEY)||'null')}catch(e){}}
+  /* 앱을 다시 열면 첫 화면부터. 쓰던 가게는 "이어서 쓰기" 버튼으로 */
+  if(!PLACE&&!h&&!incoming){try{RESUME=sanitize(JSON.parse(localStorage.getItem(LAST_KEY)||'null'))}catch(e){}}
   PLACE=sanitize(PLACE);
   if(PLACE&&h)try{localStorage.setItem(LAST_KEY,JSON.stringify(PLACE))}catch(e){}
   KEY='chd-memo-v2'+(PLACE?'-'+PLACE.id:'');
   S=load()||init();
+  if(!PLACE){S.step=0;S.mode='easy'}
   loadPhotos();
   if(PLACE)$('#btnSample').remove();
   if(incoming){window.chdIncoming(incoming);return}

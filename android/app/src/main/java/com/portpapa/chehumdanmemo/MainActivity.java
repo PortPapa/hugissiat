@@ -108,6 +108,8 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
+        // 열 때마다 최신 화면을 받는다 (GitHub Pages 10분 캐시 무시). 오프라인이면 앱 내장 화면으로
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         web.setWebViewClient(new WebViewClient() {
             @Override
