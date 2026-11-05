@@ -24,9 +24,24 @@ import android.widget.FrameLayout;
 import android.widget.Toast;
 import android.window.OnBackInvokedDispatcher;
 
+import androidx.core.content.FileProvider;
 import androidx.webkit.WebViewAssetLoader;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
+import android.util.Base64;
+import android.webkit.MimeTypeMap;
+
+import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -183,6 +198,111 @@ public class MainActivity extends Activity {
         handleBack();
     }
 
+    /* ---------- 사진: 고른 사진을 캐시에 01.jpg, 02.jpg…로 복사해 두고 보내기 때 같이 보낸다 ---------- */
+    private static final int REQ_PICK = 41;
+
+    private File photoDir() {
+        File d = new File(getCacheDir(), "share/photos");
+        d.mkdirs();
+        return d;
+    }
+
+    private File[] photoFiles() {
+        File[] fs = photoDir().listFiles(f -> f.isFile() && !f.getName().startsWith("."));
+        if (fs == null) return new File[0];
+        Arrays.sort(fs, (a, b) -> a.getName().compareTo(b.getName()));
+        return fs;
+    }
+
+    private int nextPhotoNo() {
+        int max = 0;
+        for (File f : photoFiles()) {
+            try { max = Math.max(max, Integer.parseInt(f.getName().replaceAll("\\..*$", ""))); } catch (Exception ignored) {}
+        }
+        return max + 1;
+    }
+
+    private String thumbOf(File f) {
+        try {
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(f.getAbsolutePath(), o);
+            int s = 1;
+            while (Math.max(o.outWidth, o.outHeight) / (s * 2) >= 240) s *= 2;
+            o = new BitmapFactory.Options();
+            o.inSampleSize = s;
+            Bitmap b = BitmapFactory.decodeFile(f.getAbsolutePath(), o);
+            if (b == null) return "";
+            int rot = 0;
+            try {
+                int ori = new ExifInterface(f.getAbsolutePath()).getAttributeInt(ExifInterface.TAG_ORIENTATION, 1);
+                rot = ori == 6 ? 90 : ori == 3 ? 180 : ori == 8 ? 270 : 0;
+            } catch (Exception ignored) {}
+            if (rot != 0) {
+                Matrix m = new Matrix();
+                m.postRotate(rot);
+                b = Bitmap.createBitmap(b, 0, 0, b.getWidth(), b.getHeight(), m, true);
+            }
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            b.compress(Bitmap.CompressFormat.JPEG, 70, out);
+            return "data:image/jpeg;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String photosJson() {
+        JSONArray a = new JSONArray();
+        for (File f : photoFiles()) {
+            try {
+                JSONObject o = new JSONObject();
+                o.put("name", f.getName());
+                o.put("thumb", thumbOf(f));
+                a.put(o);
+            } catch (Exception ignored) {}
+        }
+        return a.toString();
+    }
+
+    private void pushPhotos() {
+        pool.execute(() -> {
+            String js = "window.chdPhotos&&window.chdPhotos(" + JSONObject.quote(photosJson()) + ")";
+            runOnUiThread(() -> web.evaluateJavascript(js, null));
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        if (req != REQ_PICK || res != RESULT_OK || data == null) return;
+        final ArrayList<Uri> uris = new ArrayList<>();
+        if (data.getClipData() != null) {
+            for (int i = 0; i < data.getClipData().getItemCount(); i++) uris.add(data.getClipData().getItemAt(i).getUri());
+        } else if (data.getData() != null) {
+            uris.add(data.getData());
+        }
+        if (uris.isEmpty()) return;
+        runOnUiThread(() -> Toast.makeText(this, "사진 " + uris.size() + "장을 불러오는 중이에요", Toast.LENGTH_SHORT).show());
+        pool.execute(() -> {
+            int no = nextPhotoNo();
+            ContentResolver cr = getContentResolver();
+            for (Uri u : uris) {
+                String ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(cr.getType(u));
+                if (ext == null || ext.isEmpty()) ext = "jpg";
+                if ("jpeg".equals(ext)) ext = "jpg";
+                File out = new File(photoDir(), String.format(java.util.Locale.ROOT, "%02d.%s", no++, ext));
+                try (InputStream in = cr.openInputStream(u); OutputStream os = new FileOutputStream(out)) {
+                    byte[] b = new byte[65536];
+                    int n;
+                    while ((n = in.read(b)) > 0) os.write(b, 0, n);
+                } catch (Exception e) {
+                    out.delete();
+                }
+            }
+            pushPhotos();
+        });
+    }
+
     private void handleBack() {
         web.evaluateJavascript("(window.chdBack&&window.chdBack())?'1':'0'", v -> {
             if (!"\"1\"".equals(v)) finish();
@@ -256,6 +376,85 @@ public class MainActivity extends Activity {
             String t = incoming;
             incoming = "";
             return t;
+        }
+
+        @JavascriptInterface
+        public void pickPhotos() {
+            if (!trusted) return;
+            runOnUiThread(() -> {
+                Intent i;
+                if (Build.VERSION.SDK_INT >= 33) {
+                    i = new Intent(MediaStore.ACTION_PICK_IMAGES);
+                    i.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, Math.min(30, MediaStore.getPickImagesMaxLimit()));
+                } else {
+                    i = new Intent(Intent.ACTION_GET_CONTENT);
+                    i.setType("image/*");
+                    i.addCategory(Intent.CATEGORY_OPENABLE);
+                    i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                }
+                try { startActivityForResult(i, REQ_PICK); } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "사진을 고를 수 없어요", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String getPhotos() {
+            if (!trusted) return "[]";
+            return photosJson();
+        }
+
+        @JavascriptInterface
+        public void removePhoto(String name) {
+            if (!trusted || name == null || name.contains("/") || name.contains("..")) return;
+            new File(photoDir(), name).delete();
+        }
+
+        @JavascriptInterface
+        public void clearPhotos() {
+            if (!trusted) return;
+            for (File f : photoFiles()) f.delete();
+        }
+
+        /** MD 파일 + 고른 사진을 카톡·메일·드라이브 등으로 한 번에 보낸다 */
+        @JavascriptInterface
+        public void shareAll(final String name, final String md, final String biz) {
+            if (!trusted) return;
+            runOnUiThread(() -> {
+                try {
+                    File dir = new File(getCacheDir(), "share");
+                    dir.mkdirs();
+                    File[] old = dir.listFiles(f -> f.isFile() && f.getName().endsWith(".md"));
+                    if (old != null) for (File f : old) f.delete();
+                    String safe = name.replaceAll("[\\\\/:*?\"<>|]", "_");
+                    File mdFile = new File(dir, safe);
+                    try (OutputStream os = new FileOutputStream(mdFile)) { os.write(md.getBytes(StandardCharsets.UTF_8)); }
+                    String auth = getPackageName() + ".files";
+                    ArrayList<Uri> uris = new ArrayList<>();
+                    uris.add(FileProvider.getUriForFile(MainActivity.this, auth, mdFile));
+                    for (File f : photoFiles()) uris.add(FileProvider.getUriForFile(MainActivity.this, auth, f));
+                    String subject = "후기씨앗" + (biz == null || biz.isEmpty() ? "" : " - " + biz);
+                    Intent send;
+                    if (uris.size() == 1) {
+                        send = new Intent(Intent.ACTION_SEND);
+                        send.setType("text/markdown");
+                        send.putExtra(Intent.EXTRA_STREAM, uris.get(0));
+                    } else {
+                        send = new Intent(Intent.ACTION_SEND_MULTIPLE);
+                        send.setType("*/*");
+                        send.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
+                    }
+                    send.putExtra(Intent.EXTRA_SUBJECT, subject);
+                    send.putExtra(Intent.EXTRA_TEXT, md);
+                    ClipData clip = ClipData.newRawUri(subject, uris.get(0));
+                    for (int i = 1; i < uris.size(); i++) clip.addItem(new ClipData.Item(uris.get(i)));
+                    send.setClipData(clip);
+                    send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(Intent.createChooser(send, "후기 소스 보내기"));
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "보내지 못했어요. MD 복사를 써주세요.", Toast.LENGTH_LONG).show();
+                }
+            });
         }
 
         /** 네이버 지도에서 "링크 복사" 후 앱을 열었을 때를 위해 클립보드를 읽는다 (앱이 앞에 있을 때만 가능) */
