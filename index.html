@@ -277,6 +277,14 @@ body[data-tab=plans] #viewPlans,body[data-tab=records] #viewRecords,body[data-ta
 .s-snip>span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .s-tag{flex:none;font-size:11px;font-weight:700;color:var(--acc-ink);background:var(--acc-soft);border-radius:6px;padding:1px 6px}
 .s-snip mark{background:var(--blush);color:var(--ink);border-radius:3px;padding:0 1px}
+.or-line{display:flex;align-items:center;gap:10px;color:var(--sub);font-size:12.5px;margin:14px 0 2px}
+.or-line::before,.or-line::after{content:'';flex:1;height:1px;background:var(--line)}
+.inbox-card{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;width:100%;text-align:left;border:1px solid var(--petal);background:var(--blush);border-radius:16px;padding:12px 14px;margin:6px 0 4px;font:inherit;color:var(--ink)}
+.inbox-card b{font-size:14.5px;flex:1}.inbox-card>span:not(.ib-go){order:3;flex-basis:100%;font-size:12.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib-go{font-size:13px;font-weight:700;color:#9C5A70}
+.qm-item.tap{cursor:pointer}
+.set-row.inb .ck{flex:none;width:20px;height:20px;border-radius:6px;border:2px solid var(--line)}
+.set-row.inb.on .ck{background:var(--acc);border-color:var(--acc);box-shadow:inset 0 0 0 3px var(--card)}
 .done-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
 .done-row .e-btn{text-align:center;font-weight:700;margin:0}
 .e-btn.drive{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:8px;font-weight:700}
@@ -1092,7 +1100,8 @@ function saveDrive(){
   if(!canDrive()){toast('앱을 최신 버전으로 업데이트해 주세요');return}
   if(!PLACE)return;
   const b=$('#btnDrive');if(b){b.disabled=true;driveLbl('저장하는 중…')}
-  ChdNative.driveSave(JSON.stringify({path:drivePath(),mdName:'후기 소스.md',md:buildMD(),key:String(PLACE.id)}));
+  const job=JSON.stringify({path:drivePath(),mdName:'후기 소스.md',md:buildMD(),key:String(PLACE.id)});
+  adGate('drive',()=>ChdNative.driveSave(job));
 }
 window.chdDrive=s=>{
   let o={};try{o=JSON.parse(s)}catch(e){}
@@ -1115,9 +1124,16 @@ function photoBlock(){
   const b=el('button','mic',PHOTOS.length?'사진 더 고르기':'사진 고르기');b.type='button';b.onclick=pickPhotos;w.append(b);
   return w;
 }
+/* ---------- 광고 자리: 보내기·저장이 끝나는 시점. 나중에 앱(AdMob)에서 ChdNative.showAd만 붙이면 된다 ---------- */
+let AD_CB=null;
+function adGate(kind,fn){
+  if(IS_APP&&ChdNative.showAd){AD_CB=fn;try{ChdNative.showAd(kind);return}catch(e){AD_CB=null}}
+  fn();
+}
+window.chdAdDone=()=>{const f=AD_CB;AD_CB=null;if(f)f()};
 async function sendAll(){
   const md=buildMD();S.sent=true;save();
-  if(IS_APP&&ChdNative.shareAll){ChdNative.shareAll(fileName(),md,V('biz')||'');return}
+  if(IS_APP&&ChdNative.shareAll){adGate('send',()=>ChdNative.shareAll(fileName(),md,V('biz')||''));return}
   const files=[new File([md],fileName(),{type:'text/markdown'}),...PHOTOS.filter(p=>p.file).map(p=>new File([p.file],p.name,{type:p.file.type}))];
   try{
     if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files,title:fileName()});return}
@@ -1181,7 +1197,7 @@ function openQuickMemo(place){
     b.append(el('h3','','현장 메모'));
     const list=el('div','qm-list');
     const draw=()=>{list.innerHTML='';const a=getQM(place.id);
-      a.forEach((m,i)=>{const r=el('div','qm-item');r.append(el('span','qm-t',hhmm(m.t)),el('span','',m.text));const x=el('button','','×');x.type='button';x.onclick=()=>{const z=getQM(place.id);z.splice(i,1);setQM(place.id,z);draw();changed()};r.append(x);list.append(r)});
+      a.forEach((m,i)=>{const r=el('div','qm-item tap');r.append(el('span','qm-t',hhmm(m.t)),el('span','',m.text));r.onclick=e=>{if(e.target.tagName==='BUTTON')return;memoAction(place,i,()=>openQuickMemo(place))};const x=el('button','','×');x.type='button';x.onclick=()=>{const z=getQM(place.id);z.splice(i,1);setQM(place.id,z);draw();changed()};r.append(x);list.append(r)});
       if(!a.length)list.append(el('div','e-tip',''));
       list.scrollTop=list.scrollHeight};
     draw();
@@ -1332,12 +1348,13 @@ function applyPlace(d){
   PLACE=sanitize(d);if(!PLACE)return;RESUME=null;
   try{localStorage.setItem(LAST_KEY,JSON.stringify(PLACE));localStorage.setItem('chd-place-'+PLACE.id,JSON.stringify(PLACE))}catch(e){}
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);
-  KEY='chd-memo-v2-'+PLACE.id;S=load()||init();
+  KEY='chd-memo-v2-'+PLACE.id;let isNewRec=true;try{isNewRec=!localStorage.getItem(KEY)}catch(e){}S=load()||init();
   usePhotoKey(PLACE.id);
   loadPhotos();
   const sb=document.querySelector('#btnSample');if(sb)sb.remove();
   closeAct();
   setMode('easy');toast(PLACE.name);syncWidget();
+  if(PENDING_ATTACH||(isNewRec&&getQM('_inbox').length)){const P0=PLACE;setTimeout(()=>attachPrompt(P0),700)}
 }
 /* 앱: 네이버 지도에서 "링크 복사" 후 앱을 열면 클립보드 링크로 자동 시작. 같은 링크는 한 번만 */
 function clipLink(){
@@ -1578,10 +1595,18 @@ function renderEasy(){
 }
 function goStep(n){if(REC)REC.stop();if(VOICE)voiceStop();S.step=n;save();renderEasy()}
 /* 앱 뒤로가기: 이전 카드로. 더 뒤로 갈 곳이 없으면 false */
+/* 폰 뒤로가기: 열린 창 닫기 → 질문 한 칸 뒤로 → 홈 → 홈 탭 → 그때만 앱 종료 */
 window.chdBack=()=>{
+  const B=document.body.classList;
+  if(B.contains('act')){closeAct();return true}
+  if(B.contains('sheet')){B.remove('sheet');return true}
   const pv=document.querySelector('#previewPane.open');if(pv){pv.classList.remove('open');return true}
-  if(S.mode==='full'){setMode('easy');return true}
-  if(S.step>0){goStep(S.step-1);return true}
+  if(inFlow()){
+    if(S.mode==='full'){setMode('easy');return true}
+    if(S.step>0){goStep(S.step-1);return true}
+    goHome();return true;
+  }
+  if(TAB!=='home'){setTab('home');return true}
   return false;
 };
 function go(d){goStep((S.step||0)+d)}
@@ -1655,13 +1680,19 @@ $('#btnMore').onclick=()=>openAct(b=>{
 });
 
 function manualStart(){openAct(b=>{
-  b.append(el('h3','','어디 다녀왔어요?'));
-  const inp=document.createElement('input');inp.type='text';inp.placeholder='업체 이름';inp.value=S.f.biz||'';
+  b.append(el('h3','','직접 입력하기'));
+  const st={cat:'food'};
+  const inp=document.createElement('input');inp.type='text';inp.placeholder='가게 이름';
   const box=el('div','chips');box.style.marginTop='10px';
-  Object.entries(CATS).forEach(([k,c])=>{const x=el('button','chip'+(S.cat===k?' on':''),c.label);x.type='button';x.onclick=()=>{S.cat=k;S.photos=flowOf(k);box.querySelectorAll('.chip').forEach(y=>y.classList.toggle('on',y===x))};box.append(x)});
-  const go=el('button','e-btn primary','시작');go.type='button';
-  go.onclick=()=>{const v=inp.value.trim();if(!v){inp.focus();return}S.f.biz=v;closeAct();goStep(1)};
-  b.append(inp,box,go);setTimeout(()=>inp.focus(),250);
+  Object.entries(CATS).forEach(([k,c])=>{const x=el('button','chip'+(st.cat===k?' on':''),c.label);x.type='button';x.onclick=()=>{st.cat=k;box.querySelectorAll('.chip').forEach(y=>y.classList.toggle('on',y===x))};box.append(x)});
+  const mk=()=>{const v=inp.value.trim();if(!v){inp.focus();toast('가게 이름을 적어주세요');return null}return {id:'m'+Date.now(),name:v,category:CATS[st.cat].label,manual:true,photos:[]}};
+  const row=el('div','done-row');
+  const go=el('button','e-btn primary','지금 쓰기');go.type='button';
+  go.onclick=()=>{const P=mk();if(!P)return;closeAct();applyPlace(P);S.cat=st.cat;S.photos=flowOf(st.cat);S.f.biz=P.name;save();renderEasy()};
+  const pl=el('button','e-btn','갈 곳에 추가');pl.type='button';
+  pl.onclick=()=>{const P=mk();if(!P)return;openPlanSheet(P)};
+  row.append(go,pl);
+  b.append(inp,box,row);setTimeout(()=>inp.focus(),250);
 })}
 /* ---------- 기록 ---------- */
 function getRecords(){
@@ -1725,8 +1756,8 @@ function addPlanFlow(){openAct(b=>{
   const run=async()=>{go.disabled=true;go.textContent='가져오는 중…';msg.textContent='';
     try{openPlanSheet(sanitize(await fetchPlace(inp.value)))}catch(e){msg.textContent=e.message||String(e);go.disabled=false;go.textContent='가져오기'}};
   go.onclick=run;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();run()}};
-  const nl=el('div','done-links');const nb=el('button','','링크 없이 쓰기');nb.type='button';nb.onclick=()=>{closeAct();manualStart()};nl.append(nb);
-  b.append(inp,go,msg,nl);setTimeout(()=>inp.focus(),250);
+  const nb=el('button','e-btn','직접 입력하기');nb.type='button';nb.style.marginTop='8px';nb.onclick=()=>manualStart();
+  b.append(el('h3','','가게 추가'),inp,go,msg,el('div','or-line','또는'),nb);setTimeout(()=>inp.focus(),250);
 })}
 
 /* ---------- 내 정보 ---------- */
@@ -1819,7 +1850,7 @@ function syncWidget(){
 /* 위젯·알림에서 들어온 동작 */
 window.chdAction=a=>{
   a=String(a||'');const k=a.split(':')[0],id=a.slice(k.length+1);
-  if(k==='memo'){const p=getPlans().find(x=>String(x.id)===id)||getPlans()[0];if(p){setTab('plans');openQuickMemo(p.place)}else setTab('plans')}
+  if(k==='memo'){const p=id&&getPlans().find(x=>String(x.id)===id);if(p)voiceMemo(p.place);else quickVoice()}
   else if(k==='plan')window.chdOpenPlan(id);
   else if(k==='tab'){setTab(id||'plans')}
   else if(k==='planmenu'){const p=getPlans().find(x=>String(x.id)===id);setTab('home');if(p)planMenu(p)}
@@ -1900,6 +1931,9 @@ const svgD="<svg class=\"\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 2
 function renderHome(){updDock();
   const v=$('#viewHome');v.innerHTML='';
   const rs=getRecords(),ps=getPlans();
+  const inb=getQM('_inbox');
+  if(inb.length){const c=el('button','inbox-card');c.type='button';c.append(el('b','','가게 없이 남긴 메모 '+inb.length+'개'),el('span','',inb[inb.length-1].text));
+    const go=el('span','ib-go','정리하기');c.append(go);c.onclick=openInbox;v.append(c)}
   if(!rs.length&&!ps.length){
     const h=el('div','hello');h.innerHTML=sproutSvg(1);h.append(el('b','','첫 씨앗을 심어볼까요?'),el('div','','네이버 지도에서 가게를 공유하거나\n아래에 링크를 붙여넣어 주세요'));
     h.lastChild.style.whiteSpace='pre-line';v.append(h);return;
@@ -1965,7 +1999,8 @@ function pasteSheet(prefill){openAct(b=>{
   const run=async()=>{go.disabled=true;go.textContent='가져오는 중…';msg.textContent='';
     try{const d=await fetchPlace(inp.value);closeAct();afterFetch(d)}catch(e){msg.textContent=e.message||String(e);go.disabled=false;go.textContent='가져오기'}};
   go.onclick=run;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();run()}};
-  b.append(inp,go,msg);setTimeout(()=>inp.focus(),250);
+  const nb=el('button','e-btn','직접 입력하기');nb.type='button';nb.style.marginTop='8px';nb.onclick=()=>manualStart();
+  b.append(el('h3','','가게 추가'),inp,go,msg,el('div','or-line','또는'),nb);setTimeout(()=>inp.focus(),250);
 })}
 async function readClip(){
   try{if(IS_APP&&ChdNative.readClipboard)return String(ChdNative.readClipboard()||'');if(navigator.clipboard&&navigator.clipboard.readText)return await navigator.clipboard.readText()}catch(e){}
@@ -1986,12 +2021,72 @@ function memoPlaces(){
   return out;
 }
 function updDock(){const l=document.querySelector('#dkPaste .dk-lbl');if(!l)return;const c=memoPlaces()[0];l.textContent=c?c.name+' 메모':'지금 메모'}
-function quickVoice(){const c=memoPlaces();if(c.length)voiceMemo(c[0]);else pickMemoPlace()}
+const INBOX={id:'_inbox',name:'가게 없이 메모'};
+const isInbox=p=>p&&String(p.id)==='_inbox';
+function quickVoice(){const c=memoPlaces();voiceMemo(c.length?c[0]:INBOX)}
+/* 메모 옮기기: from 가게의 i번째(또는 여러 개) 메모를 to 가게로 */
+function moveQM(fromId,idxs,toId){
+  const a=getQM(fromId);const take=idxs.map(i=>a[i]).filter(Boolean);if(!take.length)return 0;
+  setQM(fromId,a.filter((m,i)=>!idxs.includes(i)));
+  setQM(toId,[...getQM(toId),...take].sort((x,y)=>String(x.t).localeCompare(String(y.t))));
+  if(S&&PLACE&&String(PLACE.id)===String(toId))changed();
+  return take.length;
+}
+function allPlaces(){const all=[],seen=new Set();[...getPlans().map(p=>p.place),...getRecords().map(r=>r.place)].forEach(p=>{if(p&&p.id&&!seen.has(String(p.id))){seen.add(String(p.id));all.push(p)}});return all}
+let PENDING_ATTACH=null;
+/* 어느 가게로? (옮기기·붙이기 공용) */
+function pickPlaceFor(title,fromId,idxs,after){openAct(b=>{
+  b.append(el('h3','',title));
+  const list=el('div','set-box');
+  allPlaces().filter(p=>String(p.id)!==String(fromId)).slice(0,20).forEach(p=>{const r=el('button','set-row');r.type='button';const l=el('span','set-l');l.append(thumbEl(p,'th sm'),p.name);r.append(l);
+    r.onclick=()=>{const n=moveQM(fromId,idxs,p.id);closeAct();toast(p.name+'에 메모 '+n+'개를 옮겼어요');after&&after();if(TAB==='home')renderHome()};list.append(r)});
+  const ad=el('button','set-row add');ad.type='button';ad.append(el('span','set-l','+ 새 가게 추가'));
+  ad.onclick=()=>{PENDING_ATTACH={from:fromId,idxs};addFromLink()};list.append(ad);
+  b.append(list);
+})}
+/* 메모 하나 누르면: 옮기기 / 삭제 */
+function memoAction(place,i,redraw){const m=getQM(place.id)[i];if(!m)return;openAct(b=>{
+  b.append(el('h3','',hhmm(m.t)),el('p','',m.text));const ch=el('div','e-choices');
+  const mv=el('button','e-btn primary','다른 가게로 옮기기');mv.type='button';mv.onclick=()=>pickPlaceFor('어느 가게 메모예요?',place.id,[i],redraw);
+  const dl=el('button','e-btn','삭제');dl.type='button';dl.onclick=()=>{const z=getQM(place.id);z.splice(i,1);setQM(place.id,z);closeAct();toast('지웠어요');redraw&&redraw();if(TAB==='home')renderHome()};
+  ch.append(mv,dl);b.append(ch);
+})}
+/* 가게 없이 남긴 메모 정리 */
+function openInbox(){openAct(b=>{
+  const a=getQM('_inbox');const sel=new Set(a.map((m,i)=>i));
+  b.append(el('h3','','가게 없이 남긴 메모'));
+  const list=el('div','set-box');
+  a.forEach((m,i)=>{const r=el('button','set-row inb on');r.type='button';const ck=el('span','ck');
+    const l=el('span','set-l g2');l.append(el('small','',hhmm(m.t)),el('span','',m.text));r.append(ck,l);
+    r.onclick=()=>{sel.has(i)?sel.delete(i):sel.add(i);r.classList.toggle('on',sel.has(i))};list.append(r)});
+  b.append(list);
+  const row=el('div','done-row');
+  const go=el('button','e-btn primary','가게에 붙이기');go.type='button';go.onclick=()=>{if(!sel.size){toast('메모를 골라주세요');return}pickPlaceFor('어느 가게 메모예요?','_inbox',[...sel])};
+  const dl=el('button','e-btn','삭제');dl.type='button';dl.onclick=()=>{if(!sel.size)return;setQM('_inbox',a.filter((m,i)=>!sel.has(i)));closeAct();toast('지웠어요');renderHome()};
+  row.append(go,dl);b.append(row);
+})}
+/* 새 가게를 추가했을 때 가게 없이 남긴 메모가 있으면 붙일지 묻기 */
+function attachPrompt(place){
+  const pa=PENDING_ATTACH;PENDING_ATTACH=null;
+  const from=pa?pa.from:'_inbox';const a=getQM(from);if(!a.length)return;
+  const idxs=pa?pa.idxs:a.map((m,i)=>i);
+  if(pa){const n=moveQM(from,idxs,place.id);if(n)toast(place.name+'에 메모 '+n+'개를 붙였어요');return}
+  openAct(b=>{const sel=new Set(idxs);
+    b.append(el('h3','','가게 없이 남긴 메모가 있어요'),el('div','e-tip',place.name+'에 붙일 메모를 골라주세요'));
+    const list=el('div','set-box');
+    a.forEach((m,i)=>{const r=el('button','set-row inb on');r.type='button';const l=el('span','set-l g2');l.append(el('small','',hhmm(m.t)),el('span','',m.text));r.append(el('span','ck'),l);
+      r.onclick=()=>{sel.has(i)?sel.delete(i):sel.add(i);r.classList.toggle('on',sel.has(i))};list.append(r)});
+    const row=el('div','done-row');
+    const go=el('button','e-btn primary','붙이기');go.type='button';go.onclick=()=>{const n=moveQM(from,[...sel],place.id);closeAct();if(n)toast('메모 '+n+'개를 붙였어요');if(S&&S.mode==='easy'&&inFlow())renderEasy()};
+    const no=el('button','e-btn','나중에');no.type='button';no.onclick=closeAct;
+    row.append(go,no);b.append(list,row);
+  });
+}
 function pickMemoPlace(){openAct(b=>{
   b.append(el('h3','','어디 메모할까요?'));
   const all=[],seen=new Set();[...getPlans().map(p=>p.place),...getRecords().map(r=>r.place)].forEach(p=>{if(p&&p.id&&!seen.has(String(p.id))){seen.add(String(p.id));all.push(p)}});
-  if(!all.length){const g=el('button','e-btn primary','가게 추가');g.type='button';g.onclick=()=>{closeAct();addFromLink()};b.append(g);return}
   const list=el('div','set-box');
+  const ib=el('button','set-row');ib.type='button';ib.append(el('span','set-l','가게 없이 메모 (나중에 정리)'));ib.onclick=()=>voiceMemo(INBOX);list.append(ib);
   all.slice(0,12).forEach(p=>{const r=el('button','set-row');r.type='button';const l=el('span','set-l');l.append(thumbEl(p,'th sm'),p.name);r.append(l);r.onclick=()=>voiceMemo(p);list.append(r)});
   b.append(list);
 })}
@@ -1999,8 +2094,9 @@ function voiceMemo(place){openAct(b=>{
   const hd=el('div','vm-h');hd.append(el('h3','',place.name));
   const ch=el('button','vm-ch','바꾸기');ch.type='button';ch.onclick=()=>{voiceStop();pickMemoPlace()};hd.append(ch);b.append(hd);
   const list=el('div','qm-list');
-  const draw=()=>{list.innerHTML='';getQM(place.id).forEach(m=>{const r=el('div','qm-item');r.append(el('span','qm-t',hhmm(m.t)),el('span','',m.text));list.append(r)});list.scrollTop=list.scrollHeight};
+  const draw=()=>{list.innerHTML='';getQM(place.id).forEach((m,i)=>{const r=el('div','qm-item tap');r.append(el('span','qm-t',hhmm(m.t)),el('span','',m.text));r.onclick=()=>{voiceStop();memoAction(place,i,()=>voiceMemo(place))};list.append(r)});list.scrollTop=list.scrollHeight};
   draw();
+  if(isInbox(place))b.append(el('div','e-tip','나중에 가게를 추가하면 붙일 수 있어요'));
   const t=document.createElement('textarea');t.placeholder='말하거나 적기';
   const addNow=()=>{const v=t.value.trim();if(!v)return;const z=getQM(place.id);z.push({t:new Date().toISOString(),text:v});setQM(place.id,z);t.value='';draw();if(S&&PLACE&&String(PLACE.id)===String(place.id))changed();toast('메모했어요')};
   const vb=voiceButton(t,()=>{},addNow);

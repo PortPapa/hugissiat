@@ -93,6 +93,8 @@ public class MainActivity extends Activity {
     private static final int MAX_BODY = 4 * 1024 * 1024;
 
     private WebView web;
+    /** 웹 화면이 다 뜨면 true → 로딩 화면을 내린다 */
+    private volatile boolean ready = false;
     private String incoming = "";
     private String pendingPlan = "";
     private String pendingAction = "";
@@ -109,6 +111,19 @@ public class MainActivity extends Activity {
         web.setHorizontalScrollBarEnabled(false);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
         setContentView(root);
+
+        // 로딩 화면: 웹 화면이 다 뜰 때까지(최대 5초) 첫 그림을 미룬다 → 시스템 스플래시가 그대로 보임
+        final View content = findViewById(android.R.id.content);
+        content.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                if (!ready) return false;
+                content.getViewTreeObserver().removeOnPreDrawListener(this);
+                getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0xFFFEFAF3));
+                return true;
+            }
+        });
+        new Handler(Looper.getMainLooper()).postDelayed(() -> { ready = true; content.invalidate(); }, 5000);
 
         // Android 15+ 는 화면 끝까지 그려지므로 상태바·내비바·키보드 만큼 여백을 준다
         if (Build.VERSION.SDK_INT >= 30) {
@@ -145,6 +160,7 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 trusted = ours(Uri.parse(url));
+                if (!ready) view.postDelayed(() -> { ready = true; findViewById(android.R.id.content).invalidate(); }, 150);
                 if (hasWindowFocus()) checkClipboard();
             }
 

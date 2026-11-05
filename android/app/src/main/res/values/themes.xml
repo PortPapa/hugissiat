@@ -3,7 +3,7 @@
     <color name="bg">#FEFAF3</color>
     <color name="accent">#6F8E6D</color>
     <style name="AppTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
-        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:windowBackground">@drawable/splash_bg</item>
         <item name="android:colorAccent">@color/accent</item>
         <item name="android:statusBarColor">@color/bg</item>
         <item name="android:navigationBarColor">@color/bg</item>
