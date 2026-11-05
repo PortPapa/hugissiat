@@ -866,6 +866,32 @@ public class MainActivity extends Activity {
             return photosJson();
         }
 
+        /** 사진 순서 바꾸기: 받은 이름 순서대로 01, 02…로 다시 이름 붙인다 */
+        @JavascriptInterface
+        public String reorderPhotos(String json) {
+            if (!trusted) return photosJson();
+            try {
+                JSONArray a = new JSONArray(json);
+                File d = photoDir();
+                ArrayList<File> tmp = new ArrayList<>();
+                for (int i = 0; i < a.length(); i++) {
+                    String n = a.getString(i);
+                    if (n.contains("/") || n.contains("..")) continue;
+                    File f = new File(d, n);
+                    if (!f.exists()) continue;
+                    File t = new File(d, ".r" + i + "_" + n);
+                    if (f.renameTo(t)) tmp.add(t);
+                }
+                for (int i = 0; i < tmp.size(); i++) {
+                    File t = tmp.get(i);
+                    String n = t.getName();
+                    String ext = n.substring(n.lastIndexOf('.') + 1);
+                    t.renameTo(new File(d, String.format(java.util.Locale.ROOT, "%02d.%s", i + 1, ext)));
+                }
+            } catch (Exception ignored) {}
+            return photosJson();
+        }
+
         @JavascriptInterface
         public String photoFull(String name) {
             if (!trusted || name == null || name.contains("/") || name.contains("..")) return "";
