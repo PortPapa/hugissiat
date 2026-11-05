@@ -433,6 +433,7 @@ i.v{background:var(--acc)}i.dn{background:#B9B3A8}i.du{background:transparent;bo
 .rp-r span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rp-r b{text-align:right;font-variant-numeric:tabular-nums}
 .rp-b{height:8px;background:var(--bg);border-radius:4px;overflow:hidden}.rp-b i{display:block;height:100%;border-radius:4px}
 .ps-post{cursor:pointer}.ps-post.on{border-color:var(--acc)}
+.pd-img{width:96px;height:96px;object-fit:cover;border-radius:14px;display:block;margin:2px 0 10px;border:1px solid var(--line)}
 .done-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
 .done-row .e-btn{text-align:center;font-weight:700;margin:0}
 .e-btn.drive{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:8px;font-weight:700}
@@ -595,7 +596,7 @@ const safeUrl=u=>/^https:\/\/[^\s"'<>]+$/.test(String(u||''))?String(u):'';
 const arr=a=>Array.isArray(a)?a:[];
 const str=s=>s==null?'':String(s);
 function slim(p){
-  return {id:str(p.id),type:str(p.type),placeUrl:p.placeUrl,name:p.name,lat:p.lat||null,lng:p.lng||null,category:p.category,roadAddress:p.roadAddress,address:p.address,phone:p.phone,
+  return {id:str(p.id),type:str(p.type),placeUrl:p.placeUrl,name:p.name,product:!!p.product,brand:p.brand||'',store:p.store||'',catPath:p.catPath||'',price:p.price||0,sale:p.sale||0,pkind:p.pkind||'',lat:p.lat||null,lng:p.lng||null,category:p.category,roadAddress:p.roadAddress,address:p.address,phone:p.phone,
     conveniences:p.conveniences,facilities:p.facilities,payment:p.payment,rating:p.rating,visitorReviews:p.visitorReviews,blogReviews:p.blogReviews,
     hours:p.hours,menus:arr(p.menus).map(m=>({name:m.name,price:m.price})),reviewMenus:arr(p.reviewMenus).slice(0,8),voted:arr(p.voted).slice(0,20),
     blogs:arr(p.blogs).map(b=>({title:b.title,author:b.author,date:b.date,url:b.url})),hints:p.hints||{},photos:arr(p.photos).slice(0,2)};
@@ -613,7 +614,8 @@ function sanitize(p){
     menus:arr(p.menus).map(m=>({name:str(m&&m.name),price:str(m&&m.price)})).filter(m=>m.name),
     reviewMenus:tn(p.reviewMenus),voted:tn(p.voted),
     blogs:arr(p.blogs).map(b=>({title:str(b.title),author:str(b.author),date:str(b.date),url:safeUrl(b.url)})),hints,
-    photos:arr(p.photos).map(safeUrl).filter(u=>/^https:\/\/[\w.-]*pstatic\.net\//.test(u)).slice(0,5)};
+    photos:arr(p.photos).map(safeUrl).filter(u=>/^https:\/\/[\w.-]*(pstatic\.net|coupangcdn\.com)\//.test(u)).slice(0,5),
+    product:!!p.product,brand:str(p.brand),store:str(p.store),catPath:str(p.catPath),price:Number(p.price)||0,sale:Number(p.sale)||0,pkind:str(p.pkind)};
 }
 /* 어사이드 스킬이 이 페이지를 열고 호출해서 폰용 링크를 만들어요 */
 window.chdMakeLink=async o=>PAGE_URL+'#'+await packData(slim(o));
@@ -651,8 +653,45 @@ function placeFromHtml(id,finalUrl,html){
     voted:((an.votedKeyword&&an.votedKeyword.details)||[]).map(d=>({t:d.displayName,n:d.count})).slice(0,20),blogs:[],
     photos:(()=>{const a=pick('PlaceDetailTopPhotoItem').map(p=>p.originalUrl||p.thumbnailUrl).filter(Boolean).slice(0,5);if(!a.length){const m=html.match(/property="og:image" content="([^"]+)"/);if(m)a.push(m[1].replace(/&amp;/g,'&'))}return a})()};
 }
+/* ---------- 제품: 스마트스토어·쿠팡 링크 ---------- */
+const PROD_RE=/https?:\/\/(?:m\.)?(?:smartstore\.naver\.com|brand\.naver\.com|shopping\.naver\.com|(?:www\.|m\.|link\.)?coupang\.com|coupa\.ng)\/[^\s]*/;
+const KINDS=['뷰티','식품','생활','육아','디지털','패션'];
+function guessKind(path){const c=String(path||'');if(/출산|육아|유아|아동|완구|기저귀|분유/.test(c))return'육아';if(/화장품|미용|뷰티|스킨|메이크업|헤어|바디/.test(c))return'뷰티';if(/식품|건강|음료|간식|과자|커피|차|농산|축산|수산|반찬/.test(c))return'식품';
+  if(/디지털|가전|컴퓨터|휴대폰|모바일|음향|카메라|게임/.test(c))return'디지털';if(/패션|의류|잡화|신발|가방|주얼리|시계|언더웨어/.test(c))return'패션';return'생활'}
+function nativeProduct(url){return new Promise(r=>{const id=String(++_nid);_ncb[id]=r;ChdNative.loadProduct(id,url)}).then(s=>{const o=typeof s==='string'?JSON.parse(s):s;if(o.error)throw new Error(o.error);return o})}
+async function fetchProduct(url){
+  if(!(IS_APP&&ChdNative.loadProduct))throw new Error('제품 링크는 앱에서 가져올 수 있어요. 직접 입력하기를 써주세요');
+  toast('제품 정보를 가져오는 중…');
+  const o=await nativeProduct(url);if(!o||!o.name)throw new Error('제품 정보를 못 가져왔어요');
+  const fu=o.url||url;const cp=/coupang/.test(fu);const no=(fu.match(/products\/(\d+)/)||[])[1]||o.no||String(Date.now());
+  const clean=fu.split('?')[0];const catPath=String(o.cat||'').replace(/\\u003e/g,'>');
+  return {id:(cp?'cp':'sp')+no,name:String(o.name).replace(/\s*:\s*[^:]+$/,'').trim(),type:'product',product:true,category:catPath.split('>').pop()||'제품',catPath,brand:o.brand||'',store:o.store||'',
+    price:Number(o.price)||0,sale:Number(o.sale)||0,rating:o.score?Number(o.score):null,visitorReviews:Number(o.reviews)||0,photos:(o.img||[]).filter(Boolean).slice(0,5),placeUrl:clean,pkind:guessKind(catPath+' '+o.name)};
+}
+const won=n=>n?Number(n).toLocaleString()+'원':'';
+function afterFetchProduct(d){
+  const P=sanitize(d);if(!P)return;const st={kind:P.pkind||'생활'};
+  openAct(b=>{
+    if(P.photos&&P.photos[0]){const im=document.createElement('img');im.className='pd-img';im.src=px(P.photos[0],'f300_300');im.referrerPolicy='no-referrer';im.onerror=()=>im.remove();b.append(im)}
+    b.append(el('h3','',P.name));
+    const meta=[P.brand,P.sale&&P.price&&P.sale<P.price?won(P.sale)+' (정가 '+won(P.price)+')':won(P.sale||P.price),P.visitorReviews?'리뷰 '+P.visitorReviews.toLocaleString()+(P.rating?' · ★'+P.rating:''):''].filter(Boolean).join(' · ');
+    if(meta)b.append(el('p','',meta));
+    b.append(el('div','e-label','어떤 제품이에요?'),eChips(KINDS,t=>st.kind===t,t=>{st.kind=t}));
+    const ch=el('div','e-choices');
+    const B=(l,cls,fn)=>{const x=el('button','e-btn '+cls,l);x.type='button';x.onclick=fn;ch.append(x)};
+    B('받았어요 · 지금 쓰기','primary',()=>{P.pkind=st.kind;closeAct();applyPlace(P);S.f.visitDate=today();S.f.pkind={sel:st.kind,other:''};save();renderEasy();scheduleUse(P)});
+    B('받을 예정이에요','',()=>{P.pkind=st.kind;openPlanSheet(P)});
+    b.append(ch);
+  });
+}
+/* 받은 날 기준 3일·7일 뒤 '써보니 어때요?' 알림 */
+function scheduleUse(P){if(!(IS_APP&&ChdNative.scheduleReminder))return;const base=new Date();base.setHours(20,0,0,0);
+  [3,7].forEach(n=>{const at=new Date(base.getTime()+n*864e5);ChdNative.scheduleReminder(String(P.id)+'-d'+n,String(at.getTime()),P.name+' '+n+'일 써보니 어때요?','사용 일지 한 줄 남겨요. 누르면 바로 메모해요.')})}
+function useDay(t){const v=V('visitDate');if(!v)return 0;const [y,m,d]=v.split('-').map(Number);const a=new Date(y,m-1,d),b=new Date(t);b.setHours(0,0,0,0);return Math.floor((b-a)/864e5)+1}
 async function fetchPlace(input){
   input=String(input||'').trim();if(!input)throw new Error('링크를 붙여넣어 주세요');
+  {const pm=input.match(PROD_RE);if(pm)return fetchProduct(pm[0])}
+  if(IS_APP&&/naver\.me\//.test(input)){try{const m0=input.match(/https?:\/\/naver\.me\/[^\s]+/);if(m0){const fu=(await nativeGet(m0[0])).url||'';if(PROD_RE.test(fu))return fetchProduct(fu)}}catch(e){}}
   if(!IS_APP){
     const r=await fetch(WORKER+encodeURIComponent(input));let d={};try{d=await r.json()}catch(x){}
     if(!r.ok||d.error||!d.name)throw new Error(d.error||'가게 정보를 못 가져왔어요');return d;
@@ -725,6 +764,7 @@ const CATS = {
     flow:['외관·입구','주차장','접수·안내','시설 전경','프로그램 진행 장면','사람 나오는 체험 컷','결과물·기념사진','부대시설','주변 풍경']}
 };
 function guessCat(p){
+  if(p&&p.product)return'product';
   const c=(p.category||'')+' '+(p.type||'');
   if(/키즈|놀이|체험|공방|클래스|필라테스|요가|헬스|골프|볼링|방탈출|수영|서핑|스키|레저|테마파크|아쿠아리움|동물원|사진관|스튜디오/.test(c))return'activity';
   if(/카페|디저트|베이커리|제과|빵|커피|찻집|cafe/i.test(c))return'cafe';
@@ -752,7 +792,8 @@ function init(){
   if(PLACE){
     s.cat=guessCat(PLACE);s.photos=flowOf(s.cat);
     s.f.biz=PLACE.name||'';
-    s.f.region=(PLACE.roadAddress||PLACE.address||'').split(' ').slice(0,3).join(' ');
+    if(PLACE.product&&PLACE.pkind)s.f.pkind={sel:PLACE.pkind,other:''};
+    s.f.region=PLACE.product?'':(PLACE.roadAddress||PLACE.address||'').split(' ').slice(0,3).join(' ');
   }
   /* 내 프로필(한 번 저장하면 매번 자동) */
   const pf=getProfile();
@@ -819,7 +860,9 @@ function sections(){
       R('period','사용 기간',['1회','2~3일','1주일','2주 이상','한 달 이상']),
       A('situation','어떤 상황에서 썼나요','예: 아이 둘 키우는 거실, 매일 저녁 식사 후 바닥 청소'),
       A('worry','쓰기 전 고민','예: 무선이라 흡입력이 약하지 않을까'),
-      A('solved','써보니 그 고민은?','예: 모래알까지 한 번에 들어감. 대신 배터리는 20분 정도')
+      A('solved','써보니 그 고민은?','예: 모래알까지 한 번에 들어감. 대신 배터리는 20분 정도'),
+      R('pkind','제품 종류',KINDS),A('pickWhy','고른 이유','예: 양말형 구조'),T('option','고른 옵션·사이즈','예: 125L'),T('optionWhy','옵션 고른 이유','예: 발보다 살짝 여유'),
+      M('unbox','처음 받아보니',['생각보다 가벼움','묵직함','고급스러움','생각보다 작음','생각보다 큼','포장 꼼꼼','냄새 없음','설명서 친절']),A('unboxMemo','하나하나 살펴본 것','예: 앞코가 넓고 밑창이 말랑함')
     ]},
     visit?{id:'space',title:'공간·분위기',desc:'"분위기 좋아요" 대신 보고 느낀 장면.',fields:[
       R('crowd','도착했을 때 붐빔',['한산함','적당함','거의 만석','웨이팅 있음']),
@@ -1124,10 +1167,16 @@ const EXTRA_WAIT={food:['serve','음식 나오기까지',['10분 이내','20분�
 const KID_OPTS=['유아의자 있음','유아의자 부족','아기 식기·수저','아이 메뉴·아기밥','놀이 공간','기저귀 교환대','유모차 들어가기 편함','아이가 잘 먹음','아이가 지루해함'];
 const BBQ_OPTS=['개별 바베큐','공용 바베큐','숯·그릴 준비해 줌','시간 제한 없음','불이 약했음','바베큐 없음'];
 const ROOM_OPTS=['넓음','깨끗함','화장실 넓음','수압 좋음','뷰 좋음','방음 아쉬움','침구 푹신','어메니티 충분'];
+const PRATE={'뷰티':['발림성','향','지속력','자극','흡수','가격 대비'],'식품':['맛','조리 편함','양','포장','가격 대비'],'육아':['아이 반응','안전','착용·사용 편함','세척·관리','디자인','가격 대비'],
+  '디지털':['성능','배터리','소음','설정 쉬움','디자인','가격 대비'],'생활':['효과','사용 편함','냄새','내구성','디자인','가격 대비'],'패션':['사이즈','착용감','소재','디자인','마감','가격 대비']};
 const RATE_SETS={food:['맛','양','가격 대비','친절','청결','분위기'],cafe:['맛','가격 대비','분위기','좌석','친절','청결'],
   beauty:['실력·결과','상담·친절','청결','가격 대비','분위기','시간 약속'],stay:['청결','침구·편안함','위치','시설','친절','가격 대비'],
   product:['품질','사용 편함','디자인','가격 대비','배송·포장'],activity:['재미','시설','안전','친절','청결','가격 대비']};
-const RATE_CHIPS={'맛':['간이 딱 좋음','짠 편','싱거운 편','담백함','자극적','재료가 신선함','생각보다 맛있음'],'양':['넉넉함','딱 적당','조금 적음','리필 가능'],
+const RATE_CHIPS={'발림성':['부드럽게 발림','뻑뻑함','끈적임 없음','끈적임 있음'],'향':['은은함','진함','무향','호불호 있을 듯'],'지속력':['하루 종일','반나절','금방 사라짐'],'자극':['순함','따가움 없음','약간 자극'],'흡수':['빠름','보통','느림'],
+  '조리 편함':['바로 먹음','전자레인지 OK','손이 좀 감'],'포장':['꼼꼼함','소분 포장','과대 포장'],'아이 반응':['좋아함','거부감 없음','처음엔 낯설어함','싫어함'],'안전':['소재 안심','모서리 둥긂','인증 확인'],
+  '착용·사용 편함':['신기기 쉬움','혼자 가능','조금 번거로움'],'세척·관리':['세탁기 OK','손세탁','물티슈로 닦임'],'성능':['기대 이상','설명대로','아쉬움'],'배터리':['오래감','하루 정도','금방 닳음'],'소음':['조용함','적당함','시끄러움'],
+  '설정 쉬움':['바로 연결','앱 필요','조금 헤맴'],'효과':['확실함','조금 느낌','잘 모르겠음'],'냄새':['없음','약간','강함'],'내구성':['튼튼함','보통','약해 보임'],'사이즈':['정사이즈','크게 나옴','작게 나옴'],
+  '착용감':['편함','가벼움','답답함'],'소재':['부드러움','신축성 좋음','까슬함'],'마감':['깔끔함','실밥 보임'],'맛':['간이 딱 좋음','짠 편','싱거운 편','담백함','자극적','재료가 신선함','생각보다 맛있음'],'양':['넉넉함','딱 적당','조금 적음','리필 가능'],
   '가격 대비':['저렴한 편','적당함','비싼 편','구성 좋음'],'친절':['먼저 챙겨줌','설명이 친절','응대 빠름','무뚝뚝','바빠 보였음'],'상담·친절':['꼼꼼히 물어봄','설명 친절','추가 권유 없음','추가 권유 있음'],
   '청결':['테이블 깨끗','화장실 깨끗','주방이 보임','조금 아쉬움'],'분위기':['조용함','북적임','아늑함','넓음','감성','노포 느낌'],'좌석':['넓음','좁음','콘센트 있음','오래 앉기 좋음'],
   '실력·결과':['원하는 대로 나옴','기대 이상','오래 유지됨','조금 아쉬움'],'시간 약속':['정시 시작','조금 기다림','오래 기다림'],'침구·편안함':['푹신함','깨끗함','조용함','방음 아쉬움'],
@@ -1154,7 +1203,7 @@ function stars(p,set){
 let RATE_OPEN='';
 function rateCard(b){
   S.rate=S.rate||{};const hints=rateHints();
-  (RATE_SETS[S.cat]||RATE_SETS.food).forEach(k=>{
+  (S.cat==='product'?(PRATE[fvRaw(S.f.pkind)]||RATE_SETS.product):(RATE_SETS[S.cat]||RATE_SETS.food)).forEach(k=>{
     const r=S.rate[k]||{p:0,c:[],t:''};if(r.s&&!r.p){r.p=r.s*2;delete r.s}const row=el('div','rt-row'+(r.p&&RATE_OPEN===k?' open':''));
     const h=el('div','rt-h');const lb=el('div','rt-l');lb.append(el('b','',k));
     if(hints[k])lb.append(el('small','','방문자 '+hints[k].n+'명 “'+hints[k].t+'”'));
@@ -1205,6 +1254,7 @@ function secBody(sec){
   if(sec.type==='voted')return triLines(S.h.voted);
   const body=[...triLines(S.h[sec.id])];
   sec.fields.forEach(fd=>{
+    if(fd.id==='visitDate')return;
     if(fd.id==='consTone'&&!(V('cons')||V('consMemo')||body.length))return;
     if(fd.id==='keywords'){const k=kwList();if(k.length)body.push(`- **필수 키워드**: 메인 \`${k[0]}\`${k.length>1?' / 서브 '+k.slice(1).map(x=>'`'+x+'`').join(', '):''}`);return}
     const x=V(fd.id);if(!x)return;
@@ -1216,6 +1266,7 @@ function secBody(sec){
 function placeMD(){
   if(!PLACE)return[];
   const L=[];const add=(k,v)=>{if(v)L.push(`- **${k}**: ${v}`)};
+  if(PLACE.product){add('판매처',PLACE.store);add('가격',PLACE.sale&&PLACE.price&&PLACE.sale<PLACE.price?won(PLACE.sale)+' (정가 '+won(PLACE.price)+')':won(PLACE.sale||PLACE.price));add('구매자 리뷰',PLACE.visitorReviews?PLACE.visitorReviews.toLocaleString()+'개'+(PLACE.rating?' · 평균 '+PLACE.rating:''):'');add('상품 링크',PLACE.placeUrl);return L}
   add('주소',PLACE.roadAddress);
   add('영업시간',(PLACE.hours||[]).join(' / '));
   if(PLACE.menus&&PLACE.menus.length)add('메뉴판',PLACE.menus.map(m=>`${m.name} ${m.price}`.trim()).join(' · '));
@@ -1227,18 +1278,21 @@ function yamlQ(s){return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"')
 function buildMD(){
   const C=CATS[S.cat];const biz=V('biz');
   const plan=PLACE?getPlans().find(p=>String(p.id)===String(PLACE.id)):null;
-  const out=['---'];
-  [['업체명',biz],['업종',(PLACE&&PLACE.category)||C.label],['지역',V('region')],['방문일시',[V('visitDate'),S.f.visitTime||''].filter(Boolean).join(' ')],['체험단 플랫폼',S.f.platform||''],['플레이스ID',PLACE?PLACE.id:'']]
+  const prod=S.cat==='product';const out=['---'];
+  if(prod){const P=PLACE||{};const ud=V('visitDate')?useDay(Date.now()):0;
+    [['제품명',biz],['브랜드',P.brand||''],['분류',P.catPath||''],['가격',P.sale&&P.price&&P.sale<P.price?won(P.sale)+' (정가 '+won(P.price)+')':won(P.sale||P.price)],['받은 날',V('visitDate')],['사용 기간',ud>0?ud+'일째':''],['체험단 플랫폼',S.f.platform||''],['상품 링크',P.placeUrl||'']]
+      .forEach(([a,b])=>{if(b)out.push(a+': '+yamlQ(b))})}
+  else [['업체명',biz],['업종',(PLACE&&PLACE.category)||C.label],['지역',V('region')],['방문일시',[V('visitDate'),S.f.visitTime||''].filter(Boolean).join(' ')],['체험단 플랫폼',S.f.platform||''],['플레이스ID',PLACE?PLACE.id:'']]
     .forEach(([a,b])=>{if(b)out.push(`${a}: ${yamlQ(b)}`)});
   out.push('---','',`# ${biz||'(업체명)'}`,'');
   out.push('## 내 경험','');
   sections().forEach(sec=>{if(sec.id==='campaign')return;const b=secBody(sec);if(!b.length)return;out.push(`### ${sec.title}`,...b,'')});
   const rm=rateMD();if(rm.length)out.push('### 평가',...rm,'');
   const qm=PLACE?getQM(PLACE.id):[];
-  if(qm.length)out.push('### 현장 메모',...qm.map(m=>`- ${hhmm(m.t)} ${m.text}`),'');
+  if(qm.length)out.push(prod?'### 사용 일지':'### 현장 메모',...qm.map(m=>prod&&useDay(m.t)>0?`- ${useDay(m.t)}일차 (${hhmm(m.t)}) ${m.text}`:`- ${hhmm(m.t)} ${m.text}`),'');
   if(PHOTOS.length)out.push('### 사진',...PHOTOS.map(p=>'- '+fileBase()+' '+p.name),'');
   const pm=placeMD();
-  if(pm.length)out.push('## 업체 정보',...pm,'');
+  if(pm.length)out.push(prod?'## 제품 정보':'## 업체 정보',...pm,'');
   if(PLACE&&PLACE.blogs&&PLACE.blogs.length){
     out.push('## 참고 블로그');
     PLACE.blogs.forEach(b=>out.push(`- [${b.title}](${b.url})`));
@@ -1590,23 +1644,27 @@ function addPlan(place,o){
   setPlans(sortPlans(a));
   if(IS_APP&&ChdNative.cancelReminder){ChdNative.cancelReminder(id);ChdNative.cancelReminder(id+'-due')}
   if(IS_APP&&ChdNative.scheduleReminder){
-    if(remindAt&&remindAt>Date.now())ChdNative.scheduleReminder(id,String(remindAt.getTime()),place.name+' 다녀오셨어요?','기억날 때 30초만 답해주세요. 누르면 바로 시작해요.');
+    if(remindAt&&remindAt>Date.now())ChdNative.scheduleReminder(id,String(remindAt.getTime()),place.name+(place.product?' 받으셨어요?':' 다녀오셨어요?'),place.product?'받았으면 눌러서 사용 일지를 시작해요.':'기억날 때 30초만 답해주세요. 누르면 바로 시작해요.');
     if(o.due){const [y,m,d]=o.due.split('-').map(Number);const at=new Date(y,m-1,d-1,9,0,0);if(at>Date.now())ChdNative.scheduleReminder(id+'-due',String(at.getTime()),place.name+' 후기 마감이 내일이에요',(o.platform?o.platform+' · ':'')+'후기 소스부터 정리해 볼까요?')}
   }
   return remindAt;
 }
 function visitFromPlan(p){
-  if(!p||!S)return;const d=p.when?new Date(p.when):null;
+  if(!p||!S)return;
+  if(p.place&&p.place.product){S.f.visitDate=today();if(p.platform)S.f.platform=p.platform;if(p.due)S.f.due=p.due;if(p.place.pkind)S.f.pkind={sel:p.place.pkind,other:''};save();scheduleUse(p.place);renderEasy();return}
+  const d=p.when?new Date(p.when):null;
   if(d){S.f.visitDate=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');if(!p.noTime)S.f.visitTime=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
   if(p.platform)S.f.platform=p.platform;if(p.due)S.f.due=p.due;save();
 }
 function removePlan(id){setPlans(getPlans().filter(p=>String(p.id)!==String(id)));if(IS_APP&&ChdNative.cancelReminder){ChdNative.cancelReminder(String(id));ChdNative.cancelReminder(String(id)+'-due')}}
 window.chdOpenPlan=id=>{
+  {const mm=String(id).match(/^(.+)-d\d+$/);if(mm){const r=getRecords().find(x=>String(x.id)===mm[1]);if(r&&r.place){goHome();voiceMemo(r.place)}return}}
   const p=getPlans().find(x=>String(x.id)===String(id));let place=p&&p.place;
   if(!place){try{const l=JSON.parse(localStorage.getItem(LAST_KEY)||'null');if(l&&String(l.id)===String(id))place=l}catch(e){}}
   if(place){removePlan(place.id);applyPlace(place);visitFromPlan(p)}else setMode('easy');
 };
 function afterFetch(d){
+  if(d&&d.product)return afterFetchProduct(d);
   const P=sanitize(d);if(!P)return;
   openAct(b=>{
     b.append(el('h3','',P.name),el('p','',[P.category,P.roadAddress].filter(Boolean).join(' · ')));
@@ -1630,8 +1688,8 @@ function openPlanSheet(P,keep){
     const tIn=document.createElement('input');tIn.type='time';tIn.value=st.time;tIn.oninput=()=>{st.time=tIn.value};
     const slotW=el('div');
     const dueIn=document.createElement('input');dueIn.type='date';dueIn.value=st.due;dueIn.oninput=()=>{st.due=dueIn.value};
-    b.append(el('div','e-label','방문'),eChips(['오늘','내일','모레','날짜 선택','미정'],t=>st.day===t,t=>{st.day=t;dIn.hidden=t!=='날짜 선택';slotW.hidden=t==='미정'}),dIn);
-    slotW.append(el('div','e-label','시간'),tIn);slotW.hidden=st.day==='미정';
+    b.append(el('div','e-label',P.product?'받는 날 (예상)':'방문'),eChips(['오늘','내일','모레','날짜 선택','미정'],t=>st.day===t,t=>{st.day=t;dIn.hidden=t!=='날짜 선택';slotW.hidden=t==='미정'||!!P.product}),dIn);
+    slotW.append(el('div','e-label','시간'),tIn);slotW.hidden=st.day==='미정'||!!P.product;if(P.product)st.time='';
     b.append(slotW);
     const pfBox=el('div');
     const drawPf=()=>{pfBox.innerHTML='';const box=el('div','chips');
@@ -1719,14 +1777,14 @@ function applyPlace(d){
 function clipLink(){
   if(!(IS_APP&&ChdNative.readClipboard))return '';
   let clip='';try{clip=String(ChdNative.readClipboard()||'')}catch(e){}
-  const m=clip.match(/https:\/\/(naver\.me\/[\w-]+|(?:[\w-]+\.)*naver\.com\/[^\s]*place[^\s]*)/);
+  const m=clip.match(/https:\/\/(naver\.me\/[\w-]+|(?:[\w-]+\.)*naver\.com\/[^\s]*place[^\s]*)/)||clip.match(PROD_RE);
   if(!m)return '';
   let used='';try{used=localStorage.getItem('chd-clip-used')||''}catch(e){}
   if(used===m[0])return '';
   try{localStorage.setItem('chd-clip-used',m[0])}catch(e){}
   return clip.trim();
 }
-window.chdFocus=()=>{if(!S)return;const c=clipLink();if(c){toast('복사해 둔 네이버 지도 링크로 가져올게요.');window.chdIncoming(c)}};
+window.chdFocus=()=>{if(!S)return;const c=clipLink();if(c){toast('복사해 둔 링크로 가져올게요.');window.chdIncoming(c)}};
 /* 앱: 네이버 지도 → 공유로 들어온 텍스트 */
 window.chdIncoming=t=>{
   t=String(t||'');if(!t.trim())return;
@@ -1838,6 +1896,15 @@ function easyCards(){
   if(visit)cards.push({id:'day',src:'그날',q:'그날은 어땠어요?',body:b=>{
     b.append(L('방문 시간대'),rChips('when',['평일 점심','평일 저녁','주말 점심','주말 저녁','오전','늦은 밤']),L('날씨'),rChips('weather',['맑음','흐림','비','눈','더움','쌀쌀함']));
   }});
+  if(!visit)cards.push({id:'pkind',src:'제품',q:'어떤 제품이에요?',body:b=>{b.append(rChips('pkind',KINDS))}});
+  if(!visit)cards.push({id:'pick',src:'고른 이유',q:'왜 이 제품을 골랐어요?',body:b=>{
+    b.append(L('고른 이유'),eText(()=>S.f.pickWhy,x=>S.f.pickWhy=x,'예: 양말처럼 쑥 신기는 구조라 아이가 덜 낯설 것 같아서',true),
+      L('고른 옵션·사이즈'),eText(()=>S.f.option,x=>S.f.option=x,'예: 125L'),L('그 옵션을 고른 이유'),eText(()=>S.f.optionWhy,x=>S.f.optionWhy=x,'예: 실제 발 길이보다 살짝 여유 있게'));
+  }});
+  if(!visit)cards.push({id:'unbox',src:'받아보니',q:'처음 받아보니 어땠어요?',body:b=>{
+    b.append(L('첫인상'),mChips('unbox',['생각보다 가벼움','묵직함','고급스러움','생각보다 작음','생각보다 큼','포장 꼼꼼','냄새 없음','설명서 친절']),
+      L('하나하나 살펴보니'),eText(()=>S.f.unboxMemo,x=>S.f.unboxMemo=x,'예: 발등은 늘어나는 원단, 앞코가 넓고 밑창이 얇고 말랑함',true));
+  }});
   if(!visit)cards.push({id:'usage',src:'사용',q:'어떻게 써봤어요?',body:b=>{
     b.append(L('사용 기간'),rChips('period',['1회','2~3일','1주일','2주 이상','한 달 이상']),L('어떤 상황에서'),eText(()=>S.f.situation,x=>S.f.situation=x,'예: 아이 둘 키우는 거실, 매일 저녁 식사 후',true),
       L('쓰기 전 고민'),eText(()=>S.f.worry,x=>S.f.worry=x,'예: 무선이라 흡입력이 약하지 않을까'),L('써보니 그 고민은?'),eText(()=>S.f.solved,x=>S.f.solved=x,'예: 모래알까지 한 번에. 배터리는 20분 정도',true));
@@ -1864,7 +1931,7 @@ function easyCards(){
       L(C.spaceLabel),mChips('spaceOpt',C.space),L('편의'),mChips('amenity',uniq(['화장실 깨끗','와이파이','반려견 동반 가능',...amen]).slice(0,12)),
       L('공간에서 기억나는 장면'),eText(()=>S.f.spaceMemo,x=>S.f.spaceMemo=x,'예: 벽에 방송 출연 사진이 빼곡해서 구경하는 재미',true));
   }});
-  cards.push({id:'menu',src:C.item,q:ITEM_Q[S.cat],body:b=>{
+  if(S.cat!=='product')cards.push({id:'menu',src:C.item,q:ITEM_Q[S.cat],body:b=>{
     let pm=(PLACE&&PLACE.menus)||[];
     const pr=preset();
     if(!pm.length&&pr)pm=pr.items.map(n=>({name:n,price:''}));
@@ -2082,13 +2149,13 @@ $('#btnMore').onclick=()=>openAct(b=>{
 function manualStart(){openAct(b=>{
   b.append(el('h3','','직접 입력하기'));
   const st={cat:'food'};
-  const inp=document.createElement('input');inp.type='text';inp.placeholder='가게 이름';
+  const inp=document.createElement('input');inp.type='text';inp.placeholder='가게 또는 제품 이름';
   const box=el('div','chips');box.style.marginTop='10px';
   Object.entries(CATS).forEach(([k,c])=>{const x=el('button','chip'+(st.cat===k?' on':''),c.label);x.type='button';x.onclick=()=>{st.cat=k;box.querySelectorAll('.chip').forEach(y=>y.classList.toggle('on',y===x))};box.append(x)});
-  const mk=()=>{const v=inp.value.trim();if(!v){inp.focus();toast('가게 이름을 적어주세요');return null}return {id:'m'+Date.now(),name:v,category:CATS[st.cat].label,manual:true,photos:[]}};
+  const mk=()=>{const v=inp.value.trim();if(!v){inp.focus();toast('이름을 적어주세요');return null}const pr=st.cat==='product';return {id:'m'+Date.now(),name:v,category:CATS[st.cat].label,manual:true,photos:[],product:pr,type:pr?'product':''}};
   const row=el('div','done-row');
   const go=el('button','e-btn primary','지금 쓰기');go.type='button';
-  go.onclick=()=>{const P=mk();if(!P)return;closeAct();applyPlace(P);S.cat=st.cat;S.photos=flowOf(st.cat);S.f.biz=P.name;save();renderEasy()};
+  go.onclick=()=>{const P=mk();if(!P)return;closeAct();applyPlace(P);S.cat=st.cat;S.photos=flowOf(st.cat);S.f.biz=P.name;if(P.product)S.f.visitDate=today();save();renderEasy();if(P.product)scheduleUse(P)};
   const pl=el('button','e-btn','갈 곳에 추가');pl.type='button';
   pl.onclick=()=>{const P=mk();if(!P)return;openPlanSheet(P)};
   row.append(go,pl);
@@ -2164,16 +2231,17 @@ function todoRow(x){
   const row=el('div','li td-row');row.append(thumbEl(x.place,'th'));const tx=el('div','tx');const nm=el('div','nm',x.name);
   if(x.due&&x.kind!=='end'){const n=ddayNum(x.due);nm.append(el('span','due'+(n<=2?' hot':''),dday(x.due)))}
   const sub=el('div','sub');
-  if(x.kind==='visit'){const d=new Date(x.when);sub.append((d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+') 방문')}
-  else if(x.kind==='date')sub.append('방문 날짜를 정해주세요');
+  const pr=x.place&&x.place.product;
+  if(x.kind==='visit'){const d=new Date(x.when);sub.append((d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+') '+(pr?'도착 예정':'방문'))}
+  else if(x.kind==='date')sub.append(pr?'배송 기다리는 중':'방문 날짜를 정해주세요');
   else if(x.kind==='write')sub.append(stageName(stageOf(x.rec))+' · 기록 쓰는 중');
   else if(x.kind==='post')sub.append('기록 완성 · 블로그에 올리면 끝');
   else sub.append('블로그 발행 완료');
   tx.append(nm,sub);row.append(tx);
-  const lab={visit:'다녀왔어요',date:'날짜 정하기',write:'이어 쓰기',post:'올렸어요',end:''}[x.kind];
+  const lab=(x.place&&x.place.product?{visit:'받았어요',date:'받았어요',write:'이어 쓰기',post:'올렸어요',end:''}:{visit:'다녀왔어요',date:'날짜 정하기',write:'이어 쓰기',post:'올렸어요',end:''})[x.kind];
   if(lab){const b=el('button','td-go'+(x.kind==='post'?' acc':''),lab);b.type='button';b.onclick=e=>{e.stopPropagation();
     if(x.kind==='visit'){removePlan(x.plan.id);applyPlace(x.place);visitFromPlan(x.plan)}
-    else if(x.kind==='date')openPlanSheet(x.place);
+    else if(x.kind==='date'){if(x.place&&x.place.product){removePlan(x.plan.id);applyPlace(x.place);visitFromPlan(x.plan)}else openPlanSheet(x.place)}
     else if(x.kind==='write')openRecord(x.rec,false);
     else if(x.kind==='post')postSheet(x.rec)};row.append(b)}
   row.onclick=()=>x.plan?placeSheet({plan:x.plan}):placeSheet({rec:x.rec});
@@ -2188,7 +2256,7 @@ function renderTodo(){
   v.append(st);
   const sortDue=(a,b)=>ddayNum(a.due)-ddayNum(b.due)||String(a.when||'').localeCompare(String(b.when||''));
   const sec=(t,kind)=>{const xs=all.filter(x=>x.kind===kind).sort(sortDue);if(!xs.length)return;v.append(el('div','sub-h',t+' '+xs.length));xs.forEach(x=>v.append(todoRow(x)))};
-  sec('블로그 올리기','post');sec('기록 쓰기','write');sec('방문하기','visit');sec('날짜 정하기','date');
+  sec('블로그 올리기','post');sec('기록 쓰기','write');sec('방문하기 · 받기','visit');sec('날짜 정하기 · 배송 대기','date');
   const ends=all.filter(x=>x.kind==='end');
   if(ends.length){const h=el('button','sec-h','끝 '+ends.length+(TODO_END?' ▴':' ▾'));h.type='button';h.onclick=()=>{TODO_END=!TODO_END;renderTodo()};v.append(h);if(TODO_END)ends.forEach(x=>v.append(todoRow(x)))}
   if(all.length===0){const h=el('div','hello');h.innerHTML=sproutSvg(0);h.append(el('b','','할 일이 없어요'));v.append(h)}
@@ -2254,7 +2322,7 @@ function renderPlans(){
 }
 function addPlanFlow(){openAct(b=>{
   b.append(el('h3','','갈 곳 추가'));
-  const inp=document.createElement('input');inp.type='text';inp.placeholder='네이버 지도 링크';inp.autocomplete='off';
+  const inp=document.createElement('input');inp.type='text';inp.placeholder='네이버 지도 · 스마트스토어 · 쿠팡 링크';inp.autocomplete='off';
   const go=el('button','e-btn primary','가져오기');go.type='button';const msg=el('div','e-tip','');
   const run=async()=>{go.disabled=true;go.textContent='가져오는 중…';msg.textContent='';
     try{openPlanSheet(sanitize(await fetchPlace(inp.value)))}catch(e){msg.textContent=e.message||String(e);go.disabled=false;go.textContent='가져오기'}};
@@ -2561,6 +2629,7 @@ function placeSheet(o){
     if(done){const fv=el('button','ps-fav'+(getFav().has(String(rec.id))?' on':''),'♥');fv.type='button';fv.setAttribute('aria-label','다시 가고 싶은 곳');fv.onclick=()=>{toggleFav(rec.id,fv);fv.classList.toggle('on')};nm.append(fv)}
     b.append(nm);
     if(done){const f=(st&&st.f)||{};const meta=[f.visitDate?f.visitDate.slice(5).replace('-','/')+' 방문':'',fvRaw(f.with),avgRate(st)?'★ '+avgRate(st):''].filter(Boolean);if(meta.length)b.append(el('div','ps-meta',meta.join(' · ')))}
+    else if(place.product){const meta=[place.brand,place.sale||place.price?won(place.sale||place.price):'',place.visitorReviews?'리뷰 '+Number(place.visitorReviews).toLocaleString()+(place.rating?' · ★'+place.rating:''):''].filter(Boolean);if(meta.length)b.append(el('div','ps-meta',meta.join(' · ')))}
     else{const meta=[place.rating?'★ '+place.rating:'',place.visitorReviews?'방문자 리뷰 '+Number(place.visitorReviews).toLocaleString():'',place.blogReviews?'블로그 '+Number(place.blogReviews).toLocaleString():''].filter(Boolean);
       if(meta.length)b.append(el('div','ps-meta',meta.join(' · ')));const on=openNow(place);if(on){const d=el('div','ps-open');d.innerHTML=on;b.append(d)}}
     const acts=el('div','ps-acts');const A=(ic,label,fn,main)=>{const x=el('button','ps-act'+(main?' main':''));x.type='button';const i=el('i');i.innerHTML=IC[ic];x.append(i,label);x.onclick=fn;acts.append(x)};
@@ -2568,10 +2637,12 @@ function placeSheet(o){
     if(done){A('send','보내기',inRec(()=>sendAll()),true);A('copy','복사',inRec(()=>$('#btnCopy').click()));
       if(canDrive())A('drive','드라이브',inRec(()=>saveDrive()));else A('map','지도',()=>openMap(place));
       A('pen','수정',()=>{closeAct();openRecord(rec,false);setTimeout(()=>goStep(0),300)})}
+    else if(place.product){A('mic',rec?'사용 일지':'지금 메모',()=>voiceMemo(place),true);A('cam','사진',()=>{closeAct();pickPhotos()});A('map','상품 페이지',()=>{if(place.placeUrl)location.href=place.placeUrl});
+      if(rec)A('pen','이어서 쓰기',()=>{closeAct();openRecord(rec,false)});else A('pen','받았어요',()=>{closeAct();removePlan(plan.id);applyPlace(place);visitFromPlan(plan)})}
     else{A('mic','지금 메모',()=>voiceMemo(place),true);A('cam','사진',()=>{closeAct();pickPhotos()});A('map','지도',()=>openMap(place));
       if(rec)A('pen','이어서 쓰기',()=>{closeAct();openRecord(rec,false)});else if(place.phone)A('tel','전화',()=>{location.href='tel:'+place.phone.replace(/[^0-9+]/g,'')});else A('pen','기록 시작',()=>{closeAct();removePlan(plan.id);applyPlace(place);visitFromPlan(plan)})}
     b.append(acts);
-    if(plan){const bx=el('div','ps-box');const hd=el('div','ps-bh');hd.append('내 일정');const ed=el('button','','수정');ed.type='button';hd.append(ed);bx.append(hd);
+    if(plan){const bx=el('div','ps-box');const hd=el('div','ps-bh');hd.append(place.product?'받는 날 · 마감':'내 일정');const ed=el('button','','수정');ed.type='button';hd.append(ed);bx.append(hd);
       const r=el('div','ps-row');let when='날짜 미정';if(plan.when){const d=new Date(plan.when);when=(d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+')'+(plan.noTime?'':' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'))}
       r.append(when);if(plan.platform)r.append(pBadge(plan.platform));if(plan.due){const dd=dday(plan.due);r.append(el('span','due'+(/오늘|지남|D-[12]$/.test(dd)?' hot':''),dd))}
       bx.append(r);bx.onclick=()=>openPlanSheet(plan.place);b.append(bx)}
@@ -2580,14 +2651,14 @@ function placeSheet(o){
       bx.onclick=()=>{closeAct();viewRecord(rec)};b.append(bx)}}
     if(done){const pb=el('div','ps-box ps-post'+(rec.posted?' on':''));pb.append(el('div','ps-bh',rec.posted?'블로그 발행 완료':'블로그에 올렸나요?'));const r2=el('div','ps-row');r2.append(rec.posted?(rec.postUrl?'글 주소 저장됨':'완료로 옮겼어요'):'올렸으면 눌러서 끝내기');pb.append(r2);pb.onclick=()=>postSheet(rec);b.append(pb)}
     const nq=getQM(place.id).length,np=PHOTOS.length;
-    if(nq||np){const bx=el('div','ps-box');const hd=el('div','ps-bh');hd.append(done?'사진 '+np+'장':'현장 기록');if(np){const all=el('button','','전체 보기');all.type='button';all.onclick=e=>{e.stopPropagation();lightbox(0)};hd.append(all)}bx.append(hd);
+    if(nq||np){const bx=el('div','ps-box');const hd=el('div','ps-bh');hd.append(done?'사진 '+np+'장':(place.product?'사용 일지':'현장 기록'));if(np){const all=el('button','','전체 보기');all.type='button';all.onclick=e=>{e.stopPropagation();lightbox(0)};hd.append(all)}bx.append(hd);
       if(!done){const s=el('div','ps-stats');s.append('메모 ',el('b','',String(nq)),'사진 ',el('b','',String(np)));bx.append(s)}
       if(np){const g=el('div','ps-th');PHOTOS.slice(0,5).forEach((p,i)=>{const im=document.createElement('img');im.src=p.thumb;im.alt='';im.onclick=e=>{e.stopPropagation();lightbox(i)};g.append(im)});bx.append(g)}
       if(nq&&!done)bx.onclick=()=>openQuickMemo(place);b.append(bx)}
-    const ad=place.roadAddress||place.address;
+    const ad=place.product?'':(place.roadAddress||place.address);
     if(ad){const a=el('button','ps-addr');a.type='button';a.append(ad,el('span','',' · 복사'));a.onclick=()=>{if(IS_APP&&ChdNative.copyText)ChdNative.copyText(ad);else navigator.clipboard&&navigator.clipboard.writeText(ad);toast('주소를 복사했어요')};b.append(a)}
     if(done&&st&&st.drive){const fd=st.f||{};const d=(fd.visitDate||'').split('-');if(d.length===3)b.append(el('div','ps-addr','드라이브: 후기씨앗 / '+(+d[0])+'년 '+(+d[1])+'월 / '+d[2]+' '+place.name))}
-    if(plan){const go=el('button','e-btn primary ps-cta','다녀왔어요');go.type='button';go.onclick=()=>{closeAct();removePlan(plan.id);applyPlace(place);visitFromPlan(plan)};b.append(go)}
+    if(plan){const go=el('button','e-btn primary ps-cta',place.product?'받았어요':'다녀왔어요');go.type='button';go.onclick=()=>{closeAct();removePlan(plan.id);applyPlace(place);visitFromPlan(plan)};b.append(go)}
     const dz=el('div','danger-link');const dbn=el('button','',plan?'갈 곳에서 빼기':'기록 삭제');dbn.type='button';
     dbn.onclick=()=>plan?confirmRemovePlan(plan):openAct(bb=>{bb.append(el('h3','',place.name+' 기록을 지울까요?'),el('div','e-tip','질문 답, 현장 메모, 사진이 모두 지워져요.'));
       const row=el('div','done-row');const no=el('button','e-btn primary','그대로 두기');no.type='button';no.onclick=closeAct;
@@ -2668,7 +2739,7 @@ async function readClip(){
 }
 async function addFromLink(){
   const c=await readClip();
-  if(/https:\/\/(naver\.me\/|[\w.-]*naver\.com\/)/.test(c))fetchAndChoose(c);else pasteSheet('');
+  if(/https:\/\/(naver\.me\/|[\w.-]*naver\.com\/)/.test(c)||PROD_RE.test(c))fetchAndChoose(c);else pasteSheet('');
 }
 (()=>{const b=$('#dkPaste');let t=null,held=false;
   b.addEventListener('pointerdown',()=>{held=false;t=setTimeout(()=>{t=null;held=true;buzz(20);b.classList.add('hold');const c=memoPlaces();voiceMemo(c.length?c[0]:INBOX,true)},380)});
@@ -2761,7 +2832,7 @@ function voiceMemo(place,now){openAct(b=>{
   const hd=el('div','vm-h');hd.append(el('h3','',place.name));
   const ch=el('button','vm-ch','바꾸기');ch.type='button';ch.onclick=()=>{voiceStop();pickMemoPlace()};hd.append(ch);b.append(hd);
   const list=el('div','qm-list');
-  const draw=()=>{list.innerHTML='';getQM(place.id).forEach((m,i)=>{const r=el('div','qm-item tap');r.append(el('span','qm-t',hhmm(m.t)),el('span','',m.text));r.onclick=()=>{voiceStop();memoAction(place,i,()=>voiceMemo(place))};list.append(r)});list.scrollTop=list.scrollHeight};
+  const draw=()=>{list.innerHTML='';getQM(place.id).forEach((m,i)=>{const r=el('div','qm-item tap');r.append(el('span','qm-t',(place.product&&PLACE&&String(PLACE.id)===String(place.id)&&useDay(m.t)>0?useDay(m.t)+'일차 ':'')+hhmm(m.t)),el('span','',m.text));r.onclick=()=>{voiceStop();memoAction(place,i,()=>voiceMemo(place))};list.append(r)});list.scrollTop=list.scrollHeight};
   draw();
   if(isInbox(place))b.append(el('div','e-tip','나중에 가게를 추가하면 붙일 수 있어요'));
   const t=document.createElement('textarea');t.placeholder='말하거나 적기';

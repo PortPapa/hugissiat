@@ -706,6 +706,72 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
+    private static final String PRODUCT_JS = "(function(){try{var s=window.__PRELOADED_STATE__;var o={};if(s&&s.simpleProductForDetailPage){var p=s.simpleProductForDetailPage.A||s.simpleProductForDetailPage;o.name=p.dispName||p.name;o.brand=(p.naverShoppingSearchInfo&&p.naverShoppingSearchInfo.brandName)||'';o.store=(p.channel&&p.channel.channelName)||'';o.cat=(p.category&&p.category.wholeCategoryName)||'';o.price=p.salePrice||0;o.sale=(p.benefitsView&&p.benefitsView.discountedSalePrice)||0;o.reviews=(p.reviewAmount&&p.reviewAmount.totalReviewCount)||0;o.score=(p.reviewAmount&&p.reviewAmount.averageReviewScore)||0;o.img=[p.representativeImageUrl].concat((p.optionalImageUrls||[]).slice(0,4)).filter(Boolean);o.no=String(p.productNo||p.id||'')}var ld=[].slice.call(document.querySelectorAll('script[type=\"application/ld+json\"]')).map(function(x){try{return JSON.parse(x.textContent)}catch(e){return null}}).filter(function(x){return x&&x['@type']==='Product'})[0];if(ld){o.name=o.name||ld.name;o.brand=o.brand||(ld.brand&&(ld.brand.name||ld.brand))||'';var of=ld.offers&&(ld.offers.price||ld.offers.lowPrice);if(!o.sale&&of)o.sale=Number(of);if(!o.img||!o.img.length)o.img=[].concat(ld.image||[]);if(ld.aggregateRating){o.reviews=o.reviews||Number(ld.aggregateRating.reviewCount||0);o.score=o.score||Number(ld.aggregateRating.ratingValue||0)}o.cat=o.cat||ld.category||''}var og=function(k){var e=document.querySelector('meta[property=\"'+k+'\"]');return e&&e.content};o.name=o.name||og('og:title')||'';if(!o.img||!o.img.length){var im=og('og:image');o.img=im?[im]:[]}if(!o.sale){var t=document.querySelector('.total-price strong,.prod-sale-price .total-price,[class*=final-price]');if(t)o.sale=Number(t.textContent.replace(/[^0-9]/g,''))||0}o.url=location.href;return JSON.stringify(o)}catch(e){return JSON.stringify({error:String(e)})}})()";
+
+    private static boolean shopHost(String url) {
+        try {
+            String h = new URL(url).getHost().toLowerCase();
+            return h.endsWith("smartstore.naver.com") || h.endsWith("brand.naver.com") || h.endsWith("shopping.naver.com")
+                    || h.endsWith("coupang.com") || h.equals("coupa.ng");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void productLoad(final String id, final String url) {
+        if (!shopHost(url)) {
+            JSONObject o = new JSONObject();
+            try { o.put("error", "스마트스토어·쿠팡 링크만 가져올 수 있어요"); } catch (Exception ignored) {}
+            callback(id, o);
+            return;
+        }
+        final WebView w = new WebView(this);
+        w.getSettings().setJavaScriptEnabled(true);
+        w.getSettings().setDomStorageEnabled(true);
+        w.setAlpha(0f);
+        final FrameLayout root = (FrameLayout) web.getParent();
+        root.addView(w, new FrameLayout.LayoutParams(2, 2));
+        final boolean[] done = {false};
+        final int[] tries = {0};
+        final Runnable finish = () -> {
+            try { root.removeView(w); w.destroy(); } catch (Exception ignored) {}
+        };
+        final Runnable timeout = () -> {
+            if (done[0]) return;
+            done[0] = true;
+            JSONObject o = new JSONObject();
+            try { o.put("error", "제품 정보를 못 가져왔어요"); } catch (Exception ignored) {}
+            callback(id, o);
+            finish.run();
+        };
+        ui.postDelayed(timeout, 20000);
+        w.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView v, String u) {
+                v.postDelayed(new Runnable() {
+                    @Override public void run() {
+                        if (done[0]) return;
+                        v.evaluateJavascript(PRODUCT_JS, res -> {
+                            if (done[0]) return;
+                            try {
+                                String js = new JSONArray("[" + res + "]").getString(0);
+                                JSONObject o = new JSONObject(js);
+                                if (o.optString("name").isEmpty() && tries[0]++ < 3) { v.postDelayed(this, 1500); return; }
+                                done[0] = true;
+                                ui.removeCallbacks(timeout);
+                                callback(id, o);
+                                finish.run();
+                            } catch (Exception e) {
+                                if (tries[0]++ < 3) v.postDelayed(this, 1500);
+                            }
+                        });
+                    }
+                }, 1200);
+            }
+        });
+        w.loadUrl(url);
+    }
+
     private static boolean allowedHost(String url) {
         try {
             URL u = new URL(url);
@@ -943,6 +1009,13 @@ public class MainActivity extends Activity {
         public void driveUnlink() {
             if (!trusted) return;
             appPrefs().edit().putBoolean("drive", false).apply();
+        }
+
+        /** 제품 링크(스마트스토어·쿠팡): 안 보이는 웹뷰로 상품 페이지를 열어 이름·가격·사진을 읽는다 */
+        @JavascriptInterface
+        public void loadProduct(final String id, final String url) {
+            if (!trusted) return;
+            runOnUiThread(() -> productLoad(id, url));
         }
 
         /** job = {path:[...], mdName, md, key} */
