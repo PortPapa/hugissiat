@@ -84,6 +84,11 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public void onPageFinished(WebView view, String url) {
+                if (hasWindowFocus()) checkClipboard();
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                 Uri u = req.getUrl();
                 if ("appassets.androidplatform.net".equals(u.getHost())) return false;
@@ -119,6 +124,17 @@ public class MainActivity extends Activity {
             incoming = "";
             web.evaluateJavascript("window.chdIncoming&&window.chdIncoming(" + JSONObject.quote(t) + ")", null);
         }
+    }
+
+    /** 앱이 화면에 올라올 때마다(포커스) 클립보드의 네이버 지도 링크를 확인한다 */
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) web.postDelayed(this::checkClipboard, 200);
+    }
+
+    private void checkClipboard() {
+        if (web != null) web.evaluateJavascript("window.chdFocus&&window.chdFocus()", null);
     }
 
     private void handleIntent(Intent intent) {
@@ -205,6 +221,20 @@ public class MainActivity extends Activity {
             String t = incoming;
             incoming = "";
             return t;
+        }
+
+        /** 네이버 지도에서 "링크 복사" 후 앱을 열었을 때를 위해 클립보드를 읽는다 (앱이 앞에 있을 때만 가능) */
+        @JavascriptInterface
+        public String readClipboard() {
+            try {
+                ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData d = cm.getPrimaryClip();
+                if (d == null || d.getItemCount() == 0) return "";
+                CharSequence t = d.getItemAt(0).coerceToText(MainActivity.this);
+                return t == null ? "" : t.toString();
+            } catch (Exception e) {
+                return "";
+            }
         }
 
         @JavascriptInterface

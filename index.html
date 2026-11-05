@@ -255,7 +255,7 @@ async function fetchPlace(input){
     let host='';try{host=new URL(m[0]).hostname}catch(x){}
     if(!/(^|\.)naver\.(me|com)$/.test(host))throw new Error('네이버 지도/플레이스 링크가 아니에요');
     let fu=m[0];if(host==='naver.me')fu=(await nativeGet(m[0])).url||'';
-    const mm=fu.match(/place\/(\d+)/)||fu.match(/\/(\d{5,})(?:[/?#]|$)/);if(!mm)throw new Error('가게(플레이스) 링크가 아닌 것 같아요');id=mm[1];
+    const mm=fu.match(/[?&]pinId=(\d+)/)||fu.match(/place\/(\d+)/)||fu.match(/\/(\d{5,})(?:[/?#]|$)/);if(!mm)throw new Error('가게(플레이스) 링크가 아닌 것 같아요');id=mm[1];
   }
   const r=await nativeGet(`https://m.place.naver.com/place/${id}/home`);
   const d=placeFromHtml(id,r.url,r.body||'');if(!d||!d.name)throw new Error('가게 정보를 못 가져왔어요');return d;
@@ -808,6 +808,18 @@ function applyPlace(d){
   const sb=document.querySelector('#btnSample');if(sb)sb.remove();
   setMode('easy');toast(PLACE.name+' 정보를 가져왔어요.');
 }
+/* 앱: 네이버 지도에서 "링크 복사" 후 앱을 열면 클립보드 링크로 자동 시작. 같은 링크는 한 번만 */
+function clipLink(){
+  if(!(IS_APP&&ChdNative.readClipboard))return '';
+  let clip='';try{clip=String(ChdNative.readClipboard()||'')}catch(e){}
+  const m=clip.match(/https:\/\/(naver\.me\/[\w-]+|(?:[\w-]+\.)*naver\.com\/[^\s]*place[^\s]*)/);
+  if(!m)return '';
+  let used='';try{used=localStorage.getItem('chd-clip-used')||''}catch(e){}
+  if(used===m[0])return '';
+  try{localStorage.setItem('chd-clip-used',m[0])}catch(e){}
+  return clip.trim();
+}
+window.chdFocus=()=>{if(!S)return;const c=clipLink();if(c){toast('복사해 둔 네이버 지도 링크로 가져올게요.');window.chdIncoming(c)}};
 /* 앱: 네이버 지도 → 공유로 들어온 텍스트 */
 window.chdIncoming=t=>{
   t=String(t||'');if(!t.trim())return;
@@ -877,6 +889,7 @@ function easyCards(){
     go2.onclick=run;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();run()}};
     b.append(inp,go2,msg);
     if(PENDING_LINK){PENDING_LINK='';setTimeout(run,50)}
+
     b.append(el('div','e-label','링크 없이 쓸 때'));
     b.append(el('div','e-label','업체 이름'),eText(()=>S.f.biz,x=>S.f.biz=x,'예: 춘천 OO닭갈비'));
     b.append(el('div','e-label','종류'));
@@ -1037,7 +1050,7 @@ async function boot(){
     try{PLACE=await unpackData(h)}
     catch(e){setTimeout(()=>toast('링크 데이터를 읽지 못했어요. 직접 입력 모드로 열어요.'),300)}
   }
-  const incoming=IS_APP&&ChdNative.takeIncoming?ChdNative.takeIncoming():'';
+  const incoming=(IS_APP&&ChdNative.takeIncoming?ChdNative.takeIncoming():'')||clipLink();
   if(!PLACE&&!h&&!incoming){try{PLACE=JSON.parse(localStorage.getItem(LAST_KEY)||'null')}catch(e){}}
   PLACE=sanitize(PLACE);
   if(PLACE&&h)try{localStorage.setItem(LAST_KEY,JSON.stringify(PLACE))}catch(e){}
