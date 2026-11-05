@@ -407,17 +407,9 @@ function sections(){
   const c=S.cat,C=CATS[c],visit=c!=='product';
   const placeAmen=PLACE?uniq([...(PLACE.conveniences||[]),...(PLACE.facilities||[])]).filter(x=>!['주차','예약','포장','간편결제','단체 이용 가능'].includes(x)):[];
   const list=[
-    {id:'campaign',title:'캠페인 가이드',desc:'선정 안내·가이드라인에서 확인한 것들. 직접 입력해 주세요.',fields:[
+    {id:'campaign',title:'기본 정보',desc:'어디를 다녀왔는지만 적어요. 키워드·대가 표기 같은 체험단 가이드는 AI 글쓰기 단계에서 따로 넣어요.',fields:[
       T('biz','업체명','예: 춘천 OO숯불닭갈비 퇴계점'),
       T('region','지역·상권','예: 춘천 퇴계동'),
-      T('offer','제공 내역',visit?'예: 5만원 식사권 / 2인 세트 / 커트+클리닉':'예: 본품 1개 + 리필 2개'),
-      R('extra','제공 범위 밖 결제',['없음','초과분 내가 결제','음료·주류만 따로 결제']),
-      A('keywords','필수 키워드','한 줄에 하나씩. 첫 줄이 메인 키워드예요.\n예: 춘천 닭갈비 맛집',{hint:'가이드에 적힌 그대로 넣어주세요.'}),
-      M('mustPhotos','꼭 찍어야 하는 사진',visit?['외관','간판','주차장','내부','메뉴판·가격표','메인 메뉴/결과물','손·인물 컷','영수증']:['언박싱','구성품','제품 디테일','사용 장면 (손)','사용 전후','인물 컷']),
-      M('missions','추가 미션',['네이버 클립 (15초 이상 세로 영상)','영수증 리뷰','지도 첨부','움짤(GIF)','동영상 첨부','해시태그','스마트플레이스 링크']),
-      D('deadline','후기 작성 기한'),
-      R('disclosure','대가 표기 문구',['업체로부터 제품·서비스를 제공받아 솔직하게 작성한 후기입니다','체험단으로 선정되어 제공받아 작성한 후기입니다','업체로부터 원고료를 지원받아 작성했습니다'],{hint:'표시광고법상 의무예요. 실제로 받은 혜택에 맞게 고르세요.'}),
-      A('guide','기타 가이드 요청사항','예: 숯불 굽는 장면 꼭 넣기, 메뉴 가격 정확히, 3개월 이상 전체공개 유지')
     ]},
     {id:'context',title:'누구랑, 왜',desc:'방문 이유와 동행, 그날의 상황. 나만 가진 이야기예요.',fields:[
       D('visitDate',visit?'방문일':'받은 날'),
@@ -774,8 +766,6 @@ function checks(){
   const C=CATS[S.cat];
   return [
     ['업체명',!!V('biz')],
-    ['필수 키워드',kwList().length>0],
-    ['대가 표기 문구',!!V('disclosure')],
     ['방문 이유·내 이야기',!!(V('reasonStory')||V('reason'))],
     [C.item+' 디테일',S.items.some(i=>i.detail.trim())],
     ['동행자 반응',!!(V('reactStory')||V('react'))||sel('with').includes('혼자')],
@@ -1033,7 +1023,6 @@ function easyCards(){
     B(`보내기 (카톡·메일·드라이브)${PHOTOS.length?' · 사진 '+PHOTOS.length+'장':''}`,'primary',()=>sendAll());
     B('MD만 복사','',()=>$('#btnCopy').click());
     B('폰에 파일로 저장','',()=>$('#btnDown').click());
-    B('캠페인 가이드·키워드 적기 (선택)','',()=>setMode('full','sec-campaign'));
     B('자세히 보완하기','',()=>setMode('full'));
     B('처음부터 다시 보기','ghost',()=>goStep(0));
     b.append(ch);
