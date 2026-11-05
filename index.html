@@ -1641,7 +1641,18 @@ function easyCards(){
     b.append(el('div','e-label','한 줄'),eText(()=>S.f.reasonStory,x=>S.f.reasonStory=x,'예: 출렁다리 갔다가 배고파서 들렀어요',true));
   }});
   const nb=(PLACE&&PLACE.blogs&&PLACE.blogs.length)||5;
-  cards.push({id:'rate',src:'평가',q:'어땠어요?',body:b=>rateCard(b)});
+  const L=t=>el('div','e-label',t);
+  if(visit)cards.push({id:'day',src:'그날',q:'그날은 어땠어요?',body:b=>{
+    b.append(L('방문 시간대'),rChips('when',['평일 점심','평일 저녁','주말 점심','주말 저녁','오전','늦은 밤']),L('날씨'),rChips('weather',['맑음','흐림','비','눈','더움','쌀쌀함']));
+  }});
+  if(!visit)cards.push({id:'usage',src:'사용',q:'어떻게 써봤어요?',body:b=>{
+    b.append(L('사용 기간'),rChips('period',['1회','2~3일','1주일','2주 이상','한 달 이상']),L('어떤 상황에서'),eText(()=>S.f.situation,x=>S.f.situation=x,'예: 아이 둘 키우는 거실, 매일 저녁 식사 후',true),
+      L('쓰기 전 고민'),eText(()=>S.f.worry,x=>S.f.worry=x,'예: 무선이라 흡입력이 약하지 않을까'),L('써보니 그 고민은?'),eText(()=>S.f.solved,x=>S.f.solved=x,'예: 모래알까지 한 번에. 배터리는 20분 정도',true));
+  }});
+  if(visit)cards.push({id:'way',src:'가는 길',q:'찾아가는 길은 어땠어요?',body:b=>{
+    b.append(L('이동 수단'),rChips('transport',['자차','대중교통','도보','택시']),L('찾기 쉬웠나요'),rChips('findEase',['간판이 커서 바로 찾음','지도 보고 쉽게 찾음','골목 안이라 조금 헤맴','지나칠 뻔함','건물 안이라 입구가 애매함']),
+      L('외관 첫인상'),mChips('exterior',['눈에 확 띔','감성적·예쁨','소박함','노포 느낌','깔끔·모던','주변 풍경이 좋음']),L('예약'),rChips('reserve',['예약 필수','예약 권장','워크인 가능','네이버 예약','전화 예약','앱 예약 (캐치테이블 등)']));
+  }});
   if(visit)cards.push({id:'arrive',src:'현장',q:'도착해 보니 어땠어요?',body:b=>{
     b.append(el('div','e-label','주차'),rChips('parking',PARK_OPTS),eText(()=>S.f.parkingDetail,x=>S.f.parkingDetail=x,'예: 근처 유료주차장 2시간 지원 / 바로 옆 건물 지하'));
     b.append(el('div','e-label','붐빔'),rChips('crowd',['한산함','적당함','거의 만석','웨이팅 있음']),eText(()=>S.f.crowdStory,x=>S.f.crowdStory=x,'예: 평일 11시 반 도착, 두 자리 빼고 만석'));
@@ -1653,6 +1664,12 @@ function easyCards(){
   }});
   if(S.cat==='stay')cards.push({id:'stay',src:'숙소',q:'숙소는 어땠어요?',body:b=>{
     b.append(el('div','e-label','바베큐'),mChips('bbq',BBQ_OPTS),el('div','e-label','방·시설'),mChips('room',ROOM_OPTS),eText(()=>S.f.stayMemo,x=>S.f.stayMemo=x,'예: 사장님이 야외 공간에서 먹어도 된다고 안내해 주심',true));
+  }});
+  if(visit)cards.push({id:'space',src:'공간',q:'안은 어땠어요?',body:b=>{
+    const amen=PLACE?uniq([...(PLACE.conveniences||[]),...(PLACE.facilities||[])]).filter(x=>!['주차','예약','포장','간편결제','단체 이용 가능'].includes(x)):[];
+    b.append(L('분위기'),mChips('vibe',['아늑함','넓고 쾌적','인테리어 예쁨','활기참','조용함','뷰 맛집','레트로','고급스러움','오래된 전통 느낌']),
+      L(C.spaceLabel),mChips('spaceOpt',C.space),L('편의'),mChips('amenity',uniq(['화장실 깨끗','와이파이','반려견 동반 가능',...amen]).slice(0,12)),
+      L('공간에서 기억나는 장면'),eText(()=>S.f.spaceMemo,x=>S.f.spaceMemo=x,'예: 벽에 방송 출연 사진이 빼곡해서 구경하는 재미',true));
   }});
   cards.push({id:'menu',src:C.item,q:ITEM_Q[S.cat],body:b=>{
     let pm=(PLACE&&PLACE.menus)||[];
@@ -1687,6 +1704,13 @@ function easyCards(){
     b.append(el('div','e-label','내 느낌'),eChips((preset()&&preset().tags)||C.tags,t=>it.tags.sel.includes(t),t=>{const s=it.tags.sel;const i=s.indexOf(t);i>=0?s.splice(i,1):s.push(t)}));
     b.append(el('div','e-label','한 줄'),eText(()=>it.detail,x=>it.detail=x,C.detailPh,true));
   }}));
+  cards.push({id:'rate',src:'평가',q:'어땠어요?',body:b=>rateCard(b)});
+  cards.push({id:'people',src:'응대',q:visit?'응대·서비스는 어땠어요?':'업체 응대·배송은요?',body:b=>{
+    if(S.cat==='food')b.append(L('반찬·곁들임'),mChips('sides',['가짓수 많음','적지만 딱 필요한 것만','셀프바 있음','리필 잘 해줌','아이 먹을 반찬 있음']),eText(()=>S.f.sidesMemo,x=>S.f.sidesMemo=x,'예: 아이 먹을 반찬이 없어서 김을 따로 챙겨주심'));
+    b.append(L('응대'),mChips('staff',visit?['친절함','직접 구워줌/조리해줌','메뉴 추천해줌','설명이 자세함','서비스 챙겨줌','응대가 빠름','무심한 듯 챙겨줌']:['문의 답변 빠름','포장 꼼꼼','배송 빠름','설명서 친절','손편지·사은품']),
+      L('기억에 남는 대화·에피소드'),eText(()=>S.f.staffStory,x=>S.f.staffStory=x,visit?'예: 사장님이 면 종류를 골라보라고 권해주심':'예: 사용법 문의했더니 영상으로 보내주심',true),
+      L('서비스로 받은 것'),eText(()=>S.f.service,x=>S.f.service=x,'예: 맛보기 콩국수, 음료 1병'));
+  }});
   const w=sel('with').filter(x=>x!=='기타');
   if(!(w.length===1&&w[0]==='혼자'))cards.push({id:'react',src:'같이 간 사람',q:'같이 간 사람 반응은 어땠어요?',body:b=>{
     b.append(mChips('react',['또 오자고 함','아이가 잘 먹음/좋아함','부모님이 만족하심','말없이 먹기만 함','사진 찍기 바빴음','포장해 감','추가 주문함']));
@@ -1697,6 +1721,17 @@ function easyCards(){
     if(hc&&hc.length){S.h.cons=S.h.cons||{};b.append(el('div','e-label','다른 후기'),hChips(S.h.cons,hc))}
     b.append(el('div','e-label','내가 느낀 것'),mChips('cons',['딱히 없었어요',...C.cons]));
     b.append(el('div','e-label','한 줄'),eText(()=>S.f.consMemo,x=>S.f.consMemo=x,'예: 평일엔 4시에 닫아서 늦게 가면 못 먹어요',true));
+  }});
+  cards.push({id:'insight',src:'나만의 시선',q:'예상과 달랐던 점이 있었나요?',body:b=>{
+    b.append(L('예상과 달랐던 점'),eText(()=>S.f.surprise,x=>S.f.surprise=x,'예: 셀프 메밀전이 그냥 서비스인 줄 알았는데 무한이었음',true),
+      L('비교 경험'),eText(()=>S.f.compare,x=>S.f.compare=x,'예: 의정부 매장이랑 비빔국수 스타일이 달랐음',true),
+      L('내 직업·취향으로 보면'),eText(()=>S.f.expertise,x=>S.f.expertise=x,'예: 면 좋아하는 입장에서 중면이 제일 탄력 있었음'));
+  }});
+  cards.push({id:'info',src:'팁',q:visit?'알아두면 좋은 건요?':'구매 정보·사용 팁은요?',body:b=>{
+    if(visit)b.append(L('운영시간·휴무 (실제와 다르면)'),eText(()=>S.f.hours,x=>S.f.hours=x,'예: 평일엔 4시에 닫음'));else b.append(L('구매처'),eText(()=>S.f.where,x=>S.f.where=x,'예: 스마트스토어, 쿠팡'));
+    b.append(L('가격대'),eText(()=>S.f.price,x=>S.f.price=x,visit?'예: 1인 1만원대':'예: 정가 129,000원'),L('진행 중인 이벤트·할인'),eText(()=>S.f.promo,x=>S.f.promo=x,'예: 평일 런치 10% 할인'),
+      L('팁'),mChips('tips',visit?['붐비는 시간 피하기','예약 팁','주문 조합 팁','맵기·간 조절 가능','포장 가능','아이랑 갈 때 팁','주차 팁','근처 코스']:['사용 순서 팁','보관 팁','같이 쓰면 좋은 것','이런 분은 비추']),
+      eText(()=>S.f.tipsMemo,x=>S.f.tipsMemo=x,visit?'예: 3명이면 국수 3개 + 메밀전 셀프로 충분':'예: 충전은 거치대보다 케이블이 빠름',true));
   }});
   cards.push({id:'wrap',src:'마무리',q:visit?'또 갈 거예요?':'또 살 거예요?',body:b=>{
     b.append(rChips('revisit',visit?['무조건 재방문','기회 되면 또','이 메뉴 먹으러 다시','글쎄']:['무조건 재구매','다 쓰면 고민','선물로 사줄 듯','글쎄']));
