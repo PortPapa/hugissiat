@@ -480,9 +480,9 @@ function sections(){
       M('recommend','이런 사람에게 추천',visit?['부모님 효도 외식','데이트','가족 외식','아이 동반','친구 모임','회식·단체','혼자','여행·등산 코스']:['아이 키우는 집','자취생','직장인','선물용','입문자','부모님']),
       R('revisit',visit?'재방문 의사':'재구매 의사',visit?['무조건 재방문','기회 되면 또','이 메뉴 먹으러 다시','글쎄']:['무조건 재구매','다 쓰면 고민','선물로 사줄 듯','글쎄']),
       T('oneLine','내 말로 한 줄 총평','예: 산 다녀와서 국수 한 그릇에 메밀전까지 부쳐 먹는 재미가 있는 집'),
-      A('freeMemo','생각나는 대로 남긴 메모','순서·말투 상관없이. 사진 넘겨보며 떠오르는 것')
+      A('freeMemo','생각나는 대로 남긴 메모','순서·말투 상관없이 떠오르는 것')
     ]},
-    {id:'photos',title:'사진 순서대로 메모',desc:'갤러리를 처음부터 넘기면서 사진마다 떠오르는 걸 적어주세요. 안 찍은 사진은 체크를 끄면 돼요.',type:'photos'}
+    {id:'photos',title:'사진',desc:'사진첩에서 후기에 쓸 사진만 골라주세요. 사진 내용은 AI가 직접 보고 판단해요.',type:'photopick'}
   ];
   return list.filter(Boolean);
 }
@@ -668,7 +668,7 @@ function renderForm(){
     const h2=el('h2');h2.append(el('small','',String(i+1)),sec.title);s.append(h2);
     if(sec.desc)s.append(el('p','desc',sec.desc));
     if(sec.type==='items')s.append(renderItems());
-    else if(sec.type==='photos')s.append(renderPhotos());
+    else if(sec.type==='photopick')s.append(photoBlock());
     else if(sec.type==='voted'){S.h.voted=S.h.voted||{};const w=el('div','hintbox');w.append(el('div','hb-sub','한 번 누르면 "나도", 두 번 누르면 "달랐음".'),triChips(PLACE.voted.slice(0,20),S.h.voted));s.append(w)}
     else{
       const hb=hintBlock(sec.id);if(hb)s.append(hb);
@@ -719,7 +719,7 @@ function photosMD(){
 }
 function secBody(sec){
   if(sec.type==='items')return itemsMD();
-  if(sec.type==='photos')return photosMD();
+  if(sec.type==='photopick')return [];
   if(sec.type==='voted')return triLines(S.h.voted,'공감','공감 안 됨 (내 경험은 달랐음)');
   const body=[...triLines(S.h[sec.id])];
   sec.fields.forEach(fd=>{
@@ -755,7 +755,7 @@ function buildMD(){
     '> AI로 후기를 쓸 때 넣는 소스예요. 아래 "내 경험" 항목은 내가 실제로 겪고 고르거나 적은 것이고, "나도 그랬음 / 달랐음"은 다른 후기·방문자 키워드와 내 경험을 비교한 것이에요. 업체 기본 정보는 참고용이에요.','');
   let n=0;
   sections().forEach(sec=>{const b=secBody(sec);if(!b.length)return;n++;out.push(`## ${n}. ${sec.title}`,...b,'')});
-  if(PHOTOS.length){n++;out.push(`## ${n}. 첨부 사진 (찍은/고른 순서)`,...PHOTOS.map((p,i)=>`- 사진 ${i+1}: ${p.name}`),'')}
+  if(PHOTOS.length){n++;out.push(`## ${n}. 첨부 사진 (고른 순서)`,'> 사진에 무엇이 찍혔는지는 적지 않았어요. AI가 사진을 직접 보고 판단해주세요.',...PHOTOS.map((p,i)=>`- 사진 ${i+1}: ${p.name}`),'')}
   const pm=placeMD();
   if(pm.length){n++;out.push(`## ${n}. 업체 기본 정보 (플레이스 기준, 내 경험 아님)`,...pm,'')}
   if(PLACE&&PLACE.blogs&&PLACE.blogs.length){
@@ -775,7 +775,7 @@ function checks(){
     [C.item+' 디테일',S.items.some(i=>i.detail.trim())],
     ['동행자 반응',!!(V('reactStory')||V('react'))||sel('with').includes('혼자')],
     ['솔직한 아쉬움',!!(V('cons')||V('consMemo'))||V('consTone')==='넣지 않기'||Object.keys(S.h.cons||{}).length>0],
-    ['사진·자유 메모',!!V('freeMemo')||PHOTOS.length>0||S.photos.filter(p=>p.took&&p.memo.trim()).length>=3]
+    ['사진·자유 메모',!!V('freeMemo')||PHOTOS.length>0]
   ];
 }
 function renderTOC(){
@@ -828,15 +828,16 @@ const LAST_KEY='chd-last-place';
 /* ---------- 사진 고르기 + 보내기 ---------- */
 /* 앱: 사진은 앱 캐시에 01.jpg, 02.jpg…로 복사되고 페이지에는 썸네일만 온다. 웹: File 객체를 메모리에 둔다 */
 let PHOTOS=[];
-window.chdPhotos=list=>{try{PHOTOS=typeof list==='string'?JSON.parse(list):(list||[])}catch(e){PHOTOS=[]}changed();if(S&&S.mode==='easy')renderEasy()};
+window.chdPhotos=list=>{try{PHOTOS=typeof list==='string'?JSON.parse(list):(list||[])}catch(e){PHOTOS=[]}changed();rerenderPhotos()};
 function loadPhotos(){if(IS_APP&&ChdNative.getPhotos){try{PHOTOS=JSON.parse(ChdNative.getPhotos()||'[]')}catch(e){PHOTOS=[]}}}
 function pickPhotos(){
   if(IS_APP&&ChdNative.pickPhotos){ChdNative.pickPhotos();return}
   const i=document.createElement('input');i.type='file';i.accept='image/*';i.multiple=true;
-  i.onchange=()=>{[...i.files].forEach(f=>{const n=String(PHOTOS.length+1).padStart(2,'0');const ext=(f.name.match(/\.\w+$/)||['.jpg'])[0];PHOTOS.push({name:n+ext,file:f,thumb:URL.createObjectURL(f)})});changed();renderEasy()};
+  i.onchange=()=>{[...i.files].forEach(f=>{const n=String(PHOTOS.length+1).padStart(2,'0');const ext=(f.name.match(/\.\w+$/)||['.jpg'])[0];PHOTOS.push({name:n+ext,file:f,thumb:URL.createObjectURL(f)})});changed();rerenderPhotos()};
   i.click();
 }
-function removePhoto(i){const p=PHOTOS[i];if(!p)return;if(IS_APP&&ChdNative.removePhoto)ChdNative.removePhoto(p.name);PHOTOS.splice(i,1);changed();renderEasy()}
+function removePhoto(i){const p=PHOTOS[i];if(!p)return;if(IS_APP&&ChdNative.removePhoto)ChdNative.removePhoto(p.name);PHOTOS.splice(i,1);changed();rerenderPhotos()}
+function rerenderPhotos(){if(!S)return;if(S.mode==='easy')renderEasy();else{const y=window.scrollY;renderForm();window.scrollTo(0,y)}}
 function clearPhotos(){PHOTOS=[];if(IS_APP&&ChdNative.clearPhotos)ChdNative.clearPhotos()}
 function photoBlock(){
   const w=el('div');
@@ -1045,7 +1046,7 @@ function easyCards(){
     b.append(el('div','e-label','누구한테 추천해요?'),mChips('recommend',visit?['가족 외식','아이 동반','부모님 효도 외식','데이트','친구 모임','회식·단체','혼자','여행·등산 코스']:['아이 키우는 집','자취생','직장인','선물용','입문자','부모님']));
     b.append(el('div','e-label','내 말로 한 줄 총평 (선택)'),eText(()=>S.f.oneLine,x=>S.f.oneLine=x,'예: 산 다녀와서 국수 한 그릇 하기 딱 좋은 집'));
   }});
-  cards.push({id:'free',src:'마지막',q:'사진 넘겨보면서 생각나는 거, 쭉 남겨주세요',sub:'순서도 말투도 상관없어요. 어차피 AI가 정리해요.',body:b=>{
+  cards.push({id:'free',src:'마지막',q:'더 생각나는 거 있으면 남겨주세요',sub:'순서도 말투도 상관없어요. 사진은 사진첩에서 고르기만 하면 AI가 알아서 봐요.',body:b=>{
     b.append(eText(()=>S.f.freeMemo,x=>S.f.freeMemo=x,'예: 간판이 낡았는데 오히려 오래된 집 느낌. 메밀전은 얇게 부쳐야 바삭함. 애가 콩국수 맛보기를 두 번 달라고 함…',true,'big'));
     b.append(photoBlock());
   }});
