@@ -4,21 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>후기씨앗</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
-:root{--bg:#f6f4ef;--card:#fff;--ink:#1f1f1f;--sub:#6f6a62;--line:#e6e1d6;--acc:#ff6b4a;--acc-ink:#c2410c;--acc-soft:#fff0ea;--ok:#2f9e6e;--ok-soft:#e8f6ee;--no:#d0574f;--no-soft:#fdeceb}
+:root{--on-acc:#fff;--font:"NanumSquareRound",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;--bg:#f6f4ef;--card:#fff;--ink:#1f1f1f;--sub:#6f6a62;--line:#e6e1d6;--acc:#ff6b4a;--acc-ink:#c2410c;--acc-soft:#fff0ea;--ok:#2f9e6e;--ok-soft:#e8f6ee;--no:#d0574f;--no-soft:#fdeceb}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;font-family:Pretendard,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
 button{font:inherit;cursor:pointer;color:inherit}
 a{color:inherit}
-.top{position:sticky;top:0;z-index:30;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 20px;background:rgba(246,244,239,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top{position:sticky;top:0;z-index:30;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--bg);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .brand b{font-size:17px;letter-spacing:-.2px}
 .brand span{margin-left:10px;color:var(--sub);font-size:13px}
 .actions{display:flex;gap:6px;flex-wrap:wrap}
-.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font-size:13.5px;white-space:nowrap}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 12px;font-size:13.5px;white-space:nowrap}
 .btn:hover{border-color:#c9c2b4}
-.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.primary{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}
 .btn.sm{padding:4px 9px;font-size:12.5px;border-radius:8px}
 .btn.add{width:100%;border-style:dashed;padding:11px;color:var(--sub);margin-top:4px}
 .progress{position:absolute;left:0;right:0;bottom:-1px;height:3px}
@@ -26,7 +25,7 @@ a{color:inherit}
 .wrap{display:grid;grid-template-columns:190px minmax(0,1fr) 440px;gap:22px;max-width:1440px;margin:0 auto;padding:20px}
 nav#toc{position:sticky;top:78px;align-self:start;display:flex;flex-direction:column;gap:1px}
 nav#toc a{display:flex;justify-content:space-between;gap:6px;padding:7px 10px;border-radius:8px;color:var(--sub);text-decoration:none;font-size:13.5px}
-nav#toc a:hover{background:#fff;color:var(--ink)}
+nav#toc a:hover{background:var(--card);color:var(--ink)}
 nav#toc a.done{color:var(--ink)}
 nav#toc a.done::after{content:'✓';color:var(--ok);font-weight:700}
 .sec{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 22px 8px;margin-bottom:16px;scroll-margin-top:78px}
@@ -37,7 +36,7 @@ nav#toc a.done::after{content:'✓';color:var(--ok);font-weight:700}
 .flabel{display:block;font-weight:600;margin-bottom:8px;font-size:14.5px}
 .hint{color:var(--sub);font-size:12.5px;margin:-4px 0 8px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:13.5px;color:#3a3732;transition:background .12s,border-color .12s}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:13.5px;color:var(--ink);transition:background .12s,border-color .12s}
 .chip:hover{border-color:#c9c2b4}
 .chip.on{background:var(--acc-soft);border-color:var(--acc);color:var(--acc-ink);font-weight:600}
 .chip.etc{border-style:dashed}
@@ -45,7 +44,7 @@ nav#toc a.done::after{content:'✓';color:var(--ok);font-weight:700}
 .chip .mk{font-weight:700;margin-right:5px}
 .chip.yes{background:var(--ok-soft);border-color:var(--ok);color:#1d6b48;font-weight:600}
 .chip.no{background:var(--no-soft);border-color:var(--no);color:#9c2e28;font-weight:600}
-input[type=text],input[type=date],textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;background:#fffdfa;color:var(--ink)}
+input[type=text],input[type=date],textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;background:var(--card);color:var(--ink)}
 textarea{min-height:72px;resize:vertical;line-height:1.5}
 input.other{margin-top:8px}
 input:focus,textarea:focus{outline:3px solid var(--acc-soft);border-color:var(--acc)}
@@ -60,7 +59,7 @@ input:focus,textarea:focus{outline:3px solid var(--acc-soft);border-color:var(--
 .refs a{color:#2b5fb4;text-decoration:none}
 .refs span{color:var(--sub);font-size:12px}
 .cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:12px 0 14px}
-.cat{border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px;text-align:left}
+.cat{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px;text-align:left}
 .cat b{display:block;font-size:14.5px}
 .cat span{font-size:12px;color:var(--sub)}
 .cat.on{border-color:var(--acc);background:var(--acc-soft)}
@@ -102,7 +101,7 @@ aside#previewPane{position:sticky;top:78px;align-self:start}
 .thumbs .th button{position:absolute;right:3px;top:3px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:14px;line-height:24px;padding:0}
 /* 공통 아래 시트(선택·현장 메모·갈 곳 등록) */
 #actBg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:72;opacity:0;pointer-events:none;transition:opacity .2s}
-#act{position:fixed;left:0;right:0;bottom:0;z-index:73;background:#fff;border-radius:20px 20px 0 0;padding:10px 22px 26px;max-height:88dvh;overflow:auto;transform:translateY(100%);transition:transform .25s ease-out;max-width:560px;margin:0 auto}
+#act{position:fixed;left:0;right:0;bottom:0;z-index:73;background:var(--card);border-radius:20px 20px 0 0;padding:10px 22px 26px;max-height:88dvh;overflow:auto;transform:translateY(100%);transition:transform .25s ease-out;max-width:560px;margin:0 auto}
 body.act #actBg{opacity:1;pointer-events:auto}body.act #act{transform:none}
 #act .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
 #act h3{margin:0 0 4px;font-size:19px;letter-spacing:-.3px}
@@ -115,11 +114,11 @@ body.act #actBg{opacity:1;pointer-events:auto}body.act #act{transform:none}
 .qm-item{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start;background:var(--bg);border-radius:10px;padding:8px 10px;font-size:14px}
 .qm-t{color:var(--sub);font-size:12px;padding-top:2px;white-space:nowrap}
 .qm-item button{border:0;background:none;color:var(--sub);font-size:16px;padding:0 2px}
-.plan{display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;margin-bottom:6px}
+.plan{display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;margin-bottom:6px}
 .plan-i b{display:block;font-size:15px}.plan-i span{font-size:12.5px;color:var(--sub)}
 .btn.primary.sm{color:#fff}
-.e-memo{display:flex;justify-content:flex-end;margin:-14px 0 10px}
-.e-memo button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:13px;color:var(--acc-ink)}
+.e-memo{display:flex;justify-content:flex-end;margin:6px 0 10px}
+.e-memo button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px;font-size:13px;color:var(--acc-ink)}
 /* 자세히 쓰기: 모바일에서는 한 번에 한 섹션만 펼치는 Accordion */
 .sec h2 .badge{margin-left:8px;font-size:12px;font-weight:600;color:var(--ok);background:var(--ok-soft);border-radius:999px;padding:2px 8px;vertical-align:2px}
 .sec h2 .chev{display:none}
@@ -144,31 +143,94 @@ body.act #actBg{opacity:1;pointer-events:auto}body.act #act{transform:none}
 .top .brand{display:flex;align-items:center;gap:2px;min-width:0}
 .top .brand b{font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .top .actions{gap:2px;flex-wrap:nowrap}
-#tabbar{position:fixed;left:0;right:0;bottom:0;z-index:45;display:grid;grid-template-columns:repeat(4,1fr);background:rgba(255,255,255,.97);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:6px 0 calc(8px + env(safe-area-inset-bottom))}
+#tabbarOLD{position:fixed;left:0;right:0;bottom:0;z-index:45;display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:6px 0 calc(8px + env(safe-area-inset-bottom))}
 #tabbar button{border:0;background:none;display:flex;justify-content:center;align-items:center;color:#a39d93;padding:10px 0}
 #tabbar button svg{width:26px;height:26px}
 #tabbar button .f{display:none}#tabbar button.on .f{display:block}#tabbar button.on .l{display:none}
 #tabbar button.on{color:var(--acc-ink)}
 body:not(.flow){padding-bottom:76px}
-body.flow #tabbar{display:none}
+body:not(.flow) #easy{min-height:calc(100dvh - 57px - 76px)}
+html,body{overscroll-behavior:none}
+
 body:not(.flow) .e-foot{bottom:64px}
-body:not([data-tab=write]) #easy,body:not([data-tab=write]) .wrap,body:not([data-tab=write]) #fabPreview{display:none!important}
+body:not(.flow) #easy,body:not(.flow) .wrap,body:not(.flow) #fabPreview{display:none!important}
+body.flow .view,body.flow #dock,body.flow .top-main{display:none!important}
+body:not(.flow) .top-flow{display:none!important}
+body:not(.flow){padding-bottom:96px;background-image:var(--pat,none);background-size:var(--patsz,auto);background-attachment:fixed}
+.top-main{display:flex;align-items:center;gap:10px;width:100%}
+.top-flow{display:flex;align-items:center;justify-content:space-between;width:100%}
+.av{width:44px;height:44px;border-radius:50%;border:0;background:var(--acc-soft);color:var(--acc);display:flex;align-items:center;justify-content:center;padding:0;flex:none}
+.av svg{width:28px;height:28px}.av.on{box-shadow:0 0 0 2px var(--acc)}
+.pills{display:flex;gap:8px;flex:1}
+.pills button{flex:1;height:44px;border-radius:22px;border:0;background:var(--line);color:var(--sub);display:flex;align-items:center;justify-content:center;padding:0}
+.pills button svg{width:24px;height:24px}.pills button .f{display:none}
+.pills button.on{background:var(--acc-soft);color:var(--acc-ink)}.pills button.on .f{display:block}.pills button.on .l{display:none}
+#dock{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));display:flex;gap:10px;z-index:45;max-width:560px;margin:0 auto}
+.dk{width:54px;height:54px;border-radius:50%;background:var(--card);border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;color:var(--ink);flex:none;padding:0}
+.dk svg{width:24px;height:24px}
+.dk-pill{flex:1;min-width:0;height:54px;border-radius:27px;background:var(--card);border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;padding:0 9px;color:var(--sub);font-size:15px;white-space:nowrap;overflow:hidden}
+.dk-pill .ic{width:38px;height:38px;border-radius:50%;background:var(--acc);color:var(--on-acc);display:flex;align-items:center;justify-content:center;flex:none}
+.dk-pill .ic svg{width:20px;height:20px}
+body[data-tab=home] #viewHome{display:block}
+.view{animation:slidein .2s ease-out}
+.sec-h{display:flex;align-items:center;gap:4px;color:var(--sub);font-size:14px;font-weight:700;margin:18px 2px 10px;border:0;background:none;padding:0;font-family:inherit}
+.sec-h svg{width:18px;height:18px;transition:transform .2s}.sec-h.closed svg{transform:rotate(-90deg)}
+.cards{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -18px;padding:2px 18px 6px;scrollbar-width:none}
+.cards::-webkit-scrollbar{display:none}
+.card{flex:0 0 158px;scroll-snap-align:start;border:1px solid var(--line);border-radius:16px;background:var(--card);overflow:hidden;text-align:left;padding:0;font-family:inherit;color:var(--ink)}
+.card .cv{height:88px;background:var(--acc-soft);display:flex;align-items:center;justify-content:center;color:var(--acc)}
+.card .cv img{width:100%;height:100%;object-fit:cover;display:block}.card .cv svg{width:44px;height:44px}
+.card .nm{padding:10px 12px 12px;font-weight:700;font-size:14px;line-height:1.35}
+.card .meta{display:block;font-size:12px;color:var(--sub);font-weight:500;margin-top:3px}
+.li{display:flex;align-items:center;gap:12px;padding:9px 4px;border-radius:12px;cursor:pointer}
+.li:active{background:var(--line)}
+.li .dt{width:46px;height:46px;border-radius:13px;background:var(--acc-soft);color:var(--acc-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-weight:700;line-height:1.15;flex:none}
+.li .dt b{font-size:17px}
+.li .tx{flex:1;min-width:0}.li .nm{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .sub{font-size:12px;color:var(--sub)}
+.li img.th,.li .th{width:46px;height:46px;border-radius:13px}
+.hello{text-align:center;padding:50px 10px 10px;color:var(--sub)}
+.hello svg{width:96px;height:96px;color:var(--acc)}
+.hello b{display:block;color:var(--ink);font-size:18px;margin:8px 0 4px}
 .view{display:none;max-width:560px;margin:0 auto;padding:12px 18px 24px}
 body[data-tab=plans] #viewPlans,body[data-tab=records] #viewRecords,body[data-tab=me] #viewMe{display:block}
 .v-sub{color:var(--sub);font-size:13.5px;margin:4px 0 14px}
-.rec{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 8px 12px 14px;margin-bottom:8px;cursor:pointer}
+.rec{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px 8px 12px 14px;margin-bottom:8px;cursor:pointer}
 .rec b{display:block;font-size:15px}.rec span{font-size:12.5px;color:var(--sub)}
 .rec .st{font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 8px;margin-left:6px;background:var(--acc-soft);color:var(--acc-ink);vertical-align:1px}
 .rec .st.done{background:var(--ok-soft);color:#1d6b48}
 .empty{text-align:center;color:var(--sub);padding:40px 10px;font-size:14px;white-space:pre-line}
-.me-sec{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.me-sec{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
 .me-sec h4{margin:0 0 6px;font-size:15px}
 .me-sec textarea,.me-sec input[type=text]{margin-top:4px}
-.plan-sum{width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;margin-top:10px;font-size:13.5px}
+.plan-sum{width:100%;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;margin-top:10px;font-size:13.5px}
 .plan-sum b{color:var(--acc-ink)}
+/* 자라는 새싹 / 가게 사진 / 완성 꽃 */
+.e-grow{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--sub);font-size:13px;font-weight:700}
+.e-grow svg{width:34px;height:34px}
+.e-hero{height:110px;border-radius:16px;overflow:hidden;margin:0 0 14px;background:var(--line)}
+.e-hero img{width:100%;height:100%;object-fit:cover;display:block}
+.e-q em{font-style:normal;color:var(--acc-ink)}
+.e-q,.e-body{animation:slidein .22s ease-out}
+@keyframes slidein{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+.chip.on,.e-btn.on{animation:pop .18s ease-out}
+@keyframes pop{0%{transform:scale(.94)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+.bloom{display:flex;flex-direction:column;align-items:center;gap:4px;margin:6px 0 14px;position:relative}
+.bloom svg{width:120px;height:120px;animation:grow .6s cubic-bezier(.2,1.4,.4,1)}
+@keyframes grow{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
+.conf{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:80}
+.conf i{position:absolute;top:-12px;width:8px;height:8px;border-radius:2px;animation:fall 1.6s ease-in forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(540deg);opacity:.2}}
+.th{width:48px;height:48px;border-radius:12px;object-fit:cover;flex:none;background:var(--line)}
+.rec{grid-template-columns:auto 1fr auto!important}
+.swatches{display:flex;flex-wrap:wrap;gap:12px;margin-top:4px}
+.sw-w{display:flex;flex-direction:column;align-items:center}
+.sw{width:40px;height:40px;border-radius:50%;border:3px solid var(--card);box-shadow:0 0 0 1px var(--line);padding:0;cursor:pointer}
+.sw.on{box-shadow:0 0 0 2px var(--ink)}
+.sw-l{font-size:11px;color:var(--sub);margin-top:3px}
 /* 사용법 Bottom Sheet */
 #sheetBg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:70;opacity:0;pointer-events:none;transition:opacity .2s}
-#sheet{position:fixed;left:0;right:0;bottom:0;z-index:71;background:#fff;border-radius:20px 20px 0 0;padding:10px 22px 28px;max-height:82dvh;overflow:auto;transform:translateY(100%);transition:transform .25s ease-out;max-width:560px;margin:0 auto}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:71;background:var(--card);border-radius:20px 20px 0 0;padding:10px 22px 28px;max-height:82dvh;overflow:auto;transform:translateY(100%);transition:transform .25s ease-out;max-width:560px;margin:0 auto}
 body.sheet #sheetBg{opacity:1;pointer-events:auto}body.sheet #sheet{transform:none}
 #sheet .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
 #sheet h3{margin:0 0 4px;font-size:19px;letter-spacing:-.3px}
@@ -179,7 +241,7 @@ body.sheet #sheetBg{opacity:1;pointer-events:auto}body.sheet #sheet{transform:no
 /* ---------- 쉬운 모드 ---------- */
 body.easy .wrap,body.easy #fabPreview,body.easy #btnSample,body.easy #btnCopy,body.easy #btnDown,body.easy .progress{display:none!important}
 body:not(.easy) #easy{display:none}
-#easy{max-width:560px;margin:0 auto;padding:14px 18px 0;min-height:calc(100dvh - 62px);display:flex;flex-direction:column}
+#easy{max-width:560px;margin:0 auto;padding:14px 18px 0;min-height:calc(100dvh - 57px);box-sizing:border-box;display:flex;flex-direction:column}
 .e-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;font-size:13px;color:var(--sub)}
 .e-top button{border:0;background:none;color:var(--sub);padding:8px 2px;font-size:14px}
 .e-top button:last-child{text-align:right}
@@ -198,12 +260,12 @@ body:not(.easy) #easy{display:none}
 .e-label{font-size:13px;color:var(--sub);font-weight:600;margin-top:10px}
 .e-row{display:flex;gap:8px}.e-row input{flex:1}
 .e-foot{position:sticky;bottom:0;margin-top:auto;padding:16px 0 20px;background:var(--bg)}
-.e-btn{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:15px 16px;font-size:16px;text-align:left;font-weight:500}
+.e-btn{width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:15px 16px;font-size:16px;text-align:left;font-weight:500}
 .e-btn.on{border-color:var(--acc);background:var(--acc-soft);color:var(--acc-ink);font-weight:700}
-.e-btn.primary{background:var(--ink);color:#fff;border-color:var(--ink);text-align:center;font-weight:700}
+.e-btn.primary{background:var(--acc);color:var(--on-acc);border-color:var(--acc);text-align:center;font-weight:700}
 .e-btn.ghost{background:transparent;border-color:transparent;text-align:center;color:var(--sub)}
 .e-choices{display:flex;flex-direction:column;gap:8px}
-.mic{align-self:flex-start;margin-top:8px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font-size:13.5px}
+.mic{align-self:flex-start;margin-top:8px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 14px;font-size:13.5px}
 .mic.rec{border-color:var(--no);color:var(--no);background:var(--no-soft)}
 .e-tip{font-size:12.5px;color:var(--sub);margin-top:6px}
 #easy details{margin:10px 0 20px}
@@ -227,11 +289,21 @@ body:not(.easy) #easy{display:none}
 </head>
 <body>
 <header class="top">
-  <div class="brand"><button class="ib" id="topBack" type="button" aria-label="처음으로" hidden><svg class="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m10.414 12l4.95 4.95c.422.481.381 1.233-.207 1.573c-.407.235-.868.139-1.207-.159l-5.657-5.657C8.114 12.503 8 12.278 8 12s.114-.503.293-.707l5.657-5.657c.204-.179.429-.293.707-.293c.927 0 1.281 1.053.707 1.707Z"/></svg></button><b id="topTitle">후기씨앗</b></div>
-  <div class="actions">
-    <button class="ib" id="btnHelp" type="button" aria-label="사용법"><svg class="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.741 17.966a1 1 0 0 1-.607-.466c-.439-.76.29-1.69 1.127-1.466c.254.068.475.238.607.466c.439.76-.29 1.69-1.127 1.466m-.734-4.334c.077-.829.598-1.495 1.328-1.873c.44-.227.792-.355 1.06-.804c.745-1.248-.43-2.778-1.827-2.395c-.618.17-1.09.709-1.176 1.343c-.038.284-.018.528-.186.779a1.01 1.01 0 0 1-1.584.101c-.459-.525-.195-1.555.066-2.128c.738-1.625 2.61-2.532 4.338-2.006c2.257.687 3.336 3.361 2.053 5.387a3.64 3.64 0 0 1-1.359 1.279c-.18.095-.503.183-.646.348c-.104.12-.062.156-.074.337c-.024.36-.178.68-.5.866a1 1 0 0 1-.759.1c-.619-.166-.787-.765-.734-1.334m.251 8.34c-1.75-.119-3.446-.731-4.895-1.712C1.054 16.668.538 9.075 5.166 4.701a9.8 9.8 0 0 1 3.148-1.999a10.2 10.2 0 0 1 4.428-.674c1.75.119 3.446.731 4.895 1.712c5.309 3.592 5.825 11.185 1.197 15.559a9.8 9.8 0 0 1-3.148 1.999a10.2 10.2 0 0 1-4.428.674m.116-17.947a8 8 0 0 0-4.377 1.733C2.03 9.744 3.51 17.709 9.585 19.629a8 8 0 0 0 7.418-1.387c4.967-3.985 3.487-11.951-2.588-13.871a8.1 8.1 0 0 0-3.041-.346"/></svg></button>
-    <button class="ib" id="btnMore" type="button" aria-label="더보기"><svg class="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12.475 16.564l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm0-6l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm0-6l.418.216c.985.72.742 2.274-.418 2.656L12 7.513l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656L12 4.487Z"/></svg></button>
-    <span hidden><button id="btnMode" type="button"></button><button id="btnSample" type="button"></button><button id="btnReset" type="button"></button><button id="btnCopy" type="button"></button><button id="btnDown" type="button"></button></span>
+  <div class="top-main">
+    <button class="av" id="tabMe" type="button" aria-label="내 정보"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 40 V22" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><path d="M24 28 C15 28 10 21 10 15 C18 15 24 21 24 28Z" fill="currentColor" opacity=".75"/><path d="M24 23 C25 14 32 8 39 8 C38 17 31 23 24 23Z" fill="currentColor"/></svg></button>
+    <div class="pills">
+      <button type="button" data-tab="home" aria-label="홈"><svg class="l" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 19.057c-.063 1.1-.843 1.88-1.943 1.943h-5.09l-.436-.118l-.413-.413l-.118-.436V14.04c-.02-.497-.321-.939-.836-1.024c-.649-.106-1.139.406-1.164 1.024v5.993l-.118.436l-.413.413l-.436.118h-5.09l-.401-.046c-.9-.21-1.49-.995-1.542-1.897V9.442c.019-.331.053-.535.205-.839s.296-.454.548-.668l7.099-5.324c.749-.489 1.547-.489 2.296 0l7.099 5.324c.252.214.396.364.548.668c.152.303.186.508.205.839ZM15 19l3.994-.006V9.503L12 4.26L5.006 9.503v9.491L9 19v-5.04l.036-.445c.423-2.608 3.827-3.419 5.387-1.289c.376.513.552 1.103.577 1.734Z"/></svg><svg class="f" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.538 2.323c.274.077.428.168.662.327l7 5.25c.505.411.775.949.8 1.6V19c-.03.748-.403 1.426-1.081 1.777c-.291.151-.594.21-.919.223h-3.9c-.368-.019-.701-.173-.912-.485A1.16 1.16 0 0 1 14 19.9V15c-.045-1.105-.861-2-2-2s-1.955.895-2 2v4.9a1.16 1.16 0 0 1-.188.615c-.211.312-.544.466-.912.485H5a2.1 2.1 0 0 1-.919-.223C3.403 20.426 3.03 19.748 3 19V9.5a2.09 2.09 0 0 1 .8-1.6l7-5.25c.518-.352 1.123-.498 1.738-.327"/></svg></button>
+      <button type="button" data-tab="plans" aria-label="갈 곳"><svg class="l" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.541 7.034a4 4 0 0 1 3.318 2.903c.757 2.757-1.57 5.411-4.4 5.029a4 4 0 0 1-3.318-2.903c-.757-2.757 1.57-5.411 4.4-5.029m-.814 1.987c-.43.058-.833.26-1.14.566c-1.345 1.345-.195 3.647 1.686 3.392c.43-.058.833-.26 1.14-.566c1.345-1.345.195-3.647-1.686-3.392m1.01-6.992c5.217.423 9.079 5.345 8.12 10.522c-.478 2.581-2.106 4.784-4.003 6.525a21.6 21.6 0 0 1-3.374 2.52c-.312.191-.641.421-1 .516l-.48.063l-.48-.063c-.359-.095-.688-.325-1-.516c-1.2-.73-2.339-1.57-3.374-2.52c-2.084-1.913-3.84-4.398-4.11-7.289c-.518-5.546 4.175-10.206 9.701-9.758M12 20.147c2.646-1.522 5.509-3.895 6.578-6.833C20.224 8.792 16.782 4.001 12 4.001s-8.224 4.791-6.578 9.313c1.069 2.938 3.932 5.311 6.578 6.833"/></svg><svg class="f" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.703 2.027c5.209.402 9.083 5.291 8.165 10.463c-.449 2.529-2.01 4.703-3.847 6.431a21.3 21.3 0 0 1-3.044 2.364c-.421.272-.872.602-1.348.772a1.88 1.88 0 0 1-1.258 0c-.476-.17-.927-.5-1.348-.772a21.3 21.3 0 0 1-3.044-2.364c-2.015-1.895-3.693-4.34-3.945-7.164c-.493-5.523 4.165-10.155 9.669-9.73m-1.11 6a3 3 0 0 0-1.714.852c-2.018 2.017-.295 5.475 2.528 5.094a3 3 0 0 0 1.714-.852c2.018-2.017.295-5.475-2.528-5.094"/></svg></button>
+      <button type="button" data-tab="records" aria-label="기록"><svg class="l" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 19.04c-.067 1.67-1.29 2.893-2.96 2.96H5.943c-.593-.034-1.131-.275-1.508-.745c-.282-.352-.409-.753-.435-1.198V3.943c.034-.593.275-1.131.745-1.508c.352-.282.753-.409 1.198-.435H17.04c1.67.067 2.893 1.29 2.96 2.96ZM6.006 4.006v15.988L8 20V4ZM10 4v16h6.96c.23-.009.44-.057.628-.195c.28-.204.398-.509.412-.845V5.04c-.025-.622-.418-1.015-1.04-1.04Z"/></svg><svg class="f" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 22V2h7c1.708.057 2.943 1.292 3 3v14c-.031.933-.418 1.796-1.167 2.375c-.535.413-1.163.603-1.833.625Zm-2 0H6c-.641-.026-1.229-.293-1.614-.819C4.129 20.83 4.017 20.43 4 20V4c.022-.535.202-1.03.586-1.414S5.465 2.022 6 2h2Z"/></svg></button>
+    </div>
+  </div>
+  <div class="top-flow">
+    <div class="brand"><button class="ib" id="topBack" type="button" aria-label="처음으로"><svg class="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m10.414 12l4.95 4.95c.422.481.381 1.233-.207 1.573c-.407.235-.868.139-1.207-.159l-5.657-5.657C8.114 12.503 8 12.278 8 12s.114-.503.293-.707l5.657-5.657c.204-.179.429-.293.707-.293c.927 0 1.281 1.053.707 1.707Z"/></svg></button><b id="topTitle">후기씨앗</b></div>
+    <div class="actions">
+      <button class="ib" id="btnHelp" type="button" aria-label="사용법"><svg class="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.741 17.966a1 1 0 0 1-.607-.466c-.439-.76.29-1.69 1.127-1.466c.254.068.475.238.607.466c.439.76-.29 1.69-1.127 1.466m-.734-4.334c.077-.829.598-1.495 1.328-1.873c.44-.227.792-.355 1.06-.804c.745-1.248-.43-2.778-1.827-2.395c-.618.17-1.09.709-1.176 1.343c-.038.284-.018.528-.186.779a1.01 1.01 0 0 1-1.584.101c-.459-.525-.195-1.555.066-2.128c.738-1.625 2.61-2.532 4.338-2.006c2.257.687 3.336 3.361 2.053 5.387a3.64 3.64 0 0 1-1.359 1.279c-.18.095-.503.183-.646.348c-.104.12-.062.156-.074.337c-.024.36-.178.68-.5.866a1 1 0 0 1-.759.1c-.619-.166-.787-.765-.734-1.334m.251 8.34c-1.75-.119-3.446-.731-4.895-1.712C1.054 16.668.538 9.075 5.166 4.701a9.8 9.8 0 0 1 3.148-1.999a10.2 10.2 0 0 1 4.428-.674c1.75.119 3.446.731 4.895 1.712c5.309 3.592 5.825 11.185 1.197 15.559a9.8 9.8 0 0 1-3.148 1.999a10.2 10.2 0 0 1-4.428.674m.116-17.947a8 8 0 0 0-4.377 1.733C2.03 9.744 3.51 17.709 9.585 19.629a8 8 0 0 0 7.418-1.387c4.967-3.985 3.487-11.951-2.588-13.871a8.1 8.1 0 0 0-3.041-.346"/></svg></button>
+      <button class="ib" id="btnMore" type="button" aria-label="더보기"><svg class="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12.475 16.564l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm0-6l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm0-6l.418.216c.985.72.742 2.274-.418 2.656L12 7.513l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656L12 4.487Z"/></svg></button>
+      <span hidden><button id="btnMode" type="button"></button><button id="btnSample" type="button"></button><button id="btnReset" type="button"></button><button id="btnCopy" type="button"></button><button id="btnDown" type="button"></button></span>
+    </div>
   </div>
   <div class="progress"><div id="bar"></div></div>
 </header>
@@ -252,7 +324,12 @@ body:not(.easy) #easy{display:none}
 <section class="view" id="viewPlans"></section>
 <section class="view" id="viewRecords"></section>
 <section class="view" id="viewMe"></section>
-<nav id="tabbar"><button type="button" data-tab="write" aria-label="쓰기"><svg class="l" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3.738 20.967c-.454-.122-.712-.516-.742-.966v-5.243c.015-.43.137-.84.395-1.189l.191-.225L13.896 3.03c.69-.638 1.714-.781 2.515-.25l.313.25l4.243 4.243c.771.834.771 1.994 0 2.828l-2.433 2.433l-7.881 7.881c-.396.37-.872.567-1.414.586H3.996Zm1.263-6.207l-.005 4.241l4.241-.005l7.176-7.169l-4.243-4.242Zm8.583-8.59l4.243 4.243l1.714-1.726l-4.231-4.231Z"/></svg><svg class="f" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m17.827 13.241l-7.173 7.174l-.241.205c-.349.253-.748.364-1.174.381H4.006c-.574-.033-.977-.437-1.01-1.011v-5.232a2 2 0 0 1 .099-.619c.1-.307.27-.56.487-.795l7.174-7.174Zm1.414-1.414L12.17 4.756l1.726-1.726c.353-.323.76-.537 1.243-.578c.604-.052 1.145.176 1.585.578l4.243 4.242c.646.707.794 1.742.231 2.552l-.231.277Z"/></svg></button><button type="button" data-tab="plans" aria-label="갈 곳"><svg class="l" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.541 7.034a4 4 0 0 1 3.318 2.903c.757 2.757-1.57 5.411-4.4 5.029a4 4 0 0 1-3.318-2.903c-.757-2.757 1.57-5.411 4.4-5.029m-.814 1.987c-.43.058-.833.26-1.14.566c-1.345 1.345-.195 3.647 1.686 3.392c.43-.058.833-.26 1.14-.566c1.345-1.345.195-3.647-1.686-3.392m1.01-6.992c5.217.423 9.079 5.345 8.12 10.522c-.478 2.581-2.106 4.784-4.003 6.525a21.6 21.6 0 0 1-3.374 2.52c-.312.191-.641.421-1 .516l-.48.063l-.48-.063c-.359-.095-.688-.325-1-.516c-1.2-.73-2.339-1.57-3.374-2.52c-2.084-1.913-3.84-4.398-4.11-7.289c-.518-5.546 4.175-10.206 9.701-9.758M12 20.147c2.646-1.522 5.509-3.895 6.578-6.833C20.224 8.792 16.782 4.001 12 4.001s-8.224 4.791-6.578 9.313c1.069 2.938 3.932 5.311 6.578 6.833"/></svg><svg class="f" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.703 2.027c5.209.402 9.083 5.291 8.165 10.463c-.449 2.529-2.01 4.703-3.847 6.431a21.3 21.3 0 0 1-3.044 2.364c-.421.272-.872.602-1.348.772a1.88 1.88 0 0 1-1.258 0c-.476-.17-.927-.5-1.348-.772a21.3 21.3 0 0 1-3.044-2.364c-2.015-1.895-3.693-4.34-3.945-7.164c-.493-5.523 4.165-10.155 9.669-9.73m-1.11 6a3 3 0 0 0-1.714.852c-2.018 2.017-.295 5.475 2.528 5.094a3 3 0 0 0 1.714-.852c2.018-2.017.295-5.475-2.528-5.094"/></svg></button><button type="button" data-tab="records" aria-label="기록"><svg class="l" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 19.04c-.067 1.67-1.29 2.893-2.96 2.96H5.943c-.593-.034-1.131-.275-1.508-.745c-.282-.352-.409-.753-.435-1.198V3.943c.034-.593.275-1.131.745-1.508c.352-.282.753-.409 1.198-.435H17.04c1.67.067 2.893 1.29 2.96 2.96ZM6.006 4.006v15.988L8 20V4ZM10 4v16h6.96c.23-.009.44-.057.628-.195c.28-.204.398-.509.412-.845V5.04c-.025-.622-.418-1.015-1.04-1.04Z"/></svg><svg class="f" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 22V2h7c1.708.057 2.943 1.292 3 3v14c-.031.933-.418 1.796-1.167 2.375c-.535.413-1.163.603-1.833.625Zm-2 0H6c-.641-.026-1.229-.293-1.614-.819C4.129 20.83 4.017 20.43 4 20V4c.022-.535.202-1.03.586-1.414S5.465 2.022 6 2h2Z"/></svg></button><button type="button" data-tab="me" aria-label="내 정보"><svg class="l" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.75 13.022c2.566.154 5.641 1.2 7.328 3.241c.893 1.081 1.347 2.552.391 3.761c-.914 1.154-2.707 1.521-4.081 1.719c-1.451.209-2.924.257-4.388.257c-1.675 0-3.373-.054-5.023-.361c-1.215-.225-2.64-.597-3.446-1.615c-1.094-1.384-.345-3.044.741-4.146c2.097-2.129 5.57-3.031 8.478-2.856m-1.38 1.998a10.4 10.4 0 0 0-2.88.588a8.7 8.7 0 0 0-1.823.896c-.584.382-1.193.87-1.519 1.504c-.088.17-.18.394-.131.591c.159.634 1.816.979 2.325 1.073c1.284.239 2.601.301 3.904.322c1.418.023 2.845-.001 4.256-.156c.715-.078 3.092-.383 3.451-1.156c.286-.615-.857-1.624-1.254-1.922c-1.773-1.333-4.142-1.872-6.329-1.74m1.212-12.988a5.03 5.03 0 0 1 2.955 1.431a5.03 5.03 0 0 1 1.333 2.391c.787 3.362-2.024 6.511-5.452 6.114a5.03 5.03 0 0 1-2.955-1.431A5.03 5.03 0 0 1 7.13 8.146c-.787-3.362 2.024-6.511 5.452-6.114m-.933 1.99a3 3 0 0 0-1.524.638c-2.339 1.876-.751 5.663 2.226 5.318a3 3 0 0 0 1.524-.638c2.339-1.876.751-5.663-2.226-5.318"/></svg><svg class="f" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.79 13.025a12.3 12.3 0 0 1 3.606.779c1.904.726 4.977 2.658 4.571 5.104c-.131.79-.664 1.414-1.326 1.83c-.949.597-2.11.836-3.2.997c-1.156.171-2.327.232-3.494.256c-1.793.036-3.611.007-5.388-.256c-1.381-.204-3.192-.585-4.079-1.787c-1.005-1.362-.278-2.97.769-4.046c2.098-2.155 5.616-3.062 8.541-2.877m-.279-10.999a5 5 0 0 1 2.669 1.116a5 5 0 0 1 1.595 2.371c1.06 3.412-1.737 6.821-5.286 6.461a5 5 0 0 1-2.669-1.116a5 5 0 0 1-1.595-2.371c-1.06-3.412 1.737-6.821 5.286-6.461"/></svg></button></nav>
+<section class="view" id="viewHome"></section>
+<div id="dock">
+  <button class="dk" id="dkSearch" type="button" aria-label="검색"><svg class="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m17.176 15.762l3.652 3.652c.359.41.405 1.01 0 1.414c-.404.405-1.004.359-1.414 0l-3.652-3.652c-1.145.85-2.399 1.459-3.814 1.702C5.871 19.921.72 14.327 2.272 8.355a8.5 8.5 0 0 1 1.979-3.618A8.55 8.55 0 0 1 7.68 2.478c6.112-2.146 12.292 3.095 11.198 9.47c-.243 1.415-.852 2.669-1.702 3.814M9.938 4.025a6.5 6.5 0 0 0-3.844 1.697a6.5 6.5 0 0 0-1.727 2.622c-1.558 4.436 2.021 9.03 6.695 8.631a6.5 6.5 0 0 0 3.844-1.697a6.5 6.5 0 0 0 1.727-2.622c1.558-4.436-2.021-9.03-6.695-8.631"/></svg></button>
+  <button class="dk-pill" id="dkPaste" type="button"><span class="ic"><svg class="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.155 13.083c.904.966 1.443 2.176 1.443 3.511c0 .863-.225 1.722-.652 2.472c-1.226 2.154-3.935 3.097-6.232 2.164c-.62-.252-1.143-.622-1.63-1.076l-1.438-1.438c-.13-.149-.206-.254-.258-.449c-.196-.73.494-1.42 1.224-1.224c.195.052.299.128.449.258c.771.677 1.409 1.667 2.407 2.072c2.608 1.059 5.13-1.81 3.736-4.258c-.157-.277-.291-.431-.51-.666l-2.781-2.781c-.499-.466-1.077-.788-1.762-.876a3 3 0 0 0-2.195.585c-.278.211-.466.471-.823.542c-.742.146-1.384-.589-1.14-1.305c.209-.611 1.339-1.259 1.893-1.484c1.894-.769 3.923-.299 5.394 1.077Zm-10.94-8.07a3 3 0 0 0-1.428-.585c-2.431-.311-4.206 2.32-2.992 4.454c.158.276.292.431.511.665l2.781 2.781c.79.738 1.84 1.082 2.906.803c.38-.1.739-.274 1.051-.511c.439-.335.723-.718 1.34-.508c.335.115.589.406.658.753c.12.608-.347 1.017-.784 1.349a5 5 0 0 1-1.757.856c-1.751.458-3.476-.06-4.781-1.28l-2.875-2.876c-1.543-1.65-1.928-3.987-.791-5.983c1.488-2.615 4.981-3.337 7.376-1.513c.514.392 1.853 1.782 1.924 1.863c.13.149.206.253.258.448c.226.842-.71 1.561-1.466 1.125l-.207-.159c-.603-.53-1.085-1.196-1.724-1.682"/></svg></span><span>네이버 지도 링크 붙여넣기</span></button>
+  <button class="dk" id="dkAdd" type="button" aria-label="추가"><svg class="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3.738 20.967c-.454-.122-.712-.516-.742-.966v-5.243c.015-.43.137-.84.395-1.189l.191-.225L13.896 3.03c.69-.638 1.714-.781 2.515-.25l.313.25l4.243 4.243c.771.834.771 1.994 0 2.828l-2.433 2.433l-7.881 7.881c-.396.37-.872.567-1.414.586H3.996Zm1.263-6.207l-.005 4.241l4.241-.005l7.176-7.169l-4.243-4.242Zm8.583-8.59l4.243 4.243l1.714-1.726l-4.231-4.231Z"/></svg></button>
+</div>
 <button id="fabPreview" type="button">MD 미리보기</button>
 <div id="toast"></div>
 <div id="actBg"></div>
@@ -293,7 +370,7 @@ function slim(p){
   return {id:str(p.id),type:str(p.type),placeUrl:p.placeUrl,name:p.name,category:p.category,roadAddress:p.roadAddress,address:p.address,phone:p.phone,
     conveniences:p.conveniences,facilities:p.facilities,payment:p.payment,rating:p.rating,visitorReviews:p.visitorReviews,blogReviews:p.blogReviews,
     hours:p.hours,menus:arr(p.menus).map(m=>({name:m.name,price:m.price})),reviewMenus:arr(p.reviewMenus).slice(0,8),voted:arr(p.voted).slice(0,20),
-    blogs:arr(p.blogs).map(b=>({title:b.title,author:b.author,date:b.date,url:b.url})),hints:p.hints||{}};
+    blogs:arr(p.blogs).map(b=>({title:b.title,author:b.author,date:b.date,url:b.url})),hints:p.hints||{},photos:arr(p.photos).slice(0,2)};
 }
 function sanitize(p){
   if(!p||typeof p!=='object')return null;
@@ -306,7 +383,8 @@ function sanitize(p){
     conveniences:arr(p.conveniences).map(str),facilities:arr(p.facilities).map(str),payment:arr(p.payment).map(str),hours:arr(p.hours).map(str),
     menus:arr(p.menus).map(m=>({name:str(m&&m.name),price:str(m&&m.price)})).filter(m=>m.name),
     reviewMenus:tn(p.reviewMenus),voted:tn(p.voted),
-    blogs:arr(p.blogs).map(b=>({title:str(b.title),author:str(b.author),date:str(b.date),url:safeUrl(b.url)})),hints};
+    blogs:arr(p.blogs).map(b=>({title:str(b.title),author:str(b.author),date:str(b.date),url:safeUrl(b.url)})),hints,
+    photos:arr(p.photos).map(safeUrl).filter(u=>/^https:\/\/[\w.-]*pstatic\.net\//.test(u)).slice(0,5)};
 }
 /* 어사이드 스킬이 이 페이지를 열고 호출해서 폰용 링크를 만들어요 */
 window.chdMakeLink=async o=>PAGE_URL+'#'+await packData(slim(o));
@@ -340,7 +418,8 @@ function placeFromHtml(id,finalUrl,html){
     rating:base.visitorReviewsScore||null,visitorReviews:base.visitorReviewsTotal||0,blogReviews:base.cafeBlogReviewsTotal||0,hours,
     menus:pick('PlaceMenuItem').map(v=>({name:v.name,price:(v.price&&v.price.displayText)||''})).filter(m=>m.name).slice(0,30),
     reviewMenus:(an.menus||[]).map(m=>({t:m.label,n:m.count})).slice(0,10),
-    voted:((an.votedKeyword&&an.votedKeyword.details)||[]).map(d=>({t:d.displayName,n:d.count})).slice(0,20),blogs:[]};
+    voted:((an.votedKeyword&&an.votedKeyword.details)||[]).map(d=>({t:d.displayName,n:d.count})).slice(0,20),blogs:[],
+    photos:pick('PlaceDetailTopPhotoItem').map(p=>p.originalUrl||p.thumbnailUrl).filter(Boolean).slice(0,5)};
 }
 async function fetchPlace(input){
   input=String(input||'').trim();if(!input)throw new Error('링크를 붙여넣어 주세요');
@@ -1093,7 +1172,7 @@ function applyPlace(d){
   try{localStorage.setItem('chd-photo-owner',String(PLACE.id))}catch(e){}
   loadPhotos();
   const sb=document.querySelector('#btnSample');if(sb)sb.remove();
-  closeAct();TAB='write';document.body.dataset.tab='write';
+  closeAct();
   setMode('easy');toast(PLACE.name);syncWidget();
 }
 /* 앱: 네이버 지도에서 "링크 복사" 후 앱을 열면 클립보드 링크로 자동 시작. 같은 링크는 한 번만 */
@@ -1111,7 +1190,7 @@ window.chdFocus=()=>{if(!S)return;const c=clipLink();if(c){toast('복사해 둔 
 /* 앱: 네이버 지도 → 공유로 들어온 텍스트 */
 window.chdIncoming=t=>{
   t=String(t||'');if(!t.trim())return;
-  PLACE=null;KEY='chd-memo-v2';S=init();S.step=0;PENDING_LINK=t;TAB='write';document.body.dataset.tab='write';setMode('easy');
+  goHome();fetchAndChoose(t);
 };
 $('#btnMode').onclick=()=>setMode(S.mode==='easy'?'full':'easy');
 
@@ -1275,7 +1354,8 @@ function easyCards(){
     b.append(eText(()=>S.f.freeMemo,x=>S.f.freeMemo=x,'예: 간판이 낡았는데 오히려 오래된 집 느낌. 메밀전은 얇게 부쳐야 바삭함. 애가 콩국수 맛보기를 두 번 달라고 함…',true,'big'));
     b.append(photoBlock());
   }});
-  cards.push({id:'done',src:'끝',q:'후기 소스 완성!',done:true,body:b=>{
+  cards.push({id:'done',src:'끝',q:'꽃이 폈어요!',done:true,body:b=>{
+    const bl=el('div','bloom');bl.innerHTML=sproutSvg(3);bl.append(el('div','e-tip','후기 소스 완성'+(PHOTOS.length?' · 사진 '+PHOTOS.length+'장':'')));b.append(bl);confetti();
     const ch=el('div','e-choices');
     const B=(label,cls,fn)=>{const x=el('button','e-btn '+cls,label);x.type='button';x.onclick=fn;ch.append(x)};
     B(`보내기 (카톡·메일·드라이브)${PHOTOS.length?' · 사진 '+PHOTOS.length+'장':''}`,'primary',()=>sendAll());
@@ -1289,8 +1369,8 @@ function easyCards(){
   return cards;
 }
 function updTop(){
-  const n=easyCards().length;const sp=document.querySelector('#easy .e-top span');if(sp)sp.textContent=`${S.step+1} / ${n}`;
-  const i=document.querySelector('#easy .e-bar i');if(i)i.style.width=Math.round((S.step+1)/n*100)+'%';
+  const n=easyCards().length;const g=document.querySelector('#easy .e-grow');if(!g)return;
+  const r=(S.step+1)/n;g.innerHTML=sproutSvg(r>=1?3:r>=.6?2:r>=.25?1:0);g.append(`${S.step+1}/${n}`);
 }
 function renderEasy(){
   const box=$('#easy');box.innerHTML='';
@@ -1299,12 +1379,14 @@ function renderEasy(){
   const top=el('div','e-top');
   const back=el('button','',S.step>0?'← 이전':'');back.type='button';back.onclick=()=>{if(S.step>0)goStep(S.step-1)};
   const sk=el('button','',c.done?'':'건너뛰기');sk.type='button';sk.onclick=()=>{if(!c.done)go(1)};
-  top.append(back,el('span',''),sk);
-  const bar=el('div','e-bar');bar.append(el('i'));
-  if(c.id!=='start')box.append(top,bar);else box.append(el('div','',''));
+  const grow=el('span','e-grow');
+  top.append(back,grow,sk);
+  if(c.id!=='start')box.append(top);
+  const ph=PLACE&&PLACE.photos&&PLACE.photos[0];
+  if(ph&&!c.done&&c.id!=='start'){const hh=el('div','e-hero');const im=document.createElement('img');im.src=px(ph,'f640_380');im.alt='';im.referrerPolicy='no-referrer';im.onerror=()=>hh.remove();hh.append(im);box.append(hh)}
   if(PLACE&&!c.done){const nm=getQM(PLACE.id).length;const mm=el('div','e-memo');const mb=el('button','',`+ 현장 메모${nm?` (${nm})`:''}`);mb.type='button';mb.onclick=()=>openQuickMemo(PLACE);mm.append(mb);box.append(mm)}
   if(c.src&&(c.hint||String(c.id).startsWith('item-')))box.append(el('div','e-src',c.src));
-  box.append(el('h1','e-q',c.q));if(c.sub)box.append(el('p','e-sub',c.sub));
+  const qh=el('h1','e-q');const qm=String(c.q).match(/^(\S+)(\s[\s\S]*)$/);if(qm&&!c.done){qh.append(el('em','',qm[1]),qm[2])}else qh.textContent=c.q;box.append(qh);if(c.sub)box.append(el('p','e-sub',c.sub));
   const body=el('div','e-body');box.append(body);
   let showNext=!c.hint&&!c.done;
   if(c.hint){
@@ -1334,7 +1416,7 @@ function setMode(m,anchor){
   S.mode=m;document.body.classList.toggle('easy',m==='easy');$('#btnMode').textContent=m==='easy'?'자세히 쓰기':'쉽게 쓰기';
   if(m==='easy'){refresh();renderEasy()}
   else{renderForm();refresh();setTimeout(()=>{const e=anchor&&document.getElementById(anchor);e?e.scrollIntoView():window.scrollTo(0,0)},50)}
-  save();updChrome();
+  save();updChrome();if(!inFlow())renderView();
 }
 $('#btnSample').onclick=()=>{if(V('biz')&&!confirm('지금 메모를 예시로 덮어쓸까요?'))return;S=sample();S.mode='full';renderForm();refresh();toast('예시를 채웠어요.')};
 $('#pvSend').onclick=()=>sendAll();
@@ -1366,36 +1448,36 @@ function sample(){
 
 
 /* ---------- 앱 셸: 아래 탭 + 위쪽 바 ---------- */
-let TAB='write';
+let TAB='home';
 const ICO={more:"<svg class=\"\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"m12.475 16.564l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm0-6l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm0-6l.418.216c.985.72.742 2.274-.418 2.656L12 7.513l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656L12 4.487Z\"/></svg>"};
-function setTab(t){TAB=t;document.body.dataset.tab=t;closeAct();
-  if(t==='plans')renderPlans();else if(t==='records')renderRecords();else if(t==='me')renderMe();
-  else{if(S.mode==='easy')renderEasy();else renderForm()}
-  updChrome();window.scrollTo(0,0)}
-function inFlow(){return TAB==='write'&&!!S&&(!!PLACE||S.mode==='full'||(S.step||0)>0)}
+const TABS=['home','plans','records','me'];
+function setTab(t){if(!TABS.includes(t))t='home';TAB=t;document.body.dataset.tab=t;closeAct();renderView();updChrome();window.scrollTo(0,0)}
+function renderView(){if(TAB==='plans')renderPlans();else if(TAB==='records')renderRecords();else if(TAB==='me')renderMe();else renderHome()}
+function inFlow(){return !!S&&(!!PLACE||S.mode==='full'||(S.step||0)>0)}
 function updChrome(){
   if(!S)return;const f=inFlow();document.body.classList.toggle('flow',f);
-  $('#topBack').hidden=!f;
-  $('#topTitle').textContent=TAB==='write'?(f?(PLACE?PLACE.name:(V('biz')||'직접 쓰기')):'후기씨앗'):({plans:'갈 곳',records:'기록',me:'내 정보'})[TAB];
-  document.querySelectorAll('#tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.tab===TAB));
+  $('#topTitle').textContent=PLACE?PLACE.name:(V('biz')||'직접 쓰기');
+  document.querySelectorAll('.pills button').forEach(b=>b.classList.toggle('on',b.dataset.tab===TAB));
+  $('#tabMe').classList.toggle('on',TAB==='me');
 }
-document.querySelectorAll('#tabbar button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+document.querySelectorAll('.pills button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+$('#tabMe').onclick=()=>setTab('me');
 function goHome(){
   if(PLACE)RESUME=PLACE;PLACE=null;
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);
-  KEY='chd-memo-v2';S=init();S.step=0;S.mode='easy';TAB='write';document.body.dataset.tab='write';setMode('easy');
+  KEY='chd-memo-v2';S=init();S.step=0;S.mode='easy';if(!TABS.includes(TAB))TAB='home';document.body.dataset.tab=TAB;setMode('easy');
 }
 $('#topBack').onclick=goHome;
 $('#btnMore').onclick=()=>openAct(b=>{
   const ch=el('div','e-choices');
   const B=(l,fn)=>{const x=el('button','e-btn',l);x.type='button';x.onclick=()=>{closeAct();fn()};ch.append(x)};
-  if(TAB==='write'){
+  if(inFlow()){
     B(S.mode==='easy'?'자세히 쓰기':'쉽게 쓰기',()=>setMode(S.mode==='easy'?'full':'easy'));
     B('MD 복사',()=>$('#btnCopy').click());
     B('파일로 저장',()=>$('#btnDown').click());
     if(inFlow())B('처음으로',goHome);
   }
-  if(!IS_APP&&!PLACE&&TAB==='write')B('예시 채우기',()=>$('#btnSample').click());
+  if(!IS_APP&&!PLACE&&inFlow())B('예시 채우기',()=>$('#btnSample').click());
   b.append(ch);
 });
 
@@ -1416,7 +1498,7 @@ function getRecords(){
     let st={},pl=null;try{st=JSON.parse(localStorage.getItem(k)||'{}')||{}}catch(e){}
     try{pl=JSON.parse(localStorage.getItem('chd-place-'+m[1])||'null')}catch(e){}
     if(!pl){try{const l=JSON.parse(localStorage.getItem(LAST_KEY)||'null');if(l&&String(l.id)===m[1])pl=l}catch(e){}}
-    out.push({id:m[1],name:(pl&&pl.name)||(st.f&&st.f.biz)||'(이름 없음)',place:pl,updated:st.updated||0,sent:!!st.sent,done:!!st.done});
+    out.push({id:m[1],name:(pl&&pl.name)||(st.f&&st.f.biz)||'(이름 없음)',place:pl,updated:st.updated||0,step:st.step||0,sent:!!st.sent,done:!!st.done});
   }
   return out.sort((a,b)=>b.updated-a.updated);
 }
@@ -1433,7 +1515,7 @@ function renderRecords(){
   const rs=getRecords();
   if(!rs.length){v.append(el('div','empty','아직 기록이 없어요'));return}
   rs.forEach(r=>{
-    const row=el('div','rec');const i=el('div');
+    const row=el('div','rec');const i=el('div');row.append(thumbEl(r.place,'th'));
     const t=el('b','',r.name);t.append(el('span','st'+(r.sent||r.done?' done':''),r.sent?'보냄':r.done?'완성':'작성 중'));
     const d=r.updated?new Date(r.updated):null;const nm=getQM(r.id).length;
     i.append(t,el('span','',[d?(d.getMonth()+1)+'/'+d.getDate():'',r.place&&r.place.category,nm?'메모 '+nm:''].filter(Boolean).join(' · ')));
@@ -1498,7 +1580,16 @@ function renderMe(){
   const hb=el('button','e-btn','사용법');hb.type='button';hb.onclick=()=>document.body.classList.add('sheet');
   let ver='';try{ver=IS_APP&&ChdNative.version?ChdNative.version():''}catch(e){}
   s3.append(hb);if(ver)s3.append(el('div','e-tip','버전 '+ver));
-  v.append(s1,s2,s3);
+  const sT=el('div','me-sec');sT.append(el('h4','','테마 색'));const sw=el('div','swatches');
+  Object.entries(THEMES).forEach(([k,t])=>{const w=el('div','sw-w');const b=el('button','sw'+(getLook().theme===k?' on':''));b.type='button';b.style.background=t.acc;b.setAttribute('aria-label',t.n);
+    b.onclick=()=>{setLook({theme:k});renderMe()};w.append(b,el('div','sw-l',t.n));sw.append(w)});
+  sT.append(sw);
+  const sF=el('div','me-sec');sF.append(el('h4','','글꼴'));const fc=el('div','chips');
+  Object.entries(FONTS).forEach(([k,f])=>{loadFont(k);const b=el('button','chip'+(getLook().font===k?' on':''),f.n);b.type='button';b.style.fontFamily=f.f;b.onclick=()=>{setLook({font:k});renderMe()};fc.append(b)});
+  sF.append(fc);
+  const sP=el('div','me-sec');sP.append(el('h4','','배경 무늬'));
+  sP.append(eChips(Object.values(PATTERNS),t=>PATTERNS[getLook().pattern]===t,t=>{const k=Object.keys(PATTERNS).find(x=>PATTERNS[x]===t);setLook({pattern:k});renderMe()}));
+  v.append(sT,sF,sP,s1,s2,s3);
 }
 
 /* ---------- 위젯 연동 (앱) ---------- */
@@ -1519,6 +1610,180 @@ window.chdAction=a=>{
   else if(k==='start'){goHome();setTimeout(()=>window.chdFocus&&window.chdFocus(),300)}
 };
 
+
+/* ---------- 모양: 새싹, 사진 축소, 꽃가루 ---------- */
+const px=(u,t)=>'https://search.pstatic.net/common/?src='+encodeURIComponent(u)+'&type='+(t||'f300_300');
+function sproutSvg(stage){
+  const L='#5cc184',D='#2f9e5b';
+  let s='<rect x="8" y="40" width="32" height="5" rx="2.5" fill="currentColor" opacity=".3"/>';
+  if(stage===0)s+='<ellipse cx="24" cy="37" rx="6" ry="4" fill="#c08457"/><path d="M24 33 q2 -4 5 -4" stroke="'+D+'" stroke-width="2.4" fill="none" stroke-linecap="round"/>';
+  else{
+    const top=stage===1?28:stage===2?18:14;
+    s+='<path d="M24 40 V'+top+'" stroke="'+D+'" stroke-width="3" stroke-linecap="round"/>';
+    s+='<path d="M24 '+(top+6)+' C16 '+(top+6)+' 11 '+top+' 11 '+(top-5)+' C19 '+(top-5)+' 24 '+top+' 24 '+(top+6)+'Z" fill="'+L+'"/>';
+    if(stage>=2)s+='<path d="M24 '+(top+2)+' C25 '+(top-6)+' 31 '+(top-11)+' 37 '+(top-11)+' C36 '+(top-3)+' 30 '+(top+2)+' 24 '+(top+2)+'Z" fill="'+D+'"/>';
+    if(stage>=3){s+='<g transform="translate(24 11)">';for(let a=0;a<360;a+=72)s+='<circle cx="'+(7*Math.cos(a*Math.PI/180)).toFixed(1)+'" cy="'+(7*Math.sin(a*Math.PI/180)).toFixed(1)+'" r="4.6" fill="var(--acc)"/>';s+='<circle r="4" fill="#ffd166"/></g>'}
+  }
+  return '<svg viewBox="0 0 48 48" aria-hidden="true">'+s+'</svg>';
+}
+function confetti(){
+  const c=el('div','conf');const cols=['var(--acc)','#ffd166','#5cc184','#7cc4ff','#f58fb0'];
+  for(let i=0;i<36;i++){const d=el('i');d.style.left=Math.random()*100+'%';d.style.background=cols[i%cols.length];d.style.animationDelay=(Math.random()*.5)+'s';d.style.animationDuration=(1.2+Math.random()*.9)+'s';c.append(d)}
+  document.body.append(c);setTimeout(()=>c.remove(),2600);
+}
+function stageOf(r){return r.sent||r.done?3:(r.step||0)>=6?2:(r.step||0)>=2?1:0}
+function stageName(s){return ['씨앗','새싹','잎','꽃'][s]}
+function thumbEl(place,cls){
+  const u=place&&place.photos&&place.photos[0];
+  if(u){const im=document.createElement('img');im.className=cls||'th';im.src=px(u,'f300_300');im.alt='';im.referrerPolicy='no-referrer';im.loading='lazy';return im}
+  const d=el('div',cls||'th');d.style.display='flex';d.style.alignItems='center';d.style.justifyContent='center';d.style.background='var(--acc-soft)';d.style.color='var(--acc)';d.innerHTML=sproutSvg(1);d.firstChild.style.width='70%';return d;
+}
+
+/* ---------- 테마 색 · 글꼴 ---------- */
+const THEMES={
+  sprout:{n:'새싹',bg:'#F4FAF2',acc:'#2FB463',ink2:'#1B8746',soft:'#E1F4E7'},
+  coral:{n:'코랄',bg:'#FFF7F3',acc:'#FF6B4A',ink2:'#D9441F',soft:'#FFE9E0'},
+  sky:{n:'하늘',bg:'#F2F7FF',acc:'#3B82F6',ink2:'#1D5FD1',soft:'#E1ECFF'},
+  lavender:{n:'라벤더',bg:'#F7F4FF',acc:'#8B5CF6',ink2:'#6D3FDB',soft:'#ECE5FF'},
+  lemon:{n:'레몬',bg:'#FFFCEC',acc:'#FFC83D',ink2:'#946500',soft:'#FFF2C2',on:'#3A2A00'},
+  pink:{n:'벚꽃',bg:'#FFF4F8',acc:'#F06292',ink2:'#C73866',soft:'#FFE1EC'},
+  mint:{n:'민트',bg:'#F0FAF8',acc:'#14B8A6',ink2:'#0B8578',soft:'#D9F4EF'},
+  dark:{n:'다크',bg:'#15161A',card:'#1F2125',ink:'#F1F1F1',sub:'#A1A1A6',line:'#32353B',acc:'#6EDC9C',ink2:'#7FE3A8',soft:'#1D3428',on:'#0B1A11'}
+};
+const FONTS={
+  round:{n:'나눔스퀘어라운드',f:'"NanumSquareRound"',css:'https://cdn.jsdelivr.net/gh/innks/NanumSquareRound@master/nanumsquareround.min.css'},
+  suit:{n:'SUIT',f:'"SUIT"',css:'https://cdn.jsdelivr.net/gh/sun-typeface/SUIT/fonts/static/woff2/SUIT.css'},
+  wanted:{n:'원티드 산스',f:'"Wanted Sans Variable"',css:'https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css'},
+  gowun:{n:'고운돋움',f:'"Gowun Dodum"',css:'https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap'},
+  jua:{n:'주아',f:'"Jua"',css:'https://fonts.googleapis.com/css2?family=Jua&display=swap'},
+  pret:{n:'프리텐다드',f:'"Pretendard"',css:'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css'}
+};
+const PATTERNS={none:'없음',dots:'점',sprout:'새싹',grid:'격자'};
+function patternCss(k,col){
+  const c=encodeURIComponent(col);
+  if(k==='dots')return ['radial-gradient(circle, '+col+'26 1.3px, transparent 1.6px)','18px 18px'];
+  if(k==='grid')return ['linear-gradient('+col+'14 1px, transparent 1px),linear-gradient(90deg, '+col+'14 1px, transparent 1px)','24px 24px'];
+  if(k==='sprout')return ["url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='"+c+"' fill-opacity='.14'%3E%3Cpath d='M16 22c-5 0-8-4-8-7 5 0 8 3 8 7z'/%3E%3Cpath d='M16 20c1-5 4-8 8-8 0 5-4 8-8 8z'/%3E%3Cpath d='M48 54c-5 0-8-4-8-7 5 0 8 3 8 7z'/%3E%3Cpath d='M48 52c1-5 4-8 8-8 0 5-4 8-8 8z'/%3E%3C/g%3E%3C/svg%3E\")",'64px 64px'];
+  return ['none','auto'];
+}
+function getLook(){let o={};try{o=JSON.parse(localStorage.getItem('chd-look')||'{}')||{}}catch(e){}return Object.assign({theme:'sprout',font:'round',pattern:'dots'},o)}
+function loadFont(k){const f=FONTS[k];if(!f||document.getElementById('font-'+k))return;const l=document.createElement('link');l.rel='stylesheet';l.href=f.css;l.id='font-'+k;document.head.append(l)}
+function applyLook(){
+  const L=getLook();const t=THEMES[L.theme]||THEMES.sprout;const r=document.documentElement.style;
+  r.setProperty('--bg',t.bg);r.setProperty('--card',t.card||'#fff');r.setProperty('--ink',t.ink||'#1f1f1f');r.setProperty('--sub',t.sub||'#6f6a62');r.setProperty('--line',t.line||'#e9e6df');
+  r.setProperty('--acc',t.acc);r.setProperty('--acc-ink',t.ink2);r.setProperty('--acc-soft',t.soft);r.setProperty('--on-acc',t.on||'#fff');
+  document.documentElement.style.colorScheme=L.theme==='dark'?'dark':'light';
+  const pt=patternCss(L.pattern,t.acc);r.setProperty('--pat',pt[0]);r.setProperty('--patsz',pt[1]);
+  const f=FONTS[L.font]||FONTS.round;loadFont(L.font in FONTS?L.font:'round');
+  r.setProperty('--font',f.f+',-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif');
+  if(IS_APP&&ChdNative.setBars)try{ChdNative.setBars(t.bg,L.theme==='dark')}catch(e){}
+}
+function setLook(o){try{localStorage.setItem('chd-look',JSON.stringify(Object.assign(getLook(),o)))}catch(e){}applyLook()}
+applyLook();
+
+/* ---------- 홈 ---------- */
+const HOME_OPEN={recent:true,plans:true,done:true};
+function secHead(key,label){const h=el('button','sec-h'+(HOME_OPEN[key]?'':' closed'));h.type='button';h.append(label);h.insertAdjacentHTML('beforeend',svgD);h.onclick=()=>{HOME_OPEN[key]=!HOME_OPEN[key];renderHome()};return h}
+const svgD="<svg class=\"\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"m12 13.586l4.95-4.95c.481-.422 1.233-.381 1.573.207c.235.407.139.868-.159 1.207l-5.657 5.657c-.204.179-.429.293-.707.293s-.503-.114-.707-.293L5.636 10.05c-.179-.204-.293-.429-.293-.707c0-.927 1.053-1.281 1.707-.707Z\"/></svg>";
+function renderHome(){
+  const v=$('#viewHome');v.innerHTML='';
+  const rs=getRecords(),ps=getPlans();
+  if(!rs.length&&!ps.length){
+    const h=el('div','hello');h.innerHTML=sproutSvg(1);h.append(el('b','','첫 씨앗을 심어볼까요?'),el('div','','네이버 지도에서 가게를 공유하거나\n아래에 링크를 붙여넣어 주세요'));
+    h.lastChild.style.whiteSpace='pre-line';v.append(h);return;
+  }
+  const drafts=rs.filter(r=>!r.sent&&!r.done);
+  if(rs.length){
+    v.append(secHead('recent','최근'));
+    if(HOME_OPEN.recent){const row=el('div','cards');
+      rs.slice(0,10).forEach(r=>{const c=el('button','card');c.type='button';const cv=el('div','cv');
+        const u=r.place&&r.place.photos&&r.place.photos[0];
+        if(u){const im=document.createElement('img');im.src=px(u,'f300_300');im.alt='';im.referrerPolicy='no-referrer';im.loading='lazy';im.onerror=()=>{cv.innerHTML=sproutSvg(stageOf(r))};cv.append(im)}else cv.innerHTML=sproutSvg(stageOf(r));
+        const nm=el('div','nm',r.name);nm.append(el('span','meta',stageName(stageOf(r))+(r.sent?' · 보냄':'')));
+        c.append(cv,nm);c.onclick=()=>openRecord(r,false);row.append(c)});
+      v.append(row)}
+  }
+  if(ps.length){
+    v.append(secHead('plans','갈 곳'));
+    if(HOME_OPEN.plans)ps.slice(0,5).forEach(p=>v.append(planRow(p)));
+  }
+  const done=rs.filter(r=>r.sent||r.done);
+  if(done.length){
+    v.append(secHead('done','완성'));
+    if(HOME_OPEN.done)done.slice(0,5).forEach(r=>v.append(recRow(r)));
+  }
+}
+function planRow(p){
+  const d=new Date(p.when);const row=el('div','li');
+  const dt=el('div','dt');dt.append(el('b','',String(d.getDate())),(d.getMonth()+1)+'월 '+WD[d.getDay()]);
+  const tx=el('div','tx');const nm=getQM(p.id).length;tx.append(el('div','nm',p.place.name),el('div','sub',(p.label||'')+(nm?' · 메모 '+nm:'')));
+  row.append(dt,tx);row.onclick=()=>planMenu(p);return row;
+}
+function recRow(r){
+  const row=el('div','li');const tx=el('div','tx');const d=r.updated?new Date(r.updated):null;
+  tx.append(el('div','nm',r.name),el('div','sub',[d?(d.getMonth()+1)+'/'+d.getDate():'',stageName(stageOf(r)),r.sent?'보냄':''].filter(Boolean).join(' · ')));
+  row.append(thumbEl(r.place,'th'),tx);row.onclick=()=>recordMenu(r);return row;
+}
+function planMenu(p){openAct(b=>{
+  b.append(el('h3','',p.place.name),el('p','',planLabel(p)));const ch=el('div','e-choices');
+  const B=(l,cls,fn)=>{const x=el('button','e-btn '+cls,l);x.type='button';x.onclick=()=>{closeAct();fn()};ch.append(x)};
+  B('다녀왔어요','primary',()=>{removePlan(p.id);applyPlace(p.place)});
+  B('현장 메모','',()=>openQuickMemo(p.place));
+  B('날짜 바꾸기','',()=>openPlanSheet(p.place));
+  B('빼기','',()=>{removePlan(p.id);renderView()});
+  b.append(ch);
+})}
+
+/* ---------- 아래 떠 있는 바: 검색 · 링크 붙여넣기 · 추가 ---------- */
+async function fetchAndChoose(text){
+  toast('가게 정보를 가져오는 중…');
+  try{afterFetch(await fetchPlace(text))}catch(e){toast(e.message||String(e));pasteSheet(text)}
+}
+function pasteSheet(prefill){openAct(b=>{
+  const inp=document.createElement('input');inp.type='text';inp.placeholder='네이버 지도 링크';inp.autocomplete='off';inp.value=prefill||'';
+  const go=el('button','e-btn primary','가져오기');go.type='button';const msg=el('div','e-tip','');
+  const run=async()=>{go.disabled=true;go.textContent='가져오는 중…';msg.textContent='';
+    try{const d=await fetchPlace(inp.value);closeAct();afterFetch(d)}catch(e){msg.textContent=e.message||String(e);go.disabled=false;go.textContent='가져오기'}};
+  go.onclick=run;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();run()}};
+  b.append(inp,go,msg);setTimeout(()=>inp.focus(),250);
+})}
+async function readClip(){
+  try{if(IS_APP&&ChdNative.readClipboard)return String(ChdNative.readClipboard()||'');if(navigator.clipboard&&navigator.clipboard.readText)return await navigator.clipboard.readText()}catch(e){}
+  return '';
+}
+$('#dkPaste').onclick=async()=>{
+  const c=await readClip();
+  if(/https:\/\/(naver\.me\/|[\w.-]*naver\.com\/)/.test(c))fetchAndChoose(c);else pasteSheet('');
+};
+$('#dkAdd').onclick=()=>openAct(b=>{
+  const ch=el('div','e-choices');
+  const B=(l,fn)=>{const x=el('button','e-btn',l);x.type='button';x.onclick=()=>{closeAct();fn()};ch.append(x)};
+  B('갈 곳 추가',addPlanFlow);
+  B('링크 없이 쓰기',manualStart);
+  b.append(ch);
+});
+$('#dkSearch').onclick=()=>openAct(b=>{
+  const inp=document.createElement('input');inp.type='text';inp.placeholder='가게 이름 검색';
+  const list=el('div');list.style.marginTop='10px';
+  const draw=()=>{list.innerHTML='';const q=inp.value.trim().toLowerCase();
+    const rs=getRecords().filter(r=>!q||r.name.toLowerCase().includes(q));
+    const ps=getPlans().filter(p=>!q||p.place.name.toLowerCase().includes(q));
+    ps.forEach(p=>{const r=planRow(p);const f=r.onclick;r.onclick=()=>{closeAct();setTimeout(f,260)};list.append(r)});
+    rs.forEach(x=>{const r=recRow(x);r.onclick=()=>{closeAct();openRecord(x,false)};list.append(r)});
+    if(!list.children.length)list.append(el('div','e-tip',q?'없어요':''));
+  };
+  inp.oninput=draw;b.append(inp,list);draw();setTimeout(()=>inp.focus(),250);
+});
+
+/* ---------- 좌우로 밀어서 탭 이동 ---------- */
+(()=>{let x0=null,y0=0,t0=0;
+  document.addEventListener('touchstart',e=>{if(document.body.classList.contains('flow')||document.body.classList.contains('act')){x0=null;return}
+    if(e.target.closest('.cards,input,textarea'))return;const t=e.touches[0];x0=t.clientX;y0=t.clientY;t0=Date.now()},{passive:true});
+  document.addEventListener('touchend',e=>{if(x0===null)return;const t=e.changedTouches[0];const dx=t.clientX-x0,dy=t.clientY-y0;x0=null;
+    if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*0.6||Date.now()-t0>600)return;
+    const i=TABS.indexOf(TAB);const j=dx<0?Math.min(TABS.length-1,i+1):Math.max(0,i-1);if(j!==i)setTab(TABS[j])},{passive:true});
+})();
+
 async function boot(){
   const h=decodeURIComponent(location.hash.slice(1));
   if(!PLACE&&h){
@@ -1536,7 +1801,7 @@ async function boot(){
   if(!PLACE){S.step=0;S.mode='easy'}
   loadPhotos();
   if(PLACE)$('#btnSample').remove();
-  document.body.dataset.tab='write';
+  document.body.dataset.tab=TAB;
   const act=IS_APP&&ChdNative.takeAction?ChdNative.takeAction():'';
   syncWidget();
   if(planId){setMode('easy');window.chdOpenPlan(planId);return}
