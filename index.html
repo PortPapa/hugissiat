@@ -2211,13 +2211,13 @@ function recordMenu(r){openAct(b=>{
 
 /* ---------- 할 일: 방문 예정 → 기록 작성 → 블로그 발행 → 끝 ---------- */
 function setPosted(id,on,url){const k='chd-memo-v2-'+id;try{const st=JSON.parse(localStorage.getItem(k)||'{}');st.posted=!!on;st.postedAt=on?Date.now():null;if(url!==undefined)st.postUrl=url;localStorage.setItem(k,JSON.stringify(st));if(S&&PLACE&&String(PLACE.id)===String(id)){S.posted=st.posted;S.postUrl=st.postUrl}}catch(e){}}
-function postSheet(r){openAct(b=>{
-  b.append(el('h3','','블로그에 올렸어요'),el('div','e-tip',r.name));
-  const inp=document.createElement('input');inp.type='url';inp.placeholder='블로그 글 주소 (선택)';inp.value=r.postUrl||'';
-  const go=el('button','e-btn primary','완료로 옮기기');go.type='button';go.onclick=()=>{setPosted(r.id,true,inp.value.trim());closeAct();buzz(15);toast('끝! 수고했어요');renderView()};
-  b.append(inp,go);
-  if(r.posted){const un=el('div','danger-link');const ub=el('button','','아직 안 올렸어요');ub.type='button';ub.onclick=()=>{setPosted(r.id,false);closeAct();renderView()};un.append(ub);b.append(un)}
-})}
+function postSheet(r){
+  if(!r.posted){closeAct();setPosted(r.id,true);buzz(15);renderView();
+    undoToast('끝! 수고했어요',()=>{setPosted(r.id,false);renderView()});return}
+  openAct(b=>{b.append(el('h3','',r.name),el('div','e-tip','블로그 발행 완료로 옮겨둔 곳이에요.'));
+    const row=el('div','done-row');const ok=el('button','e-btn primary','그대로 두기');ok.type='button';ok.onclick=closeAct;
+    const un=el('button','e-btn','아직 안 올렸어요');un.type='button';un.onclick=()=>{setPosted(r.id,false);closeAct();renderView()};row.append(ok,un);b.append(row)});
+}
 function dueOf(x){return x.due||''}
 function ddayNum(due){if(!due)return 999;const [y,m,d]=due.split('-').map(Number);const t=new Date();t.setHours(0,0,0,0);return Math.round((new Date(y,m-1,d)-t)/864e5)}
 function todoItems(){
@@ -2649,7 +2649,7 @@ function placeSheet(o){
     if(rec&&!done){const bx=el('div','ps-box');bx.append(el('div','ps-bh','작성 중'));const r=el('div','ps-row');r.append(stageName(stageOf(rec))+' 단계');bx.append(r);b.append(bx)}
     if(done){const L=expSummary(st,place.id);if(L.length){const bx=el('div','ps-box');bx.append(el('div','ps-bh','내 경험 요약'));const t=el('div','ps-sum');L.forEach((l,i)=>{if(i)t.append(document.createElement('br'));t.append(l)});bx.append(t);
       bx.onclick=()=>{closeAct();viewRecord(rec)};b.append(bx)}}
-    if(done){const pb=el('div','ps-box ps-post'+(rec.posted?' on':''));pb.append(el('div','ps-bh',rec.posted?'블로그 발행 완료':'블로그에 올렸나요?'));const r2=el('div','ps-row');r2.append(rec.posted?(rec.postUrl?'글 주소 저장됨':'완료로 옮겼어요'):'올렸으면 눌러서 끝내기');pb.append(r2);pb.onclick=()=>postSheet(rec);b.append(pb)}
+    if(done){const pb=el('div','ps-box ps-post'+(rec.posted?' on':''));pb.append(el('div','ps-bh',rec.posted?'블로그 발행 완료':'블로그에 올렸나요?'));const r2=el('div','ps-row');r2.append(rec.posted?'끝으로 옮겼어요':'올렸으면 눌러서 끝내기');pb.append(r2);pb.onclick=()=>postSheet(rec);b.append(pb)}
     const nq=getQM(place.id).length,np=PHOTOS.length;
     if(nq||np){const bx=el('div','ps-box');const hd=el('div','ps-bh');hd.append(done?'사진 '+np+'장':(place.product?'사용 일지':'현장 기록'));if(np){const all=el('button','','전체 보기');all.type='button';all.onclick=e=>{e.stopPropagation();lightbox(0)};hd.append(all)}bx.append(hd);
       if(!done){const s=el('div','ps-stats');s.append('메모 ',el('b','',String(nq)),'사진 ',el('b','',String(np)));bx.append(s)}
