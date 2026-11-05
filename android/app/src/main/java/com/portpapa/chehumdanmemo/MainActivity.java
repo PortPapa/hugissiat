@@ -580,9 +580,20 @@ public class MainActivity extends Activity {
         });
     }
 
+    /** 뒤로가기: 열린 창·질문·탭을 먼저 되돌리고, 홈에서는 2초 안에 한 번 더 눌러야 나간다 (앱은 끄지 않고 뒤로 보냄) */
+    private long lastBack = 0;
+
     private void handleBack() {
         web.evaluateJavascript("(window.chdBack&&window.chdBack())?'1':'0'", v -> {
-            if (!"\"1\"".equals(v)) finish();
+            if ("\"1\"".equals(v)) return;
+            long now = System.currentTimeMillis();
+            if (now - lastBack < 2000) {
+                lastBack = 0;
+                moveTaskToBack(true);
+            } else {
+                lastBack = now;
+                Toast.makeText(this, "한 번 더 누르면 나가요", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
