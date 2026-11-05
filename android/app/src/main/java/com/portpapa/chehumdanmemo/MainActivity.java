@@ -98,11 +98,21 @@ public class MainActivity extends Activity {
     private String incoming = "";
     private String pendingPlan = "";
     private String pendingAction = "";
+    private int incomingPhotos = 0;
     private final ExecutorService pool = Executors.newFixedThreadPool(2);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // 앱이 멈추면 원인을 파일로 남겨두고, 다음에 열 때 "오류 보내기"를 물어본다
+        final Thread.UncaughtExceptionHandler prev = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((th, ex) -> {
+            try (java.io.PrintWriter pw = new java.io.PrintWriter(new FileOutputStream(new File(getFilesDir(), "crash.txt")))) {
+                pw.println(new java.util.Date() + " / " + Build.MODEL + " / Android " + Build.VERSION.RELEASE);
+                ex.printStackTrace(pw);
+            } catch (Exception ignored) {}
+            if (prev != null) prev.uncaughtException(th, ex);
+        });
         FrameLayout root = new FrameLayout(this);
         web = new WebView(this);
         root.addView(web, new FrameLayout.LayoutParams(-1, -1));
@@ -226,11 +236,171 @@ public class MainActivity extends Activity {
             web.evaluateJavascript("window.chdOpenPlan&&window.chdOpenPlan(" + JSONObject.quote(p) + ")", null);
             return;
         }
+        if (incomingPhotos > 0) {
+            int n = incomingPhotos;
+            web.evaluateJavascript("window.chdIncomingPhotos&&window.chdIncomingPhotos(" + n + ")", null);
+            return;
+        }
         if (!incoming.isEmpty()) {
             String t = incoming;
             incoming = "";
             web.evaluateJavascript("window.chdIncoming&&window.chdIncoming(" + JSONObject.quote(t) + ")", null);
         }
+    }
+
+    /** 다른 앱에서 공유받은 사진을 임시 폴더로 복사해 둔다 (권한이 잠깐만 유지되므로 바로 복사) */
+    private File incomingDir() {
+        File d = new File(getCacheDir(), "incoming");
+        d.mkdirs();
+        return d;
+    }
+
+    private int copyIncoming(ArrayList<Uri> us) {
+        File d = incomingDir();
+        File[] old = d.listFiles();
+        if (old != null) for (File f : old) f.delete();
+        int n = 0;
+        ContentResolver cr = getContentResolver();
+        for (Uri u : us) {
+            String ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(cr.getType(u));
+            if (ext == null || ext.isEmpty() || "jpeg".equals(ext)) ext = "jpg";
+            File out = new File(d, String.format(java.util.Locale.ROOT, "%03d.%s", n, ext));
+            try (InputStream in = cr.openInputStream(u); OutputStream os = new FileOutputStream(out)) {
+                byte[] b = new byte[65536];
+                int k;
+                while ((k = in.read(b)) > 0) os.write(b, 0, k);
+                n++;
+            } catch (Exception e) { out.delete(); }
+        }
+        return n;
+    }
+
+    private int nextPhotoNoOf(String key) {
+        int max = 0;
+        for (File f : photoFilesOf(key)) {
+            try { max = Math.max(max, Integer.parseInt(f.getName().replaceAll("\\..*$", ""))); } catch (Exception ignored) {}
+        }
+        return max + 1;
+    }
+
+    /* ---------- 백업·복원: 드라이브 '후기씨앗 백업' 폴더 ---------- */
+    private String driveChild(String token, String parent, String name, boolean folder) throws Exception {
+        return driveFind(token, name, parent, folder);
+    }
+
+    private java.util.HashSet<String> driveNames(String token, String parent) throws Exception {
+        java.util.HashSet<String> s = new java.util.HashSet<>();
+        String page = null;
+        do {
+            String q = URLEncoder.encode("'" + parent + "' in parents and trashed = false", "UTF-8");
+            JSONObject r = driveCall(token, "GET", "https://www.googleapis.com/drive/v3/files?pageSize=1000&fields=nextPageToken,files(name)&spaces=drive&q=" + q
+                    + (page != null ? "&pageToken=" + URLEncoder.encode(page, "UTF-8") : ""), null, null);
+            JSONArray a = r.optJSONArray("files");
+            if (a != null) for (int i = 0; i < a.length(); i++) s.add(a.getJSONObject(i).optString("name"));
+            page = r.optString("nextPageToken", null);
+            if (page != null && page.isEmpty()) page = null;
+        } while (page != null);
+        return s;
+    }
+
+    private JSONArray driveList(String token, String parent, boolean folders) throws Exception {
+        String q = URLEncoder.encode("'" + parent + "' in parents and trashed = false" + (folders ? " and mimeType = 'application/vnd.google-apps.folder'" : ""), "UTF-8");
+        JSONObject r = driveCall(token, "GET", "https://www.googleapis.com/drive/v3/files?pageSize=1000&fields=files(id,name)&spaces=drive&q=" + q, null, null);
+        JSONArray a = r.optJSONArray("files");
+        return a == null ? new JSONArray() : a;
+    }
+
+    private byte[] driveDownload(String token, String id) throws Exception {
+        HttpURLConnection c = (HttpURLConnection) new URL("https://www.googleapis.com/drive/v3/files/" + id + "?alt=media").openConnection();
+        c.setRequestProperty("Authorization", "Bearer " + token);
+        c.setConnectTimeout(15000);
+        c.setReadTimeout(60000);
+        if (c.getResponseCode() >= 400) throw new Exception("HTTP " + c.getResponseCode());
+        try (InputStream in = c.getInputStream()) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] b = new byte[65536];
+            int n;
+            while ((n = in.read(b)) > 0) out.write(b, 0, n);
+            return out.toByteArray();
+        }
+    }
+
+    private void backupEvent(JSONObject o) {
+        String js = "window.chdBackup&&window.chdBackup(" + JSONObject.quote(o.toString()) + ")";
+        runOnUiThread(() -> web.evaluateJavascript(js, null));
+    }
+
+    private void driveBackupRun(String token, JSONObject job) {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("op", "backup");
+            String root = driveFolder(token, "후기씨앗 백업", "root");
+            byte[] data = job.optString("data", "{}").getBytes(StandardCharsets.UTF_8);
+            String id = driveFind(token, "backup.json", root, false);
+            if (id != null) driveCall(token, "PATCH", "https://www.googleapis.com/upload/drive/v3/files/" + id + "?uploadType=media", "application/json; charset=UTF-8", data);
+            else driveCreate(token, root, "backup.json", "application/json; charset=UTF-8", data);
+            int up = 0;
+            File base = new File(getFilesDir(), "photos");
+            File[] keys = base.listFiles(File::isDirectory);
+            if (keys != null && keys.length > 0) {
+                String pr = driveFolder(token, "photos", root);
+                for (File k : keys) {
+                    File[] fs = k.listFiles(f -> f.isFile() && !f.getName().startsWith("."));
+                    if (fs == null || fs.length == 0) continue;
+                    String kf = driveFolder(token, k.getName(), pr);
+                    java.util.HashSet<String> have = driveNames(token, kf);
+                    for (File f : fs) {
+                        if (have.contains(f.getName())) continue;
+                        String ext = f.getName().replaceAll("^.*\\.", "").toLowerCase(java.util.Locale.ROOT);
+                        String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+                        driveCreate(token, kf, f.getName(), mime == null ? "image/jpeg" : mime, readAll(f));
+                        up++;
+                    }
+                }
+            }
+            o.put("ok", true);
+            o.put("photos", up);
+            o.put("at", System.currentTimeMillis());
+        } catch (Exception e) {
+            try { o.put("ok", false); o.put("error", "백업하지 못했어요"); } catch (Exception ignored) {}
+        }
+        backupEvent(o);
+    }
+
+    private void driveRestoreRun(String token) {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("op", "restore");
+            String root = driveFind(token, "후기씨앗 백업", "root", true);
+            if (root == null) throw new Exception("none");
+            String id = driveFind(token, "backup.json", root, false);
+            if (id == null) throw new Exception("none");
+            String data = new String(driveDownload(token, id), StandardCharsets.UTF_8);
+            int down = 0;
+            String pr = driveFind(token, "photos", root, true);
+            if (pr != null) {
+                JSONArray ks = driveList(token, pr, true);
+                for (int i = 0; i < ks.length(); i++) {
+                    JSONObject k = ks.getJSONObject(i);
+                    File dir = photoDirOf(k.getString("name"));
+                    JSONArray fs = driveList(token, k.getString("id"), false);
+                    for (int j = 0; j < fs.length(); j++) {
+                        JSONObject f = fs.getJSONObject(j);
+                        String nm = f.getString("name");
+                        if (nm.contains("/") || nm.contains("..")) continue;
+                        File out = new File(dir, nm);
+                        if (out.exists()) continue;
+                        try (OutputStream os = new FileOutputStream(out)) { os.write(driveDownload(token, f.getString("id"))); down++; }
+                    }
+                }
+            }
+            o.put("ok", true);
+            o.put("data", data);
+            o.put("photos", down);
+        } catch (Exception e) {
+            try { o.put("ok", false); o.put("error", "none".equals(e.getMessage()) ? "드라이브에 백업이 없어요" : "복원하지 못했어요"); } catch (Exception ignored) {}
+        }
+        backupEvent(o);
     }
 
     /** 앱이 화면에 올라올 때마다(포커스) 클립보드의 네이버 지도 링크를 확인한다 */
@@ -253,6 +423,21 @@ public class MainActivity extends Activity {
         if (intent != null && intent.getStringExtra("plan") != null) {
             pendingPlan = intent.getStringExtra("plan");
             intent.removeExtra("plan");
+            return;
+        }
+        String type = intent == null ? null : intent.getType();
+        if (intent != null && type != null && type.startsWith("image/")
+                && (Intent.ACTION_SEND.equals(intent.getAction()) || Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction()))) {
+            ArrayList<Uri> us = new ArrayList<>();
+            if (Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction())) {
+                ArrayList<Uri> l = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+                if (l != null) us.addAll(l);
+            } else {
+                Uri u = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                if (u != null) us.add(u);
+            }
+            incomingPhotos = copyIncoming(us);
+            intent.setAction(null);
             return;
         }
         if (intent != null && Intent.ACTION_SEND.equals(intent.getAction())) {
@@ -389,6 +574,7 @@ public class MainActivity extends Activity {
         Identity.getAuthorizationClient(this).authorize(req)
                 .addOnSuccessListener(r -> {
                     if (r.hasResolution() && r.getPendingIntent() != null) {
+                        if (job != null && job.contains("\"silent\":true")) return; // 자동 백업은 화면 없이만
                         pendingDriveJob = job;
                         try {
                             startIntentSenderForResult(r.getPendingIntent().getIntentSender(), REQ_DRIVE, null, 0, 0, 0, null);
@@ -411,6 +597,12 @@ public class MainActivity extends Activity {
             driveCb(true, o);
             return;
         }
+        try {
+            JSONObject j = new JSONObject(job);
+            String op = j.optString("op", "");
+            if ("backup".equals(op)) { pool.execute(() -> driveBackupRun(token, j)); return; }
+            if ("restore".equals(op)) { pool.execute(() -> driveRestoreRun(token)); return; }
+        } catch (Exception ignored) {}
         pool.execute(() -> driveUpload(token, job));
     }
 
@@ -1027,6 +1219,93 @@ public class MainActivity extends Activity {
         public void loadProduct(final String id, final String url) {
             if (!trusted) return;
             runOnUiThread(() -> productLoad(id, url));
+        }
+
+        /** 공유받은 사진 개수 (앱이 처음 열릴 때 확인) */
+        @JavascriptInterface
+        public int incomingPhotoCount() {
+            return trusted ? incomingPhotos : 0;
+        }
+
+        /** 공유받은 사진을 그 가게 사진 폴더로 옮긴다 */
+        @JavascriptInterface
+        public int importShared(String key) {
+            if (!trusted) return 0;
+            File[] fs = incomingDir().listFiles(File::isFile);
+            incomingPhotos = 0;
+            if (fs == null) return 0;
+            Arrays.sort(fs, (a, b) -> a.getName().compareTo(b.getName()));
+            int no = nextPhotoNoOf(key), n = 0;
+            File dir = photoDirOf(key);
+            for (File f : fs) {
+                String ext = f.getName().replaceAll("^.*\\.", "");
+                if (f.renameTo(new File(dir, String.format(java.util.Locale.ROOT, "%02d.%s", no++, ext)))) n++;
+            }
+            if (safeKey(key).equals(photoKey)) pushPhotos();
+            return n;
+        }
+
+        @JavascriptInterface
+        public void dropShared() {
+            if (!trusted) return;
+            incomingPhotos = 0;
+            File[] fs = incomingDir().listFiles();
+            if (fs != null) for (File f : fs) f.delete();
+        }
+
+        /** 백업: data = 기록 JSON. silent면 연결 화면 없이 조용히 */
+        @JavascriptInterface
+        public void driveBackup(String data, boolean silent) {
+            if (!trusted) return;
+            try {
+                JSONObject j = new JSONObject();
+                j.put("op", "backup");
+                j.put("data", data);
+                j.put("silent", silent);
+                String job = j.toString();
+                runOnUiThread(() -> driveAuth(job));
+            } catch (Exception ignored) {}
+        }
+
+        @JavascriptInterface
+        public void driveRestore() {
+            if (!trusted) return;
+            runOnUiThread(() -> driveAuth("{\"op\":\"restore\"}"));
+        }
+
+        /** 지난번에 앱이 멈췄으면 그 기록을 한 번 돌려주고 지운다 */
+        @JavascriptInterface
+        public String lastCrash() {
+            if (!trusted) return "";
+            File f = new File(getFilesDir(), "crash.txt");
+            if (!f.exists()) return "";
+            try {
+                String s = new String(readAll(f), StandardCharsets.UTF_8);
+                f.delete();
+                return s.length() > 3000 ? s.substring(0, 3000) : s;
+            } catch (Exception e) { return ""; }
+        }
+
+        /** 모든 데이터 지우기: 사진, 알림, 위젯, 드라이브 연결 */
+        @JavascriptInterface
+        public void deleteAll() {
+            if (!trusted) return;
+            File base = new File(getFilesDir(), "photos");
+            File[] ks = base.listFiles();
+            if (ks != null) for (File k : ks) {
+                File[] fs = k.listFiles();
+                if (fs != null) for (File f : fs) f.delete();
+                k.delete();
+            }
+            try {
+                JSONObject all = new JSONObject(getSharedPreferences("reminders", 0).getString("all", "{}"));
+                java.util.Iterator<String> it = all.keys();
+                while (it.hasNext()) ReminderReceiver.cancel(MainActivity.this, it.next());
+            } catch (Exception ignored) {}
+            getSharedPreferences("reminders", 0).edit().clear().apply();
+            getSharedPreferences(Widgets.PREF, 0).edit().clear().apply();
+            appPrefs().edit().clear().apply();
+            Widgets.updateAll(MainActivity.this);
         }
 
         /** job = {path:[...], mdName, md, key} */

@@ -434,6 +434,15 @@ i.v{background:var(--acc)}i.dn{background:#B9B3A8}i.du{background:transparent;bo
 .rp-b{height:8px;background:var(--bg);border-radius:4px;overflow:hidden}.rp-b i{display:block;height:100%;border-radius:4px}
 .ps-post{cursor:pointer}.ps-post.on{border-color:var(--acc)}
 .pd-img{width:96px;height:96px;object-fit:cover;border-radius:14px;display:block;margin:2px 0 10px;border:1px solid var(--line)}
+.set-row.danger .set-l{color:#B4534B}
+.onb{position:fixed;inset:0;z-index:99;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px calc(28px + env(safe-area-inset-bottom));text-align:center;transition:opacity .25s}
+.onb.out{opacity:0}
+.onb-art{width:120px;height:120px;color:var(--acc);margin-bottom:18px}.onb-art svg{width:100%;height:100%}
+.onb h2{font-size:23px;margin:0 0 10px;letter-spacing:-.3px}.onb p{font-size:15px;line-height:1.6;color:var(--sub);margin:0 0 26px;max-width:320px;word-break:keep-all}
+.onb-dots{display:flex;gap:6px;margin-bottom:22px}.onb-dots i{width:7px;height:7px;border-radius:4px;background:var(--line);transition:width .2s}.onb-dots i.on{width:20px;background:var(--acc)}
+.onb .e-btn{width:100%;max-width:340px}
+.onb-skip{position:absolute;top:calc(14px + env(safe-area-inset-top));right:16px;border:0;background:none;font:inherit;font-size:14px;color:var(--sub);padding:8px}
+.md-view.pv h1{font-size:20px}.md-view.pv h2{font-size:16px;margin:16px 0 6px;color:var(--acc-ink)}
 .done-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
 .done-row .e-btn{text-align:center;font-weight:700;margin:0}
 .e-btn.drive{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:8px;font-weight:700}
@@ -2054,7 +2063,7 @@ function renderEasy(){
     opt('네',1);opt('보통',2);opt('아니요',-1);
     body.append(ch);
     if(st[h.t]===-1){body.append(el('div','e-label','어땠어요?'),eText(()=>S.hnote[h.t],x=>S.hnote[h.t]=x,'예: 주말 점심인데 오히려 한산했어요',true));showNext=true}
-  }else if(c.body){c.body(body);if(!['done','start'].includes(c.id))accordionize(body,c.id)}
+  }else if(c.body){if(c.done)maybeAskRate();c.body(body);if(!['done','start'].includes(c.id))accordionize(body,c.id)}
   if(showNext){const f=el('div','e-foot');const n=el('button','e-btn '+(c.nextLabel?'ghost':'primary'),c.nextLabel||'다음');n.type='button';n.onclick=()=>c.nextFn?c.nextFn():go(1);f.append(n);box.append(f)}
   if(c.done&&!S.done){S.done=true;save()}
   updTop();window.scrollTo(0,0);updChrome();
@@ -2360,8 +2369,9 @@ function renderMe(){
   const rpg=el('div','set-g');rpg.append(el('div','set-h','내 기록 리포트'),reportBox());
   v.append(pc,rpg,
     group('일정',[row('체험단 플랫폼',dots,()=>platformSheet()),row('다녀온 뒤 알림',st.remindH+'시간 뒤',()=>remindSheet())]),
-    canDrive()?group('저장',[row('구글 드라이브',dOn?'연결됨':'연결 안 됨',()=>driveSheet(),{cls:dOn?'on':''})]):'',
-    group('정보',[row('사용법','',()=>document.body.classList.add('sheet')),ver?row('버전',ver,null,{noChev:true,cls:'static'}):null])
+    canDrive()?group('저장',[row('구글 드라이브',dOn?'연결됨':'연결 안 됨',()=>driveSheet(),{cls:dOn?'on':''}),dOn?row('백업·복원',lastBackup()?new Date(lastBackup()).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 백업':'백업 전',()=>backupSheet()):null]):'',
+    group('정보',[row('사용법','',()=>document.body.classList.add('sheet')),row('의견 보내기','',()=>feedback()),IS_APP?row('앱 평가하기','',()=>rateApp()):null,row('개인정보처리방침','',()=>privacySheet()),ver?row('버전',ver,null,{noChev:true,cls:'static'}):null]),
+    group('',[row('모든 데이터 지우기','',()=>deleteAllSheet(),{cls:'danger'})])
   );
 }
 function profileSheet(){openAct(b=>{
@@ -2959,6 +2969,78 @@ function openMdView(){openAct(b=>{
   row.append(s,c);b.append(row);
 })}
 
+/* ---------- 백업·복원 ---------- */
+const DEV_MAIL='waypointdockdev@gmail.com';
+const STORE_URL='https://play.google.com/store/apps/details?id=com.portpapa.chehumdanmemo';
+function backupData(){const d={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('chd-')&&k!=='chd-clip-used')d[k]=localStorage.getItem(k)}return JSON.stringify({v:1,at:Date.now(),data:d})}
+const lastBackup=()=>Number(localStorage.getItem('chd-backup-at')||0);
+function runBackup(silent){if(!(IS_APP&&ChdNative.driveBackup))return;if(!silent)toast('백업하는 중…');ChdNative.driveBackup(backupData(),!!silent)}
+window.chdBackup=s=>{let o={};try{o=JSON.parse(s)}catch(e){}
+  if(o.op==='backup'){if(o.ok){localStorage.setItem('chd-backup-at',String(o.at||Date.now()));if(!o.silent&&TAB==='me')renderMe();toast('백업했어요'+(o.photos?' · 사진 '+o.photos+'장':''))}else toast(o.error||'백업하지 못했어요');return}
+  if(o.op==='restore'){if(!o.ok){toast(o.error||'복원하지 못했어요');return}
+    try{const b=JSON.parse(o.data);const keep=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('chd-'))keep.push(k)}keep.forEach(k=>localStorage.removeItem(k));
+      Object.entries(b.data||{}).forEach(([k,v])=>localStorage.setItem(k,v));localStorage.setItem('chd-onboard','1');toast('복원했어요'+(o.photos?' · 사진 '+o.photos+'장':''));setTimeout(()=>location.reload(),900)}catch(e){toast('백업 파일을 읽지 못했어요')}}
+};
+/* 앱을 내려놓을 때(백그라운드) 하루 한 번 조용히 자동 백업 */
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&driveLinked()&&Date.now()-lastBackup()>12*3600e3)runBackup(true)});
+function backupSheet(){openAct(b=>{
+  const lb=lastBackup();b.append(el('h3','','백업·복원'),el('div','e-tip',lb?'마지막 백업: '+new Date(lb).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'아직 백업한 적 없어요'));
+  b.append(el('div','e-tip','구글 드라이브 "후기씨앗 백업" 폴더에 기록과 사진을 저장해요. 하루 한 번 자동으로도 백업돼요.'));
+  const ch=el('div','e-choices');
+  const bk=el('button','e-btn primary','지금 백업');bk.type='button';bk.onclick=()=>{closeAct();runBackup(false)};
+  const rs=el('button','e-btn','드라이브에서 복원');rs.type='button';rs.onclick=()=>openAct(bb=>{bb.append(el('h3','','복원할까요?'),el('div','e-tip','지금 폰에 있는 기록이 백업 내용으로 바뀌어요. 사진은 없는 것만 받아와요.'));
+    const row=el('div','done-row');const no=el('button','e-btn primary','취소');no.type='button';no.onclick=closeAct;const yes=el('button','e-btn danger','복원하기');yes.type='button';yes.onclick=()=>{closeAct();toast('백업을 받아오는 중…');ChdNative.driveRestore()};row.append(no,yes);bb.append(row)});
+  ch.append(bk,rs);b.append(ch);
+})}
+/* ---------- 모든 데이터 지우기 ---------- */
+function deleteAllSheet(){openAct(b=>{
+  b.append(el('h3','','모든 데이터를 지울까요?'),el('div','e-tip','이 폰의 기록, 현장 메모, 사진, 갈 곳, 설정이 모두 지워지고 되돌릴 수 없어요. 구글 드라이브에 저장한 파일은 그대로 남아요.'));
+  const inp=document.createElement('input');inp.type='text';inp.placeholder='지우려면 "삭제"라고 입력';
+  const row=el('div','done-row');const no=el('button','e-btn primary','취소');no.type='button';no.onclick=closeAct;
+  const yes=el('button','e-btn danger','모두 지우기');yes.type='button';yes.onclick=()=>{if(inp.value.trim()!=='삭제'){toast('"삭제"라고 입력해 주세요');inp.focus();return}
+    if(IS_APP&&ChdNative.deleteAll)ChdNative.deleteAll();const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('chd-'))ks.push(k)}ks.forEach(k=>localStorage.removeItem(k));
+    closeAct();toast('모두 지웠어요');setTimeout(()=>location.reload(),700)};
+  row.append(no,yes);b.append(inp,row);
+})}
+/* ---------- 의견 보내기·평가·개인정보 ---------- */
+function appVer(){try{return IS_APP&&ChdNative.version?ChdNative.version():'웹'}catch(e){return ''}}
+function errLog(){try{return JSON.parse(localStorage.getItem('chd-errs')||'[]')}catch(e){return []}}
+window.addEventListener('error',e=>{try{const a=errLog();a.push(new Date().toISOString().slice(5,16)+' '+String(e.message).slice(0,160));localStorage.setItem('chd-errs',JSON.stringify(a.slice(-5)))}catch(x){}});
+function mailTo(subject,body){location.href='mailto:'+DEV_MAIL+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body)}
+function feedback(){const e=errLog();mailTo('[후기씨앗] 의견','여기에 의견을 적어주세요.\n\n\n----\n버전 '+appVer()+' / '+navigator.userAgent.replace(/.*Android/,'Android').slice(0,60)+(e.length?'\n최근 오류:\n'+e.join('\n'):''))}
+function rateApp(){location.href=IS_APP?'market://details?id=com.portpapa.chehumdanmemo':STORE_URL}
+async function privacySheet(){let html='';try{const r=await fetch('privacy.html?'+Date.now());const t=await r.text();const m=t.match(/<main[^>]*>([\s\S]*?)<\/main>/);html=m?m[1]:''}catch(e){}
+  openAct(b=>{const v=el('div','md-view pv');v.innerHTML=html||'<p>인터넷에 연결되면 볼 수 있어요.</p>';b.append(v)})}
+/* 완성 3번째쯤에 한 번 별점 부탁 */
+function maybeAskRate(){if(!IS_APP||localStorage.getItem('chd-rate-asked'))return;const n=getRecords().filter(r=>r.sent||r.done).length;if(n<3)return;localStorage.setItem('chd-rate-asked','1');
+  setTimeout(()=>openAct(b=>{b.append(el('h3','','후기씨앗, 쓸 만한가요?'),el('div','e-tip','별점 하나가 큰 힘이 돼요.'));const row=el('div','done-row');const y=el('button','e-btn primary','별점 남기기');y.type='button';y.onclick=()=>{closeAct();rateApp()};const n2=el('button','e-btn','나중에');n2.type='button';n2.onclick=closeAct;row.append(y,n2);b.append(row)}),1200)}
+/* ---------- 지난번 멈춤 보고 ---------- */
+function checkCrash(){if(!(IS_APP&&ChdNative.lastCrash))return;let c='';try{c=ChdNative.lastCrash()}catch(e){}if(!c)return;
+  setTimeout(()=>openAct(b=>{b.append(el('h3','','지난번에 앱이 멈췄어요'),el('div','e-tip','오류 내용을 보내주시면 고칠게요. 개인 기록은 들어가지 않아요.'));
+    const row=el('div','done-row');const y=el('button','e-btn primary','오류 보내기');y.type='button';y.onclick=()=>{closeAct();mailTo('[후기씨앗] 오류 보고','버전 '+appVer()+'\n\n'+c)};const n=el('button','e-btn','괜찮아요');n.type='button';n.onclick=closeAct;row.append(y,n);b.append(row)}),900)}
+/* ---------- 갤러리에서 공유받은 사진: 어느 가게 사진인지 고르기 ---------- */
+window.chdIncomingPhotos=n=>{if(!n)return;goHome();openAct(b=>{
+  b.append(el('h3','','사진 '+n+'장을 어디에 넣을까요?'));
+  const list=el('div','set-box');const all=allPlaces();
+  if(!all.length)b.append(el('div','e-tip','먼저 가게나 제품을 추가해 주세요'));
+  all.slice(0,20).forEach(p=>{const r=el('button','set-row');r.type='button';const l=el('span','set-l');l.append(thumbEl(p,'th sm'),p.name);r.append(l);
+    r.onclick=()=>{const k=ChdNative.importShared(String(p.id));closeAct();buzz(12);toast(p.name+'에 사진 '+k+'장을 넣었어요');if(PLACE&&String(PLACE.id)===String(p.id)){loadPhotos();refreshPhotoViews()}};list.append(r)});
+  const no=el('button','e-btn ghost','넣지 않기');no.type='button';no.onclick=()=>{ChdNative.dropShared();closeAct()};
+  b.append(list,no);
+})};
+/* ---------- 첫 실행 안내 ---------- */
+function onboarding(){if(localStorage.getItem('chd-onboard'))return;
+  const pages=[['링크 하나면 시작','네이버 지도에서 가게를, 스마트스토어·쿠팡에서 제품을 공유하면 정보가 알아서 들어와요.',1],
+    ['현장에선 꾹 눌러 말하기','아래 "지금 메모"를 꾹 누르고 말하면 바로 저장돼요. 사진은 + 사진으로 갤러리에서 골라요.',2],
+    ['다녀오면 질문에 톡톡','별점과 선택지로 답하면 내 경험이 정리돼요. 완성하면 드라이브에 저장하거나 보내면 끝.',3]];
+  let i=0;const ov=el('div','onb');const art=el('div','onb-art');const h=el('h2');const p=el('p');const dots=el('div','onb-dots');const nx=el('button','e-btn primary','다음');nx.type='button';const sk=el('button','onb-skip','건너뛰기');sk.type='button';
+  pages.forEach(()=>dots.append(el('i')));
+  const draw=()=>{const g=pages[i];art.innerHTML=sproutSvg(g[2]);h.textContent=g[0];p.textContent=g[1];[...dots.children].forEach((d,k)=>d.classList.toggle('on',k===i));nx.textContent=i===pages.length-1?'시작하기':'다음'};
+  const done=()=>{localStorage.setItem('chd-onboard','1');ov.classList.add('out');setTimeout(()=>ov.remove(),250)};
+  nx.onclick=()=>{if(i<pages.length-1){i++;draw()}else done()};sk.onclick=done;
+  let x0=null;ov.addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});ov.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(dx<-50&&i<pages.length-1){i++;draw()}else if(dx>50&&i>0){i--;draw()}},{passive:true});
+  ov.append(sk,art,h,p,dots,nx);document.body.append(ov);draw();
+}
 async function boot(){
   const h=decodeURIComponent(location.hash.slice(1));
   if(!PLACE&&h){
@@ -2984,7 +3066,11 @@ async function boot(){
   if(act){setMode('easy');window.chdAction(act);return}
   if(incoming){window.chdIncoming(incoming);return}
   setMode(S.mode||'easy');
+  if(IS_APP&&ChdNative.incomingPhotoCount){const n=ChdNative.incomingPhotoCount();if(n){setTimeout(()=>window.chdIncomingPhotos(n),400);return}}
+  onboarding();checkCrash();
 }
+/* 오프라인에서도 열리게: 한 번 받은 화면을 폰에 저장 (서비스 워커) */
+if('serviceWorker' in navigator&&/portpapa\.github\.io/.test(location.host))navigator.serviceWorker.register('sw.js').catch(()=>{});
 boot();
 </script>
 </body>

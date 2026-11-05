@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 안드로이드 자동 백업(구글 계정): 기록(웹뷰 저장소)과 설정만. 사진은 용량 때문에 드라이브 백업으로 -->
+<full-backup-content>
+    <include domain="root" path="app_webview/" />
+    <include domain="sharedpref" path="." />
+</full-backup-content>
