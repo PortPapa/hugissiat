@@ -1,4 +1,4 @@
-package com.portpapa.chehumdanmemo;
+package com.portpapa.hugissiat;
 
 import android.app.AlarmManager;
 import android.app.Notification;
@@ -19,7 +19,7 @@ import java.util.Iterator;
  * 폰을 재부팅하거나 앱을 업데이트하면 남은 알림을 다시 예약한다.
  */
 public class ReminderReceiver extends BroadcastReceiver {
-    static final String ACTION = "com.portpapa.chehumdanmemo.REMIND";
+    static final String ACTION = "com.portpapa.hugissiat.REMIND";
     private static final String PREF = "reminders";
     private static final String CHANNEL = "visit";
 

@@ -1,4 +1,4 @@
-package com.portpapa.chehumdanmemo;
+package com.portpapa.hugissiat;
 
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;

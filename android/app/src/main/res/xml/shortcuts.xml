@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
     <shortcut android:shortcutId="memo" android:enabled="true" android:icon="@drawable/ic_sc_memo" android:shortcutShortLabel="@string/sc_memo">
-        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.portpapa.chehumdanmemo" android:targetClass="com.portpapa.chehumdanmemo.MainActivity">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.portpapa.hugissiat" android:targetClass="com.portpapa.hugissiat.MainActivity">
             <extra android:name="action" android:value="memo:" />
         </intent>
     </shortcut>
     <shortcut android:shortcutId="add" android:enabled="true" android:icon="@drawable/ic_sc_add" android:shortcutShortLabel="@string/sc_add">
-        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.portpapa.chehumdanmemo" android:targetClass="com.portpapa.chehumdanmemo.MainActivity">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.portpapa.hugissiat" android:targetClass="com.portpapa.hugissiat.MainActivity">
             <extra android:name="action" android:value="add" />
         </intent>
     </shortcut>

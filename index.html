@@ -591,7 +591,7 @@ body.flow>#easy,body.flow>.wrap{flex:1 0 auto;width:100%}
 <script>
 /* 어사이드가 플레이스·블로그 리뷰를 수집해 이 자리에 넣어요. 없으면 수동 모드. */
 let PLACE = /*__PLACE_DATA__*/null;
-const PAGE_URL = 'https://portpapa.github.io/chehumdan-memo/';
+const PAGE_URL = 'https://portpapa.github.io/hugissiat/';
 
 /* ---------- 링크 데이터 (#v1.압축) ---------- */
 const b64u={
@@ -631,7 +631,7 @@ window.chdMakeLink=async o=>PAGE_URL+'#'+await packData(slim(o));
 
 /* ---------- 링크만 넣으면 자동으로 가져오기 ---------- */
 /* 앱(ChdNative)이면 폰이 네이버를 직접 부르고, 웹이면 Cloudflare Worker를 거친다 */
-const WORKER='https://chehumdan-memo.lcjun37.workers.dev/place?u=';
+const WORKER='https://hugissiat.lcjun37.workers.dev/place?u=';
 const IS_APP=typeof window.ChdNative!=='undefined';
 const _ncb={};let _nid=0;
 window.__chdNative=(id,res)=>{const f=_ncb[id];delete _ncb[id];f&&f(res)};
@@ -2624,7 +2624,7 @@ function expSummary(st,id){
 function avgRate(st){const v=Object.values((st&&st.rate)||{}).map(r=>r&&(r.p||r.s*2)).filter(Boolean);return v.length?(v.reduce((a,b)=>a+b,0)/v.length/2).toFixed(1).replace('.0',''):''}
 function openMap(place){
   const q=[place.name,(place.roadAddress||place.address||'').split(' ').slice(0,3).join(' ')].filter(Boolean).join(' ');
-  const u=place.lat?('nmap://place?lat='+place.lat+'&lng='+place.lng+'&name='+encodeURIComponent(place.name)+'&appname=com.portpapa.chehumdanmemo'):('nmap://search?query='+encodeURIComponent(q)+'&appname=com.portpapa.chehumdanmemo');
+  const u=place.lat?('nmap://place?lat='+place.lat+'&lng='+place.lng+'&name='+encodeURIComponent(place.name)+'&appname=com.portpapa.hugissiat'):('nmap://search?query='+encodeURIComponent(q)+'&appname=com.portpapa.hugissiat');
   if(IS_APP)location.href=u;else window.open('https://map.naver.com/p/search/'+encodeURIComponent(q),'_blank');
 }
 function placeSheet(o){
@@ -2971,7 +2971,7 @@ function openMdView(){openAct(b=>{
 
 /* ---------- 백업·복원 ---------- */
 const DEV_MAIL='waypointdockdev@gmail.com';
-const STORE_URL='https://play.google.com/store/apps/details?id=com.portpapa.chehumdanmemo';
+const STORE_URL='https://play.google.com/store/apps/details?id=com.portpapa.hugissiat';
 function backupData(){const d={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('chd-')&&k!=='chd-clip-used')d[k]=localStorage.getItem(k)}return JSON.stringify({v:1,at:Date.now(),data:d})}
 const lastBackup=()=>Number(localStorage.getItem('chd-backup-at')||0);
 function runBackup(silent){if(!(IS_APP&&ChdNative.driveBackup))return;if(!silent)toast('백업하는 중…');ChdNative.driveBackup(backupData(),!!silent)}
@@ -3008,7 +3008,7 @@ function errLog(){try{return JSON.parse(localStorage.getItem('chd-errs')||'[]')}
 window.addEventListener('error',e=>{try{const a=errLog();a.push(new Date().toISOString().slice(5,16)+' '+String(e.message).slice(0,160));localStorage.setItem('chd-errs',JSON.stringify(a.slice(-5)))}catch(x){}});
 function mailTo(subject,body){location.href='mailto:'+DEV_MAIL+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body)}
 function feedback(){const e=errLog();mailTo('[후기씨앗] 의견','여기에 의견을 적어주세요.\n\n\n----\n버전 '+appVer()+' / '+navigator.userAgent.replace(/.*Android/,'Android').slice(0,60)+(e.length?'\n최근 오류:\n'+e.join('\n'):''))}
-function rateApp(){location.href=IS_APP?'market://details?id=com.portpapa.chehumdanmemo':STORE_URL}
+function rateApp(){location.href=IS_APP?'market://details?id=com.portpapa.hugissiat':STORE_URL}
 async function privacySheet(){let html='';try{const r=await fetch('privacy.html?'+Date.now());const t=await r.text();const m=t.match(/<main[^>]*>([\s\S]*?)<\/main>/);html=m?m[1]:''}catch(e){}
   openAct(b=>{const v=el('div','md-view pv');v.innerHTML=html||'<p>인터넷에 연결되면 볼 수 있어요.</p>';b.append(v)})}
 /* 완성 3번째쯤에 한 번 별점 부탁 */

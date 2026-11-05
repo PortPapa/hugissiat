@@ -3,7 +3,7 @@
 체험단 다녀온 뒤, AI로 후기를 쓰기 **전에** 내 경험을 정리하는 페이지예요.
 선택지를 누르고 짧게 적으면 AI에 바로 넣을 수 있는 `.md` 파일로 정리돼요.
 
-- 페이지: https://portpapa.github.io/chehumdan-memo/
+- 페이지: https://portpapa.github.io/hugissiat/
 - 폰에서도 그대로 쓸 수 있어요.
 
 ## 어떻게 쓰나요

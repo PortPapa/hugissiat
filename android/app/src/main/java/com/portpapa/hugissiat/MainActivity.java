@@ -1,4 +1,4 @@
-package com.portpapa.chehumdanmemo;
+package com.portpapa.hugissiat;
 
 import android.app.Activity;
 import android.content.ClipData;
@@ -72,7 +72,7 @@ import java.util.concurrent.Executors;
  */
 public class MainActivity extends Activity {
     /** 화면은 GitHub Pages에서 불러와서 앱을 다시 안 깔아도 자동 반영된다. 인터넷이 안 되면 앱에 넣어둔 화면으로 연다. */
-    private static final String REMOTE = "https://portpapa.github.io/chehumdan-memo/";
+    private static final String REMOTE = "https://portpapa.github.io/hugissiat/";
     private static final String HOME = "https://appassets.androidplatform.net/assets/index.html";
     private volatile boolean trusted = false;  // 지금 열린 페이지가 우리 페이지일 때만 브리지 허용
     private boolean fellBack = false;
@@ -81,7 +81,7 @@ public class MainActivity extends Activity {
         if (u == null || !"https".equals(u.getScheme())) return false;
         String h = u.getHost(), p = u.getPath() == null ? "" : u.getPath();
         return "appassets.androidplatform.net".equals(h)
-                || ("portpapa.github.io".equals(h) && p.startsWith("/chehumdan-memo"));
+                || ("portpapa.github.io".equals(h) && p.startsWith("/hugissiat"));
     }
 
     private void fallback() {
