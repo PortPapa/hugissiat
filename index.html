@@ -17,6 +17,9 @@
 html{scroll-behavior:smooth}
 /* 탭 전환 애니메이션 등으로 잠깐이라도 가로 스크롤이 생기지 않게 */
 html,body{overflow-x:clip}
+/* 모바일 앱처럼: 스크롤은 되고 스크롤바는 안 보이게 */
+*{scrollbar-width:none}
+*::-webkit-scrollbar{display:none;width:0;height:0}
 body{margin:0;font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
 button{font:inherit;cursor:pointer;color:inherit}
 a{color:inherit}
@@ -373,6 +376,16 @@ body[data-tab=plans] #viewPlans,body[data-tab=records] #viewRecords,body[data-ta
 .ps-th{display:flex;gap:5px;margin-top:6px}.ps-th img{width:48px;height:48px;border-radius:9px;object-fit:cover}
 .ps-addr{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:13px;color:var(--sub);padding:0;margin-top:10px;line-height:1.55}.ps-addr span{color:var(--acc-ink)}
 .ps-cta{margin-top:14px;width:100%}
+.ph-hd{display:flex;align-items:center;gap:8px}.ph-hd h3{flex:1;margin:0 0 8px}
+.ph-tip{font-size:12px;color:var(--sub)}
+.ph-cc,.ph-del{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;margin-bottom:8px}
+.ph-del{background:#B4534B;border-color:#B4534B;color:#fff;font-weight:700}.ph-del:disabled{opacity:.4}
+#act .thumbs .th .ck{position:absolute;right:5px;top:5px;width:22px;height:22px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.25)}
+#act .thumbs .th.on .ck{background:var(--acc);box-shadow:inset 0 0 0 3px var(--acc)}
+#act .thumbs .th.on::after{content:'';position:absolute;inset:0;border:3px solid var(--acc);border-radius:10px;pointer-events:none}
+#act .thumbs.sel .th img{transform:scale(.94);transition:transform .15s}
+.lbx img{touch-action:none;will-change:transform}
+.dk-pill.hold{transform:scale(.97);background:var(--acc-soft)}
 .done-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
 .done-row .e-btn{text-align:center;font-weight:700;margin:0}
 .e-btn.drive{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:8px;font-weight:700}
@@ -1084,7 +1097,7 @@ function stars(p,set){
   let cur=p,moved=false,down=false;
   const at=e=>{const a=w.children[0].getBoundingClientRect(),b=w.children[4].getBoundingClientRect();const x=Math.max(0,Math.min(b.right-a.left,e.clientX-a.left));return Math.max(1,Math.ceil(x/(b.right-a.left)*10))};
   w.onpointerdown=e=>{if(e.target===lab)return;down=true;moved=false;try{w.setPointerCapture(e.pointerId)}catch(x){}cur=at(e);paint(cur)};
-  w.onpointermove=e=>{if(!down)return;const v=at(e);if(v!==cur){moved=true;cur=v;paint(cur)}};
+  w.onpointermove=e=>{if(!down)return;const v=at(e);if(v!==cur){moved=true;cur=v;paint(cur);buzz(4)}};
   w.onpointerup=()=>{if(!down)return;down=false;if(!moved&&cur===p){cur=0;paint(0)}set(cur)};
   w.onpointercancel=()=>{down=false;cur=p;paint(p)};
   return w;
@@ -1250,15 +1263,33 @@ const LAST_KEY='chd-last-place';
 /* ---------- 사진 고르기 + 보내기 ---------- */
 /* 앱: 사진은 앱 캐시에 01.jpg, 02.jpg…로 복사되고 페이지에는 썸네일만 온다. 웹: File 객체를 메모리에 둔다 */
 let PHOTOS=[];
-window.chdPhotos=list=>{try{PHOTOS=typeof list==='string'?JSON.parse(list):(list||[])}catch(e){PHOTOS=[]}changed();rerenderPhotos()};
-function loadPhotos(){if(IS_APP&&ChdNative.getPhotos){try{PHOTOS=JSON.parse(ChdNative.getPhotos()||'[]')}catch(e){PHOTOS=[]}}}
+window.chdPhotos=list=>{try{PHOTOS=typeof list==='string'?JSON.parse(list):(list||[])}catch(e){PHOTOS=[]}const pn=pendingNames();PHOTOS=PHOTOS.filter(p=>!pn.has(p.name));changed();rerenderPhotos()};
+function loadPhotos(){if(IS_APP&&ChdNative.getPhotos){try{PHOTOS=JSON.parse(ChdNative.getPhotos()||'[]')}catch(e){PHOTOS=[]}const pn=pendingNames();PHOTOS=PHOTOS.filter(p=>!pn.has(p.name))}}
 function pickPhotos(){
   if(IS_APP&&ChdNative.pickPhotos){ChdNative.pickPhotos();return}
   const i=document.createElement('input');i.type='file';i.accept='image/*';i.multiple=true;
   i.onchange=()=>{[...i.files].forEach(f=>{const n=String(PHOTOS.length+1).padStart(2,'0');const ext=(f.name.match(/\.\w+$/)||['.jpg'])[0];PHOTOS.push({name:n+ext,file:f,thumb:URL.createObjectURL(f)})});changed();rerenderPhotos()};
   i.click();
 }
-function removePhoto(i,sure){const p=PHOTOS[i];if(!p)return;if(!sure){openAct(bb=>{bb.append(el('h3','','사진 '+(i+1)+'을 뺄까요?'));const im=document.createElement('img');im.src=p.thumb;im.style.cssText='width:96px;height:96px;object-fit:cover;border-radius:12px;display:block;margin:4px 0 12px';bb.append(im);const row=el('div','done-row');const no=el('button','e-btn primary','그대로 두기');no.type='button';no.onclick=()=>{closeAct();if(PHOTO_SHEET)openPhotoSheet()};const yes=el('button','e-btn danger','빼기');yes.type='button';yes.onclick=()=>{const back=PHOTO_SHEET;closeAct();removePhoto(i,true);if(back)setTimeout(openPhotoSheet,50)};row.append(no,yes);bb.append(row)});return}if(IS_APP&&ChdNative.removePhoto)ChdNative.removePhoto(p.name);PHOTOS.splice(i,1);changed();rerenderPhotos()}
+/* 사진 빼기: 바로 빼고 5초 동안 되돌리기 (파일은 5초 뒤에 지움). 화면은 그 자리 그대로 */
+const PDEL=new Map();
+function removePhotos(idxs){
+  const items=idxs.sort((a,b)=>b-a).map(i=>({i,p:PHOTOS[i]})).filter(x=>x.p);if(!items.length)return;
+  items.forEach(x=>PHOTOS.splice(x.i,1));
+  const key=Date.now()+Math.random();
+  const commit=()=>{if(!PDEL.has(key))return;PDEL.delete(key);items.forEach(x=>{if(IS_APP&&ChdNative.removePhoto)ChdNative.removePhoto(x.p.name)})};
+  PDEL.set(key,items.map(x=>x.p.name));setTimeout(commit,5200);
+  buzz(12);changed();refreshPhotoViews();
+  undoToast('사진 '+items.length+'장을 뺐어요',()=>{PDEL.delete(key);items.slice().reverse().forEach(x=>PHOTOS.splice(Math.min(x.i,PHOTOS.length),0,x.p));changed();refreshPhotoViews()});
+}
+function removePhoto(i){removePhotos([i])}
+const pendingNames=()=>new Set([...PDEL.values()].flat());
+function refreshPhotoViews(){
+  const a=$('#act'),y=a.scrollTop;
+  if(PHOTO_SHEET&&document.body.classList.contains('act')){openPhotoSheet();a.scrollTop=y}
+  else if(document.querySelector('#actBody.rv')){openRecView();a.scrollTop=y}
+  if(S&&S.mode==='easy'&&inFlow())renderEasyKeep();
+}
 function rerenderPhotos(){if(PHOTO_SHEET&&document.body.classList.contains('act'))openPhotoSheet();else PHOTO_SHEET=false;if(!S)return;if(S.mode==='easy')renderEasyKeep();else{const y=window.scrollY;renderForm();window.scrollTo(0,y)}}
 /* 사진은 가게마다 따로 보관 (앱: files/photos/<플레이스ID>) */
 function usePhotoKey(id){
@@ -1294,10 +1325,19 @@ window.chdDrive=s=>{
 function svgIcon(){const s=document.createElement('span');s.style.display='inline-flex';s.innerHTML="<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M6.173 21a2.03 2.03 0 0 1-1.652-.954l-2.369-4.103c-.229-.464-.312-.949-.176-1.459l.176-.426L7.985 3.955A2.04 2.04 0 0 1 9.638 3h4.724c.3.016.484.044.765.169c.38.17.664.44.888.786l5.833 10.103a2.03 2.03 0 0 1 0 1.885l-2.369 4.103a2.04 2.04 0 0 1-.888.786c-.281.125-.465.153-.765.168Zm2.94-5l-1.732 3l10.389-.005L19.506 16Zm-5.187-1l1.723 3l5.196-9l-1.732-3Zm6.342-1h3.464L12 11Zm.577-9l5.197 9h3.464l-5.2-8.994Z\"/></svg>";return s}
 function clearPhotos(){PHOTOS=[];if(IS_APP&&ChdNative.clearPhotos)ChdNative.clearPhotos()}
 let PHOTO_SHEET=false;
+let PSEL=null;
+function buzz(ms){try{navigator.vibrate&&navigator.vibrate(ms||10)}catch(e){}}
 function openPhotoSheet(){PHOTO_SHEET=true;openAct(b=>{
-  b.append(el('h3','','사진'+(PHOTOS.length?' '+PHOTOS.length+'장':'')));
-  if(PHOTOS.length){const g=el('div','thumbs');
-    PHOTOS.forEach((p,i)=>{const t=el('div','th');const im=document.createElement('img');im.src=p.thumb;im.alt='';const s=el('span','',String(i+1));const x=el('button','','×');x.type='button';x.onclick=()=>removePhoto(i);t.append(im,s,x);g.append(t)});
+  const hd=el('div','ph-hd');hd.append(el('h3','',PSEL?PSEL.size+'장 선택':'사진'+(PHOTOS.length?' '+PHOTOS.length+'장':'')));
+  if(PSEL){const del=el('button','ph-del','빼기');del.type='button';del.disabled=!PSEL.size;del.onclick=()=>{const s=[...PSEL];PSEL=null;removePhotos(s)};
+    const cc=el('button','ph-cc','취소');cc.type='button';cc.onclick=()=>{PSEL=null;refreshPhotoViews()};hd.append(cc,del)}
+  else if(PHOTOS.length>1)hd.append(el('span','ph-tip','길게 누르면 여러 장 선택'));
+  b.append(hd);
+  if(PHOTOS.length){const g=el('div','thumbs'+(PSEL?' sel':''));
+    PHOTOS.forEach((p,i)=>{const t=el('div','th'+(PSEL&&PSEL.has(i)?' on':''));const im=document.createElement('img');im.src=p.thumb;im.alt='';const s=el('span','',String(i+1));
+      if(PSEL){t.append(im,s,el('i','ck'));t.onclick=()=>{PSEL.has(i)?PSEL.delete(i):PSEL.add(i);buzz(6);refreshPhotoViews()}}
+      else{const x=el('button','','×');x.type='button';x.onclick=e=>{e.stopPropagation();removePhoto(i)};t.append(im,s,x);t.onclick=()=>lightbox(i);longPress(t,()=>{PSEL=new Set([i]);buzz(15);refreshPhotoViews()})}
+      g.append(t)});
     b.append(g)}
   const pk=el('button','e-btn primary',PHOTOS.length?'사진 더 고르기':'사진첩에서 고르기');pk.type='button';pk.onclick=pickPhotos;
   const dn=el('button','e-btn ghost','완료');dn.type='button';dn.onclick=()=>{closeAct()};
@@ -1336,8 +1376,14 @@ $('#btnHelp').onclick=()=>document.body.classList.add('sheet');
 $('#sheetClose').onclick=$('#sheetBg').onclick=()=>document.body.classList.remove('sheet');
 
 /* ---------- 공통 아래 시트 ---------- */
-function openAct(build){const b=$('#actBody');b.innerHTML='';build(b);document.body.classList.add('act');$('#act').scrollTop=0}
-function closeAct(){document.body.classList.remove('act');PHOTO_SHEET=false;if(VOICE)voiceStop();if(S&&inFlow()&&S.mode==='easy'&&document.querySelector('.e-memo'))renderEasyKeep()}
+/* 시트 위쪽(손잡이 부분)을 아래로 끌면 닫힘 */
+(()=>{const a=document.getElementById('act');let y0=null,dy=0;
+  a.addEventListener('touchstart',e=>{const r=a.getBoundingClientRect();if(e.touches[0].clientY-r.top<44&&a.scrollTop<=0){y0=e.touches[0].clientY;dy=0;a.style.transition='none'}else y0=null},{passive:true});
+  a.addEventListener('touchmove',e=>{if(y0===null)return;dy=Math.max(0,e.touches[0].clientY-y0);a.style.transform='translateY('+dy+'px)'},{passive:true});
+  a.addEventListener('touchend',()=>{if(y0===null)return;a.style.transition='';a.style.transform='';if(dy>90)closeAct();y0=null},{passive:true});
+})();
+function openAct(build){const b=$('#actBody');b.innerHTML='';b.className='';build(b);document.body.classList.add('act');$('#act').scrollTop=0}
+function closeAct(){document.body.classList.remove('act');PHOTO_SHEET=false;PSEL=null;$('#actBody').classList.remove('rv','psh');if(VOICE)voiceStop();if(S&&inFlow()&&S.mode==='easy'&&document.querySelector('.e-memo'))renderEasyKeep()}
 /* 카드 안에 묻는 게 여러 개면 접어두고 하나씩 펼친다 (스크롤 없이) */
 const ACC={};
 function accSummary(items){
@@ -2393,7 +2439,13 @@ async function addFromLink(){
   const c=await readClip();
   if(/https:\/\/(naver\.me\/|[\w.-]*naver\.com\/)/.test(c))fetchAndChoose(c);else pasteSheet('');
 }
-$('#dkPaste').onclick=()=>quickVoice();
+(()=>{const b=$('#dkPaste');let t=null,held=false;
+  b.addEventListener('pointerdown',()=>{held=false;t=setTimeout(()=>{t=null;held=true;buzz(20);b.classList.add('hold');const c=memoPlaces();voiceMemo(c.length?c[0]:INBOX,true)},380)});
+  const up=()=>{if(t){clearTimeout(t);t=null}if(held){b.classList.remove('hold');setTimeout(()=>voiceStop(),250)}};
+  b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);
+  b.addEventListener('contextmenu',e=>e.preventDefault());
+  b.onclick=e=>{if(held){held=false;e.preventDefault();return}quickVoice()};
+})();
 /* ---------- 지금 메모: 오늘 가는 곳(또는 방금 쓰던 곳)에 말로 바로 남기기 ---------- */
 function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
 function memoPlaces(){
@@ -2474,7 +2526,7 @@ function pickMemoPlace(){openAct(b=>{
   all.slice(0,12).forEach(p=>{const r=el('button','set-row');r.type='button';const l=el('span','set-l');l.append(thumbEl(p,'th sm'),p.name);r.append(l);r.onclick=()=>voiceMemo(p);list.append(r)});
   b.append(list);
 })}
-function voiceMemo(place){openAct(b=>{
+function voiceMemo(place,now){openAct(b=>{
   const hd=el('div','vm-h');hd.append(el('h3','',place.name));
   const ch=el('button','vm-ch','바꾸기');ch.type='button';ch.onclick=()=>{voiceStop();pickMemoPlace()};hd.append(ch);b.append(hd);
   const list=el('div','qm-list');
@@ -2486,7 +2538,7 @@ function voiceMemo(place){openAct(b=>{
   const vb=voiceButton(t,()=>{},addNow);
   const dn=el('button','e-btn primary','완료');dn.type='button';dn.onclick=()=>{voiceStop();addNow();closeAct();if(TAB==='home')renderHome()};
   b.append(list,vb,t,dn);
-  setTimeout(()=>{const m=vb.matches&&vb.matches('button')?vb:vb.querySelector('button');if(m)m.click()},350);
+  setTimeout(()=>{const m=vb.matches&&vb.matches('button')?vb:vb.querySelector('button');if(m)m.click()},now?0:350);
 })}
 $('#dkAdd').onclick=()=>addFromLink();
 /* 검색: 가게 이름 + 현장 메모 + 내가 적은 답 + 업종·주소 */
@@ -2569,13 +2621,31 @@ function openRecView(){openAct(b=>{
 /* 사진 크게 보기: 좌우로 넘기기, 누르면 닫기 */
 function lightbox(i){
   const lb=el('div','lbx');const im=document.createElement('img');const cnt=el('div','lbx-n');
-  const show=k=>{i=(k+PHOTOS.length)%PHOTOS.length;const p=PHOTOS[i];im.src=p.thumb;cnt.textContent=(i+1)+' / '+PHOTOS.length;
+  let sc=1,tx=0,ty=0;const apply=(anim)=>{im.style.transition=anim?'transform .2s':'none';im.style.transform='translate('+tx+'px,'+ty+'px) scale('+sc+')'};
+  const reset=()=>{sc=1;tx=0;ty=0;apply(true);lb.style.background=''};
+  const show=k=>{i=(k+PHOTOS.length)%PHOTOS.length;const p=PHOTOS[i];im.src=p.thumb;cnt.textContent=(i+1)+' / '+PHOTOS.length;reset();
     if(IS_APP&&ChdNative.photoFull){setTimeout(()=>{try{const u=ChdNative.photoFull(p.name);if(u&&PHOTOS[i]===p)im.src=u}catch(e){}},10)}};
   const prev=el('button','lbx-a l','‹');prev.type='button';prev.onclick=e=>{e.stopPropagation();show(i-1)};
   const next=el('button','lbx-a r','›');next.type='button';next.onclick=e=>{e.stopPropagation();show(i+1)};
-  let x0=null;lb.addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});
-  lb.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>50){show(i+(dx<0?1:-1))}},{passive:true});
-  lb.onclick=()=>{lb.remove();LBX=null};
+  const close=()=>{lb.remove();LBX=null};
+  let t0=null,d0=0,s0=1,last=0,moved=false;
+  const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+  lb.addEventListener('touchstart',e=>{moved=false;if(e.touches.length===2){d0=dist(e.touches);s0=sc;t0=null}else{t0={x:e.touches[0].clientX,y:e.touches[0].clientY,tx,ty}}},{passive:true});
+  lb.addEventListener('touchmove',e=>{moved=true;
+    if(e.touches.length===2&&d0){sc=Math.max(1,Math.min(4,s0*dist(e.touches)/d0));apply(false);return}
+    if(!t0)return;const dx=e.touches[0].clientX-t0.x,dy=e.touches[0].clientY-t0.y;
+    if(sc>1){tx=t0.tx+dx;ty=t0.ty+dy;apply(false)}
+    else if(dy>0&&Math.abs(dy)>Math.abs(dx)){ty=dy;apply(false);lb.style.background='rgba(0,0,0,'+Math.max(.35,.92-dy/500)+')'}},{passive:true});
+  lb.addEventListener('touchend',e=>{
+    if(e.touches.length)return;d0=0;
+    if(sc>1){if(sc<1.05)reset();t0=null;return}
+    if(t0){const dx=e.changedTouches[0].clientX-t0.x,dy=e.changedTouches[0].clientY-t0.y;
+      if(dy>110&&Math.abs(dy)>Math.abs(dx)){close();return}
+      if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)){show(i+(dx<0?1:-1));return}
+      if(ty)reset();
+      if(!moved){const now=Date.now();if(now-last<280){if(sc===1){sc=2.5;const r=im.getBoundingClientRect();tx=(r.left+r.width/2-t0.x)*1.5;ty=(r.top+r.height/2-t0.y)*1.5;apply(true)}else reset();last=0;lb._dbl=true}else last=now}}
+    t0=null},{passive:true});
+  lb.onclick=e=>{if(e.target!==lb&&e.target!==im)return;setTimeout(()=>{if(lb._dbl){lb._dbl=false;return}if(sc===1&&Date.now()-last>=270)close()},300)};
   lb.append(im,cnt);if(PHOTOS.length>1)lb.append(prev,next);document.body.append(lb);LBX=lb;show(i);
 }
 let LBX=null;
