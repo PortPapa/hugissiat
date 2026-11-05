@@ -100,6 +100,41 @@ aside#previewPane{position:sticky;top:78px;align-self:start}
 .thumbs img{width:100%;height:100%;object-fit:cover;display:block}
 .thumbs .th span{position:absolute;left:4px;top:4px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;border-radius:6px;padding:1px 5px}
 .thumbs .th button{position:absolute;right:3px;top:3px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:14px;line-height:24px;padding:0}
+/* 공통 아래 시트(선택·현장 메모·갈 곳 등록) */
+#actBg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:72;opacity:0;pointer-events:none;transition:opacity .2s}
+#act{position:fixed;left:0;right:0;bottom:0;z-index:73;background:#fff;border-radius:20px 20px 0 0;padding:10px 22px 26px;max-height:88dvh;overflow:auto;transform:translateY(100%);transition:transform .25s ease-out;max-width:560px;margin:0 auto}
+body.act #actBg{opacity:1;pointer-events:auto}body.act #act{transform:none}
+#act .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+#act h3{margin:0 0 4px;font-size:19px;letter-spacing:-.3px}
+#act p{color:var(--sub);font-size:13.5px;margin:4px 0 12px}
+#act textarea{width:100%;min-height:80px;margin-top:10px}
+#act .e-btn{margin-top:8px}
+.e-btn b{display:block}
+.e-btn-sub{font-size:13px;font-weight:400;opacity:.75;margin-top:2px}
+.qm-list{display:flex;flex-direction:column;gap:6px;max-height:34dvh;overflow:auto}
+.qm-item{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start;background:var(--bg);border-radius:10px;padding:8px 10px;font-size:14px}
+.qm-t{color:var(--sub);font-size:12px;padding-top:2px;white-space:nowrap}
+.qm-item button{border:0;background:none;color:var(--sub);font-size:16px;padding:0 2px}
+.plan{display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;margin-bottom:6px}
+.plan-i b{display:block;font-size:15px}.plan-i span{font-size:12.5px;color:var(--sub)}
+.btn.primary.sm{color:#fff}
+.e-memo{display:flex;justify-content:flex-end;margin:-14px 0 10px}
+.e-memo button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:13px;color:var(--acc-ink)}
+/* 자세히 쓰기: 모바일에서는 한 번에 한 섹션만 펼치는 Accordion */
+.sec h2 .badge{margin-left:8px;font-size:12px;font-weight:600;color:var(--ok);background:var(--ok-soft);border-radius:999px;padding:2px 8px;vertical-align:2px}
+.sec h2 .chev{display:none}
+@media (max-width:860px){
+  .sec.acc>h2{cursor:pointer;display:flex;align-items:center;margin:0;padding:2px 0 12px}
+  .sec.acc>h2 .chev{display:inline-block;margin-left:auto;color:var(--sub);transition:transform .2s;font-size:14px}
+  .sec.acc.open>h2 .chev{transform:rotate(180deg)}
+  .sec.acc:not(.open)>*:not(h2){display:none}
+  .sec.acc{padding:16px 16px 4px;scroll-margin-top:72px}
+  /* 모바일 상단은 버튼 3개만. 복사·보내기는 MD 미리보기 안에서 */
+  #btnSample,#btnCopy,#btnDown{display:none!important}
+  .top{flex-wrap:nowrap}.top .actions{flex-wrap:nowrap}
+}
+.pv-actions{display:flex;gap:6px;margin:0 0 10px}
+.pv-actions .btn{flex:1}
 /* 사용법 Bottom Sheet */
 #sheetBg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:70;opacity:0;pointer-events:none;transition:opacity .2s}
 #sheet{position:fixed;left:0;right:0;bottom:0;z-index:71;background:#fff;border-radius:20px 20px 0 0;padding:10px 22px 28px;max-height:82dvh;overflow:auto;transform:translateY(100%);transition:transform .25s ease-out;max-width:560px;margin:0 auto}
@@ -151,7 +186,7 @@ body:not(.easy) #easy{display:none}
   .sec{padding:18px 16px 6px}
   .place{grid-template-columns:1fr}
   aside#previewPane{display:none;position:fixed;inset:0;z-index:50;background:var(--bg);padding:12px;overflow:auto}
-  aside#previewPane.open{display:block}
+  aside#previewPane.open{display:block;align-self:stretch;height:100dvh}
   #preview{max-height:none}
   .pv-close{display:inline-block}
   #fabPreview{display:block}
@@ -166,7 +201,7 @@ body:not(.easy) #easy{display:none}
     <button class="btn" id="btnMode" type="button">자세히 쓰기</button>
     <button class="btn" id="btnHelp" type="button">사용법</button>
     <button class="btn" id="btnSample" type="button">예시 채우기</button>
-    <button class="btn" id="btnReset" type="button">새 가게</button>
+    <button class="btn" id="btnReset" type="button">처음으로</button>
     <button class="btn" id="btnCopy" type="button">MD 복사</button>
     <button class="btn primary" id="btnDown" type="button">.md 다운로드</button>
   </div>
@@ -180,6 +215,7 @@ body:not(.easy) #easy{display:none}
   <aside id="previewPane">
     <div class="pv-card">
       <div class="pv-head"><b>MD 미리보기</b><span id="charCount"></span><button class="btn sm pv-close" id="btnClose" type="button">닫기</button></div>
+      <div class="pv-actions"><button class="btn primary" id="pvSend" type="button">보내기</button><button class="btn" id="pvCopy" type="button">MD 복사</button></div>
       <ul class="checks" id="checks"></ul>
       <pre id="preview"></pre>
     </div>
@@ -187,6 +223,8 @@ body:not(.easy) #easy{display:none}
 </main>
 <button id="fabPreview" type="button">MD 미리보기</button>
 <div id="toast"></div>
+<div id="actBg"></div>
+<div id="act" role="dialog"><div class="grab"></div><div id="actBody"></div></div>
 <div id="sheetBg"></div>
 <div id="sheet" role="dialog" aria-label="사용법">
   <div class="grab"></div>
@@ -377,6 +415,11 @@ function init(){
     if(PLACE.hours&&PLACE.hours.length)s.f.hours=PLACE.hours.join(' / ');
     s.f.price=priceRange();
   }
+  /* 내 프로필(한 번 저장하면 매번 자동) */
+  const pf=getProfile();
+  if(pf.me)s.f.me=pf.me;
+  if(pf.with&&pf.with.length)s.f.with={sel:[...pf.with],other:''};
+  if(pf.withDetail)s.f.withDetail=pf.withDetail;
   return s;
 }
 let S=null;
@@ -676,6 +719,32 @@ function renderForm(){
     }
     form.append(s);
   });
+  makeAccordion();
+}
+/* 모바일 자세히 쓰기: 섹션을 접고 펴는 Accordion. 한 번에 하나만 펼치고, 제목 옆에 입력 개수 Badge */
+let OPEN_SEC=null;
+function makeAccordion(){
+  const secs=[...document.querySelectorAll('#form .sec')];
+  if(!OPEN_SEC||!document.getElementById(OPEN_SEC)){
+    const first=sections().find(s=>!secBody(s).length&&s.id!=='campaign');OPEN_SEC='sec-'+(first?first.id:'items');
+  }
+  secs.forEach(s=>{
+    s.classList.add('acc');s.classList.toggle('open',s.id===OPEN_SEC);
+    const h=s.querySelector('h2');if(!h||h.querySelector('.chev'))return;
+    h.append(el('span','badge',''),el('span','chev','▾'));
+    h.onclick=()=>{
+      if(window.innerWidth>860)return;
+      const was=s.classList.contains('open');
+      secs.forEach(x=>x.classList.remove('open'));
+      if(!was){s.classList.add('open');OPEN_SEC=s.id;setTimeout(()=>s.scrollIntoView({block:'start',behavior:'smooth'}),30)}else OPEN_SEC=null;
+    };
+  });
+  updBadges();
+}
+function updBadges(){
+  const m={};sections().forEach(s=>m['sec-'+s.id]=secBody(s).filter(l=>/^- /.test(l)||/^### /.test(l)).length);
+  if(PHOTOS.length)m['sec-photos']=PHOTOS.length;
+  document.querySelectorAll('#form .sec').forEach(s=>{const b=s.querySelector('h2 .badge');if(!b)return;const n=m[s.id];b.textContent=n?`${n}개`:'';b.style.display=n?'':'none'});
 }
 function switchCat(k){
   if(k===S.cat)return;
@@ -755,6 +824,8 @@ function buildMD(){
     '> AI로 후기를 쓸 때 넣는 소스예요. 아래 "내 경험" 항목은 내가 실제로 겪고 고르거나 적은 것이고, "나도 그랬음 / 달랐음"은 다른 후기·방문자 키워드와 내 경험을 비교한 것이에요. 업체 기본 정보는 참고용이에요.','');
   let n=0;
   sections().forEach(sec=>{const b=secBody(sec);if(!b.length)return;n++;out.push(`## ${n}. ${sec.title}`,...b,'')});
+  const qm=PLACE?getQM(PLACE.id):[];
+  if(qm.length){n++;out.push(`## ${n}. 현장 메모 (시간순, 매장에서 바로 적은 것)`,...qm.map(m=>`- ${hhmm(m.t)} ${m.text}`),'')}
   if(PHOTOS.length){n++;out.push(`## ${n}. 첨부 사진 (고른 순서)`,'> 사진에 무엇이 찍혔는지는 적지 않았어요. AI가 사진을 직접 보고 판단해주세요.',...PHOTOS.map((p,i)=>`- 사진 ${i+1}: ${p.name}`),'')}
   const pm=placeMD();
   if(pm.length){n++;out.push(`## ${n}. 업체 기본 정보 (플레이스 기준, 내 경험 아님)`,...pm,'')}
@@ -775,7 +846,7 @@ function checks(){
     [C.item+' 디테일',S.items.some(i=>i.detail.trim())],
     ['동행자 반응',!!(V('reactStory')||V('react'))||sel('with').includes('혼자')],
     ['솔직한 아쉬움',!!(V('cons')||V('consMemo'))||V('consTone')==='넣지 않기'||Object.keys(S.h.cons||{}).length>0],
-    ['사진·자유 메모',!!V('freeMemo')||PHOTOS.length>0]
+    ['사진·메모',!!V('freeMemo')||PHOTOS.length>0||(!!PLACE&&getQM(PLACE.id).length>0)]
   ];
 }
 function renderTOC(){
@@ -795,6 +866,7 @@ function refresh(){
   cs.forEach(([t,ok])=>ul.append(el('li',ok?'ok':'',t)));
   $('#bar').style.width=Math.round(cs.filter(c=>c[1]).length/cs.length*100)+'%';
   renderTOC();
+  if(S.mode==='full')updBadges();
 }
 
 /* ---------- 액션 ---------- */
@@ -863,6 +935,123 @@ async function sendAll(){
 }
 $('#btnHelp').onclick=()=>document.body.classList.add('sheet');
 $('#sheetClose').onclick=$('#sheetBg').onclick=()=>document.body.classList.remove('sheet');
+
+/* ---------- 공통 아래 시트 ---------- */
+function openAct(build){const b=$('#actBody');b.innerHTML='';build(b);document.body.classList.add('act');$('#act').scrollTop=0}
+function closeAct(){document.body.classList.remove('act');if(VOICE)voiceStop()}
+$('#actBg').onclick=closeAct;
+
+/* ---------- 내 프로필 ---------- */
+function getProfile(){try{return JSON.parse(localStorage.getItem('chd-profile')||'{}')||{}}catch(e){return {}}}
+function saveProfile(){
+  const p={me:(S.f.me||'').trim(),with:((S.f.with&&S.f.with.sel)||[]).filter(x=>x!=='기타'),withDetail:(S.f.withDetail||'').trim()};
+  try{localStorage.setItem('chd-profile',JSON.stringify(p))}catch(e){}
+  toast('내 프로필로 저장했어요. 다음부터 자동으로 채워져요.');
+}
+
+/* ---------- 현장 한 줄 메모 (가게별, 시간 기록) ---------- */
+function getQM(id){try{return JSON.parse(localStorage.getItem('chd-qm-'+id)||'[]')||[]}catch(e){return []}}
+function setQM(id,a){try{localStorage.setItem('chd-qm-'+id,JSON.stringify(a))}catch(e){}}
+const WD='일월화수목금토';
+const hhmm=iso=>{const d=new Date(iso);return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
+function openQuickMemo(place){
+  openAct(b=>{
+    b.append(el('h3','',place.name+' 현장 메모'),el('p','','생각날 때마다 한 줄씩. 나중에 후기 소스에 시간순으로 들어가요.'));
+    const list=el('div','qm-list');
+    const draw=()=>{list.innerHTML='';const a=getQM(place.id);
+      a.forEach((m,i)=>{const r=el('div','qm-item');r.append(el('span','qm-t',hhmm(m.t)),el('span','',m.text));const x=el('button','','×');x.type='button';x.onclick=()=>{const z=getQM(place.id);z.splice(i,1);setQM(place.id,z);draw();changed()};r.append(x);list.append(r)});
+      if(!a.length)list.append(el('div','e-tip','아직 메모가 없어요. 예: 애가 계란찜을 제일 잘 먹음'));
+      list.scrollTop=list.scrollHeight};
+    draw();
+    const t=document.createElement('textarea');t.placeholder='지금 떠오른 것 한 줄';
+    const add=el('button','e-btn primary','메모 추가');add.type='button';
+    add.onclick=()=>{const v=t.value.trim();if(!v)return;const z=getQM(place.id);z.push({t:new Date().toISOString(),text:v});setQM(place.id,z);t.value='';draw();changed();toast('메모했어요')};
+    const close=el('button','e-btn ghost','닫기');close.type='button';close.onclick=()=>{closeAct();if(S&&S.mode==='easy')renderEasy()};
+    b.append(list,t,voiceButton(t,()=>{}),add,close);
+  });
+}
+
+/* ---------- 갈 곳 미리 등록 + 다녀온 뒤 알림 ---------- */
+function getPlans(){try{return JSON.parse(localStorage.getItem('chd-plans')||'[]')||[]}catch(e){return []}}
+function setPlans(a){try{localStorage.setItem('chd-plans',JSON.stringify(a))}catch(e){}}
+function planLabel(p){const d=new Date(p.when);return `${d.getMonth()+1}/${d.getDate()}(${WD[d.getDay()]}) ${p.label||''}`.trim()}
+const fmtTime=d=>`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+function addPlan(place,when,label){
+  const a=getPlans().filter(p=>String(p.id)!==String(place.id));
+  const remindAt=new Date(when.getTime()+3*3600e3);
+  a.push({id:place.id,place:slim(place),when:when.toISOString(),label,remindAt:remindAt.toISOString()});
+  a.sort((x,y)=>x.when.localeCompare(y.when));setPlans(a);
+  if(IS_APP&&ChdNative.scheduleReminder)ChdNative.scheduleReminder(String(place.id),String(remindAt.getTime()),place.name+' 다녀오셨어요?','기억날 때 30초만 답해주세요. 누르면 바로 시작해요.');
+  return remindAt;
+}
+function removePlan(id){setPlans(getPlans().filter(p=>String(p.id)!==String(id)));if(IS_APP&&ChdNative.cancelReminder)ChdNative.cancelReminder(String(id))}
+window.chdOpenPlan=id=>{
+  const p=getPlans().find(x=>String(x.id)===String(id));let place=p&&p.place;
+  if(!place){try{const l=JSON.parse(localStorage.getItem(LAST_KEY)||'null');if(l&&String(l.id)===String(id))place=l}catch(e){}}
+  if(place){removePlan(place.id);applyPlace(place)}else setMode('easy');
+};
+function afterFetch(d){
+  const P=sanitize(d);if(!P)return;
+  openAct(b=>{
+    b.append(el('h3','',P.name),el('p','',[P.category,P.roadAddress].filter(Boolean).join(' · ')));
+    const ch=el('div','e-choices');
+    const B=(l,s,cls,fn)=>{const x=el('button','e-btn '+cls);x.type='button';x.append(el('b','',l),el('div','e-btn-sub',s));x.onclick=fn;ch.append(x)};
+    B('다녀왔어요','지금 바로 질문에 답하기','primary',()=>{closeAct();applyPlace(P)});
+    B('지금 매장이에요','현장 메모 남기기'+(IS_APP?' · 3시간 뒤 알림':''),'',()=>{const r=addPlan(P,new Date(),'방문 중');openQuickMemo(P);if(IS_APP)toast(fmtTime(r)+'에 알려드릴게요')});
+    B('갈 예정이에요','날짜 정해두면 '+(IS_APP?'다녀온 뒤 알려드려요':'갈 곳 목록에 저장돼요'),'',()=>openPlanSheet(P));
+    b.append(ch);
+  });
+}
+function openPlanSheet(P){
+  const st={day:'오늘',date:'',slot:'저녁',time:''};
+  openAct(b=>{
+    b.append(el('h3','',P.name+' 언제 가요?'),el('p','','대략이면 돼요. 다녀올 시간 3시간 뒤에 알려드려요.'));
+    const dIn=document.createElement('input');dIn.type='date';dIn.hidden=true;dIn.oninput=()=>{st.date=dIn.value};
+    b.append(el('div','e-label','날짜'),eChips(['오늘','내일','모레','날짜 선택'],t=>st.day===t,t=>{st.day=t;dIn.hidden=t!=='날짜 선택'}),dIn);
+    const tIn=document.createElement('input');tIn.type='time';tIn.hidden=true;tIn.oninput=()=>{st.time=tIn.value};
+    b.append(el('div','e-label','시간'),eChips(['점심','저녁','시간 선택'],t=>st.slot===t,t=>{st.slot=t;tIn.hidden=t!=='시간 선택'}),tIn);
+    const save=el('button','e-btn primary','등록하기');save.type='button';
+    save.onclick=()=>{
+      let d=new Date();d.setSeconds(0,0);
+      if(st.day==='내일')d.setDate(d.getDate()+1);else if(st.day==='모레')d.setDate(d.getDate()+2);
+      else if(st.day==='날짜 선택'){if(!st.date){toast('날짜를 골라주세요');return}const [y,m,dd]=st.date.split('-').map(Number);d=new Date(y,m-1,dd)}
+      let hh=18,mm=30,label='저녁';
+      if(st.slot==='점심'){hh=12;mm=0;label='점심'}
+      else if(st.slot==='시간 선택'){if(!st.time){toast('시간을 골라주세요');return}[hh,mm]=st.time.split(':').map(Number);label=st.time}
+      d.setHours(hh,mm,0,0);
+      const r=addPlan(P,d,label);closeAct();
+      toast(IS_APP?`등록했어요. ${fmtTime(r)}에 알려드릴게요`:'갈 곳에 등록했어요');
+      if(S&&S.mode==='easy')renderEasy();
+    };
+    const cancel=el('button','e-btn ghost','뒤로');cancel.type='button';cancel.onclick=()=>afterFetch(P);
+    b.append(save,cancel);
+  });
+}
+
+/* ---------- 말로 남기기: 앱은 폰 음성 인식(최대 1분), 웹은 브라우저 음성 인식 ---------- */
+let VOICE=null;
+window.chdVoice=ev=>{
+  let o=ev;try{if(typeof ev==='string')o=JSON.parse(ev)}catch(e){return}
+  if(!VOICE)return;
+  if(o.type==='partial')VOICE.live.textContent=o.text||'';
+  else if(o.type==='final'){const s=(o.text||'').trim();if(s){const t=VOICE.t;t.value=(t.value.trim()?t.value.trim()+' ':'')+s;t.dispatchEvent(new Event('input'))}VOICE.live.textContent=''}
+  else if(o.type==='tick')VOICE.btn.textContent=`듣는 중 ${o.text}초 남음 · 누르면 멈춰요`;
+  else if(o.type==='error'){if(o.text)toast(o.text)}
+  else if(o.type==='end')voiceReset();
+};
+function voiceReset(){if(!VOICE)return;VOICE.btn.classList.remove('rec');VOICE.btn.textContent='말로 남기기 (최대 1분)';VOICE.live.textContent='';VOICE=null}
+function voiceStop(){if(IS_APP&&ChdNative.stopVoice)ChdNative.stopVoice();else voiceReset()}
+function voiceButton(t,set){
+  if(!(IS_APP&&ChdNative.startVoice))return micBtn(t,set);
+  const w=el('div');const b=el('button','mic','말로 남기기 (최대 1분)');b.type='button';const live=el('div','e-tip','');
+  b.onclick=()=>{
+    if(VOICE&&VOICE.btn===b){voiceStop();return}
+    if(VOICE)voiceStop();
+    VOICE={t,btn:b,live};b.classList.add('rec');b.textContent='듣는 중… 누르면 멈춰요';
+    ChdNative.startVoice();
+  };
+  w.append(b,live);return w;
+}
 let PENDING_LINK='';
 let RESUME=null;
 function applyPlace(d){
@@ -942,7 +1131,7 @@ function micBtn(t,set){
 function eText(get,set,ph,big,cls){
   const w=el('div');const t=document.createElement(big?'textarea':'input');if(!big)t.type='text';if(cls)t.className=cls;
   t.placeholder=ph||'';t.value=get()||'';t.oninput=()=>{set(t.value);changed()};w.append(t);
-  if(big)w.append(micBtn(t,set));
+  if(big)w.append(voiceButton(t,set));
   return w;
 }
 function hintPool(){
@@ -969,7 +1158,7 @@ function easyCards(){
     const go2=el('button','e-btn primary','가져오기');go2.type='button';
     const msg=el('div','e-tip','');
     const run=async()=>{go2.disabled=true;go2.textContent='가져오는 중…';msg.textContent='';
-      try{applyPlace(await fetchPlace(inp.value))}catch(e){msg.textContent=e.message||String(e);go2.disabled=false;go2.textContent='가져오기'}};
+      try{const d=await fetchPlace(inp.value);go2.disabled=false;go2.textContent='가져오기';afterFetch(d)}catch(e){msg.textContent=e.message||String(e);go2.disabled=false;go2.textContent='가져오기'}};
     go2.onclick=run;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();run()}};
     if(RESUME&&RESUME.name){
       const r=RESUME;let st=0;try{st=(JSON.parse(localStorage.getItem('chd-memo-v2-'+r.id)||'{}').step||0)}catch(e){}
@@ -979,6 +1168,19 @@ function easyCards(){
     }
     b.append(inp,go2,msg);
     if(PENDING_LINK){PENDING_LINK='';setTimeout(run,50)}
+    const plans=getPlans();
+    if(plans.length){
+      b.append(el('div','e-label','갈 곳 (미리 등록한 가게)'));
+      plans.forEach(p=>{
+        const row=el('div','plan');const info=el('div','plan-i');
+        const nm=getQM(p.id).length;
+        info.append(el('b','',p.place.name),el('span','',planLabel(p)+(nm?` · 메모 ${nm}`:'')));
+        const m=el('button','btn sm','메모');m.type='button';m.onclick=()=>openQuickMemo(p.place);
+        const g=el('button','btn sm primary','다녀왔어요');g.type='button';g.onclick=()=>{removePlan(p.id);applyPlace(p.place)};
+        const x=el('button','btn sm','×');x.type='button';x.onclick=()=>{if(confirm(p.place.name+' 을(를) 목록에서 뷸까요?')){removePlan(p.id);renderEasy()}};
+        row.append(info,m,g,x);b.append(row);
+      });
+    }
 
     b.append(el('div','e-label','링크 없이 쓸 때'));
     b.append(el('div','e-label','업체 이름'),eText(()=>S.f.biz,x=>S.f.biz=x,'예: 춘천 OO닭갈비'));
@@ -988,8 +1190,12 @@ function easyCards(){
     b.append(box);
   }});
   cards.push({id:'with',src:'누구랑',q:visit?'누구랑 갔어요?':'누구랑 같이 썼어요?',sub:'여러 개 골라도 돼요.',body:b=>{
+    const pf=getProfile();
+    if(pf.me||(pf.with&&pf.with.length))b.append(el('div','e-tip','내 프로필에서 불러왔어요. 오늘은 다르면 바꿔주세요.'));
     b.append(mChips('with',['혼자','남편/아내','연인','아이','부모님','친구','직장 동료','반려견']));
     b.append(el('div','e-label','조금 더 자세히 (선택)'),eText(()=>S.f.withDetail,x=>S.f.withDetail=x,'예: 남편, 7살·5살 아들 둘'));
+    b.append(el('div','e-label','나는 어떤 사람? (한 번만 적으면 돼요)'),eText(()=>S.f.me,x=>S.f.me=x,'예: 두 아이 엄마, 매운 거 잘 못 먹음, 15년차 제빵사'));
+    const sv=el('button','mic','이대로 내 프로필로 저장');sv.type='button';sv.onclick=saveProfile;b.append(sv);
   }});
   cards.push({id:'why',src:'왜',q:visit?'왜 가게 됐어요?':'왜 써보게 됐어요?',body:b=>{
     b.append(mChips('reason',visit?['체험단 선정','여행 중','등산·나들이 후','집·회사 근처','기념일','부모님 효도','데이트','평소 궁금했던 곳','재방문']:['체험단 선정','평소 필요했던 제품','기존 제품 교체','선물용','후기 보고 궁금']));
@@ -1078,6 +1284,7 @@ function renderEasy(){
   top.append(back,el('span',''),sk);
   const bar=el('div','e-bar');bar.append(el('i'));
   box.append(top,bar);
+  if(PLACE&&!c.done){const nm=getQM(PLACE.id).length;const mm=el('div','e-memo');const mb=el('button','',`+ 현장 메모${nm?` (${nm})`:''}`);mb.type='button';mb.onclick=()=>openQuickMemo(PLACE);mm.append(mb);box.append(mm)}
   if(c.src)box.append(el('div','e-src',c.src));
   box.append(el('h1','e-q',c.q));if(c.sub)box.append(el('p','e-sub',c.sub));
   const body=el('div','e-body');box.append(body);
@@ -1095,7 +1302,7 @@ function renderEasy(){
   if(showNext){const f=el('div','e-foot');const n=el('button','e-btn '+(c.nextLabel?'ghost':'primary'),c.nextLabel||'다음');n.type='button';n.onclick=()=>go(1);f.append(n);box.append(f)}
   updTop();window.scrollTo(0,0);
 }
-function goStep(n){if(REC)REC.stop();S.step=n;save();renderEasy()}
+function goStep(n){if(REC)REC.stop();if(VOICE)voiceStop();S.step=n;save();renderEasy()}
 /* 앱 뒤로가기: 이전 카드로. 더 뒤로 갈 곳이 없으면 false */
 window.chdBack=()=>{
   const pv=document.querySelector('#previewPane.open');if(pv){pv.classList.remove('open');return true}
@@ -1111,6 +1318,8 @@ function setMode(m,anchor){
   save();
 }
 $('#btnSample').onclick=()=>{if(V('biz')&&!confirm('지금 메모를 예시로 덮어쓸까요?'))return;S=sample();S.mode='full';renderForm();refresh();toast('예시를 채웠어요.')};
+$('#pvSend').onclick=()=>sendAll();
+$('#pvCopy').onclick=()=>$('#btnCopy').click();
 $('#fabPreview').onclick=()=>$('#previewPane').classList.add('open');
 $('#btnClose').onclick=()=>$('#previewPane').classList.remove('open');
 
@@ -1142,7 +1351,8 @@ async function boot(){
     try{PLACE=await unpackData(h)}
     catch(e){setTimeout(()=>toast('링크 데이터를 읽지 못했어요. 직접 입력 모드로 열어요.'),300)}
   }
-  const incoming=(IS_APP&&ChdNative.takeIncoming?ChdNative.takeIncoming():'')||clipLink();
+  const planId=IS_APP&&ChdNative.takePlan?ChdNative.takePlan():'';
+  const incoming=planId?'':((IS_APP&&ChdNative.takeIncoming?ChdNative.takeIncoming():'')||clipLink());
   /* 앱을 다시 열면 첫 화면부터. 쓰던 가게는 "이어서 쓰기" 버튼으로 */
   if(!PLACE&&!h&&!incoming){try{RESUME=sanitize(JSON.parse(localStorage.getItem(LAST_KEY)||'null'))}catch(e){}}
   PLACE=sanitize(PLACE);
@@ -1152,6 +1362,7 @@ async function boot(){
   if(!PLACE){S.step=0;S.mode='easy'}
   loadPhotos();
   if(PLACE)$('#btnSample').remove();
+  if(planId){setMode('easy');window.chdOpenPlan(planId);return}
   if(incoming){window.chdIncoming(incoming);return}
   setMode(S.mode||'easy');
 }

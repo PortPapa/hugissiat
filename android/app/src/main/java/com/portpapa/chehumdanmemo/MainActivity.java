@@ -43,6 +43,15 @@ import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import android.Manifest;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Handler;
+import android.os.Looper;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -80,6 +89,7 @@ public class MainActivity extends Activity {
 
     private WebView web;
     private String incoming = "";
+    private String pendingPlan = "";
     private final ExecutorService pool = Executors.newFixedThreadPool(2);
 
     @Override
@@ -169,6 +179,13 @@ public class MainActivity extends Activity {
         super.onNewIntent(intent);
         setIntent(intent);
         handleIntent(intent);
+        if (!pendingPlan.isEmpty()) {
+            String p = pendingPlan;
+            pendingPlan = "";
+            incoming = "";
+            web.evaluateJavascript("window.chdOpenPlan&&window.chdOpenPlan(" + JSONObject.quote(p) + ")", null);
+            return;
+        }
         if (!incoming.isEmpty()) {
             String t = incoming;
             incoming = "";
@@ -188,6 +205,11 @@ public class MainActivity extends Activity {
     }
 
     private void handleIntent(Intent intent) {
+        if (intent != null && intent.getStringExtra("plan") != null) {
+            pendingPlan = intent.getStringExtra("plan");
+            intent.removeExtra("plan");
+            return;
+        }
         if (intent != null && Intent.ACTION_SEND.equals(intent.getAction())) {
             CharSequence t = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
             if (t != null) incoming = t.toString();
@@ -311,8 +333,116 @@ public class MainActivity extends Activity {
         });
     }
 
+    /* ---------- 말로 남기기: 폰 음성 인식. 말이 끊겨도 1분까지 자동으로 다시 듣는다 ---------- */
+    private static final int REQ_MIC = 51, REQ_NOTI = 52;
+    private static final long VOICE_MAX = 60_000;
+    private final Handler ui = new Handler(Looper.getMainLooper());
+    private SpeechRecognizer sr;
+    private boolean voiceOn = false;
+    private long voiceStart = 0;
+
+    private void voiceEvent(String type, String text) {
+        try {
+            JSONObject o = new JSONObject();
+            o.put("type", type);
+            o.put("text", text == null ? "" : text);
+            String js = "window.chdVoice&&window.chdVoice(" + JSONObject.quote(o.toString()) + ")";
+            runOnUiThread(() -> web.evaluateJavascript(js, null));
+        } catch (Exception ignored) {}
+    }
+
+    private final Runnable ticker = new Runnable() {
+        @Override public void run() {
+            if (!voiceOn) return;
+            long left = VOICE_MAX - (System.currentTimeMillis() - voiceStart);
+            if (left <= 0) { voiceOn = false; if (sr != null) sr.stopListening(); return; }
+            voiceEvent("tick", String.valueOf((left + 999) / 1000));
+            ui.postDelayed(this, 1000);
+        }
+    };
+
+    private void beginVoice() {
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            voiceEvent("error", "이 폰에서는 음성 인식을 쓸 수 없어요. 키보드 마이크를 써주세요.");
+            voiceEvent("end", "");
+            return;
+        }
+        if (sr == null) {
+            sr = SpeechRecognizer.createSpeechRecognizer(this);
+            sr.setRecognitionListener(listener);
+        }
+        voiceOn = true;
+        voiceStart = System.currentTimeMillis();
+        listen();
+        ui.removeCallbacks(ticker);
+        ui.post(ticker);
+    }
+
+    private void listen() {
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");
+        i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 4000L);
+        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 4000L);
+        try { sr.startListening(i); } catch (Exception e) { voiceOn = false; voiceEvent("end", ""); }
+    }
+
+    private boolean canContinue() {
+        return voiceOn && System.currentTimeMillis() - voiceStart < VOICE_MAX;
+    }
+
+    private void finishVoice() {
+        voiceOn = false;
+        ui.removeCallbacks(ticker);
+        voiceEvent("end", "");
+    }
+
+    private static String first(Bundle b) {
+        if (b == null) return "";
+        ArrayList<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+        return (r == null || r.isEmpty()) ? "" : r.get(0);
+    }
+
+    private final RecognitionListener listener = new RecognitionListener() {
+        @Override public void onReadyForSpeech(Bundle p) {}
+        @Override public void onBeginningOfSpeech() {}
+        @Override public void onRmsChanged(float v) {}
+        @Override public void onBufferReceived(byte[] b) {}
+        @Override public void onEndOfSpeech() {}
+        @Override public void onEvent(int t, Bundle p) {}
+        @Override public void onPartialResults(Bundle b) { voiceEvent("partial", first(b)); }
+        @Override public void onResults(Bundle b) {
+            voiceEvent("final", first(b));
+            if (canContinue()) listen(); else finishVoice();
+        }
+        @Override public void onError(int e) {
+            if (canContinue() && (e == SpeechRecognizer.ERROR_NO_MATCH || e == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)) { listen(); return; }
+            if (canContinue() && e == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) { ui.postDelayed(MainActivity.this::listen, 400); return; }
+            if (e == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) voiceEvent("error", "마이크 권한이 필요해요");
+            else if (e == SpeechRecognizer.ERROR_NETWORK || e == SpeechRecognizer.ERROR_NETWORK_TIMEOUT) voiceEvent("error", "인터넷 연결을 확인해주세요");
+            finishVoice();
+        }
+    };
+
+    @Override
+    public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
+        super.onRequestPermissionsResult(req, perms, res);
+        if (req == REQ_MIC) {
+            if (res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED) beginVoice();
+            else { voiceEvent("error", "마이크 권한을 허용하면 말로 남길 수 있어요"); voiceEvent("end", ""); }
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (voiceOn) { voiceOn = false; if (sr != null) sr.stopListening(); }
+    }
+
     @Override
     protected void onDestroy() {
+        if (sr != null) { try { sr.destroy(); } catch (Exception ignored) {} }
         pool.shutdownNow();
         super.onDestroy();
     }
@@ -370,6 +500,55 @@ public class MainActivity extends Activity {
                 }
                 callback(id, res);
             });
+        }
+
+        @JavascriptInterface
+        public void startVoice() {
+            if (!trusted) return;
+            runOnUiThread(() -> {
+                if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_MIC);
+                    return;
+                }
+                beginVoice();
+            });
+        }
+
+        @JavascriptInterface
+        public void stopVoice() {
+            runOnUiThread(() -> {
+                if (voiceOn) { voiceOn = false; ui.removeCallbacks(ticker); if (sr != null) sr.stopListening(); }
+                else voiceEvent("end", "");
+            });
+        }
+
+        /** 다녀온 뒤 알림 예약. id=가게 번호, at=밀리초 */
+        @JavascriptInterface
+        public void scheduleReminder(String id, String at, String title, String body) {
+            if (!trusted || id == null) return;
+            try {
+                long t = Long.parseLong(at);
+                ReminderReceiver.save(MainActivity.this, id, t, title, body);
+                ReminderReceiver.schedule(MainActivity.this, id, t, title, body);
+                if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    runOnUiThread(() -> requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTI));
+                }
+            } catch (Exception ignored) {}
+        }
+
+        @JavascriptInterface
+        public void cancelReminder(String id) {
+            if (!trusted || id == null) return;
+            ReminderReceiver.remove(MainActivity.this, id);
+            ReminderReceiver.cancel(MainActivity.this, id);
+        }
+
+        @JavascriptInterface
+        public String takePlan() {
+            if (!trusted) return "";
+            String p = pendingPlan;
+            pendingPlan = "";
+            return p;
         }
 
         @JavascriptInterface
