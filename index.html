@@ -285,6 +285,21 @@ body[data-tab=plans] #viewPlans,body[data-tab=records] #viewRecords,body[data-ta
 .qm-item.tap{cursor:pointer}
 .set-row.inb .ck{flex:none;width:20px;height:20px;border-radius:6px;border:2px solid var(--line)}
 .set-row.inb.on .ck{background:var(--acc);border-color:var(--acc);box-shadow:inset 0 0 0 3px var(--card)}
+.vrec{display:flex;align-items:center;gap:12px;margin:10px 0 8px}
+.vr-btn{width:54px;height:54px;border-radius:50%;border:0;background:var(--acc-soft);color:var(--acc-ink);display:flex;align-items:center;justify-content:center;position:relative;flex:none;padding:0}
+.vr-btn svg{width:26px;height:26px}
+.vrec.on .vr-btn{background:var(--acc);color:#fff}
+.vrec.on .vr-btn::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--acc);animation:vrp 1.4s ease-out infinite}
+@keyframes vrp{from{transform:scale(.92);opacity:.7}to{transform:scale(1.3);opacity:0}}
+.vr-mid{display:flex;flex-direction:column;gap:5px;min-width:0}
+.vr-st{font-size:13.5px;color:var(--sub);font-weight:700}.vrec.on .vr-st{color:var(--acc-ink)}
+.vr-bars{display:flex;align-items:center;gap:3px;height:24px}
+.vr-bars i{display:block;width:4px;height:4px;border-radius:2px;background:var(--acc);transition:height .09s}
+.vrec:not(.on) .vr-bars{opacity:.3}
+.vrec.fake .vr-bars i{animation:vrb .9s ease-in-out infinite}
+.vrec.fake .vr-bars i:nth-child(2),.vrec.fake .vr-bars i:nth-child(4){animation-delay:.18s}.vrec.fake .vr-bars i:nth-child(3){animation-delay:.36s}
+@keyframes vrb{0%,100%{height:4px}50%{height:20px}}
+.vr-live{font-size:13px;color:var(--sub);margin:0 0 6px}.vr-live:empty{display:none}
 .done-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
 .done-row .e-btn{text-align:center;font-weight:700;margin:0}
 .e-btn.drive{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:8px;font-weight:700}
@@ -1202,10 +1217,9 @@ function openQuickMemo(place){
       list.scrollTop=list.scrollHeight};
     draw();
     const t=document.createElement('textarea');t.placeholder='지금 떠오른 것 한 줄';
-    const add=el('button','e-btn primary','메모 추가');add.type='button';
-    add.onclick=()=>{const v=t.value.trim();if(!v)return;const z=getQM(place.id);z.push({t:new Date().toISOString(),text:v});setQM(place.id,z);t.value='';draw();changed();toast('메모했어요')};
-    const close=el('button','e-btn ghost','닫기');close.type='button';close.onclick=()=>{closeAct();if(S&&S.mode==='easy')renderEasy()};
-    b.append(list,t,voiceButton(t,()=>{}),add,close);
+    const addNow=()=>{const v=t.value.trim();if(!v)return;const z=getQM(place.id);z.push({t:new Date().toISOString(),text:v});setQM(place.id,z);t.value='';draw();changed();toast('메모했어요')};
+    const close=el('button','e-btn primary','완료');close.type='button';close.onclick=()=>{voiceStop();addNow();closeAct();if(S&&S.mode==='easy')renderEasy()};
+    b.append(list,voiceButton(t,()=>{},addNow),t,close);
   });
 }
 
@@ -1318,29 +1332,47 @@ function openPlanSheet(P,keep){
   });
 }
 
-/* ---------- 말로 남기기: 앱은 폰 음성 인식(최대 1분), 웹은 브라우저 음성 인식 ---------- */
+/* ---------- 말로 남기기: 앱은 폰 음성 인식(최대 5분), 웹은 브라우저 음성 인식 ---------- */
 let VOICE=null;
+const MIC_SVG='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11 19.932c-2.814-.369-5.273-2.204-6.378-4.831a8 8 0 0 1-.416-1.285c-.126-.545-.272-1.159.214-1.575a1.01 1.01 0 0 1 1.553.327c.104.217.139.606.183.796c.114.491.291.966.524 1.413A6.05 6.05 0 0 0 12 17.999a6.05 6.05 0 0 0 5.319-3.222c.234-.447.411-.922.524-1.413c.083-.355.078-.725.327-1.015a1.01 1.01 0 0 1 1.584.086c.286.418.145.929.04 1.381q-.154.66-.416 1.285c-1.105 2.627-3.564 4.462-6.378 4.831V21l-.034.259c-.226.842-1.396.996-1.832.241c-.101-.175-.121-.302-.134-.5Zm6-7.903c-.093 3.218-2.956 5.588-6.146 4.841a5.03 5.03 0 0 1-2.391-1.333C7.521 14.594 7.038 13.35 7 12.029V6.971c.038-1.321.521-2.565 1.463-3.508C11.042.884 15.481 1.88 16.71 5.314c.193.539.274 1.087.29 1.657Zm-5.351-8.007C10.084 4.203 9.044 5.496 9 7.029v4.942c.048 1.668 1.285 3.027 3 3.027s2.952-1.359 3-3.027V7.029c-.052-1.814-1.498-3.222-3.351-3.007"/></svg>';
+/* 녹음 UI: 마이크 버튼 + 음량 막대 + 상태 */
+function vrUI(){
+  const wrap=el('div');const w=el('div','vrec');const b=el('button','vr-btn');b.type='button';b.innerHTML=MIC_SVG;b.setAttribute('aria-label','말로 남기기');
+  const mid=el('div','vr-mid');const st=el('div','vr-st','눌러서 말하기');const bars=el('div','vr-bars');for(let i=0;i<5;i++)bars.append(el('i'));
+  mid.append(st,bars);w.append(b,mid);const live=el('div','vr-live','');wrap.append(w,live);
+  return {wrap,w,b,st,bars,live};
+}
+function vrLevel(ui,v){const k=[.55,.8,1,.8,.55];ui.bars.querySelectorAll('i').forEach((x,i)=>{x.style.height=Math.round(4+v*k[i]*20*(0.8+Math.random()*0.4))+'px'})}
+const mmss=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
 window.chdVoice=ev=>{
   let o=ev;try{if(typeof ev==='string')o=JSON.parse(ev)}catch(e){return}
-  if(!VOICE)return;
-  if(o.type==='partial')VOICE.live.textContent=o.text||'';
-  else if(o.type==='final'){const s=(o.text||'').trim();if(s){const t=VOICE.t;t.value=(t.value.trim()?t.value.trim()+' ':'')+s;t.dispatchEvent(new Event('input'))}VOICE.live.textContent=''}
-  else if(o.type==='tick')VOICE.btn.textContent=`듣는 중 ${o.text}초 남음 · 누르면 멈춰요`;
+  if(!VOICE)return;const ui=VOICE.ui;
+  if(o.type==='partial')ui.live.textContent=o.text||'';
+  else if(o.type==='final'){const s=(o.text||'').trim();if(s){const t=VOICE.t;t.value=(t.value.trim()?t.value.trim()+' ':'')+s;t.dispatchEvent(new Event('input'))}ui.live.textContent=''}
+  else if(o.type==='tick'){const left=parseInt(o.text,10)||0;ui.st.textContent='듣는 중 '+mmss(Math.max(0,300-left))+' · 누르면 멈춰요'}
+  else if(o.type==='rms'){const r=parseFloat(o.text)||0;vrLevel(ui,Math.max(0,Math.min(1,(r+1)/10)))}
   else if(o.type==='error'){if(o.text)toast(o.text)}
   else if(o.type==='end')voiceReset();
 };
-function voiceReset(){if(!VOICE)return;const cb=VOICE.onEnd;setTimeout(()=>cb&&cb(),0);VOICE.btn.classList.remove('rec');VOICE.btn.textContent='말로 남기기 (최대 1분)';VOICE.live.textContent='';VOICE=null}
-function voiceStop(){if(IS_APP&&ChdNative.stopVoice)ChdNative.stopVoice();else voiceReset()}
+function voiceReset(){if(!VOICE)return;const cb=VOICE.onEnd,ui=VOICE.ui;VOICE=null;
+  ui.w.classList.remove('on','fake');ui.st.textContent='눌러서 말하기';ui.live.textContent='';vrLevel(ui,0);setTimeout(()=>cb&&cb(),0)}
+function voiceStop(){if(VOICE&&VOICE.rec){try{VOICE.rec.stop()}catch(e){}voiceReset();return}if(IS_APP&&ChdNative.stopVoice)ChdNative.stopVoice();else voiceReset()}
 function voiceButton(t,set,onEnd){
-  if(!(IS_APP&&ChdNative.startVoice))return micBtn(t,set,onEnd);
-  const w=el('div');const b=el('button','mic','말로 남기기 (최대 1분)');b.type='button';const live=el('div','e-tip','');
-  b.onclick=()=>{
-    if(VOICE&&VOICE.btn===b){voiceStop();return}
+  const app=IS_APP&&ChdNative.startVoice;
+  if(!app&&!SR)return el('div','e-tip','키보드의 마이크 버튼을 누르고 말로 남겨도 돼요.');
+  const ui=vrUI();
+  ui.b.onclick=()=>{
+    if(VOICE&&VOICE.ui===ui){voiceStop();return}
     if(VOICE)voiceStop();
-    VOICE={t,btn:b,live,onEnd};b.classList.add('rec');b.textContent='듣는 중… 누르면 멈춰요';
-    ChdNative.startVoice();
+    VOICE={t,ui,onEnd};ui.w.classList.add('on');ui.st.textContent='듣는 중 · 누르면 멈춰요';
+    if(app){ChdNative.startVoice();return}
+    ui.w.classList.add('fake');
+    const r=new SR();r.lang='ko-KR';r.continuous=true;r.interimResults=true;VOICE.rec=r;
+    r.onresult=e=>{let part='';for(let i=e.resultIndex;i<e.results.length;i++){const s=e.results[i][0].transcript;if(e.results[i].isFinal){const x=s.trim();if(x){t.value=(t.value.trim()?t.value.trim()+' ':'')+x;set&&set(t.value);t.dispatchEvent(new Event('input'))}}else part+=s}ui.live.textContent=part};
+    r.onend=()=>{if(VOICE&&VOICE.ui===ui)voiceReset()};r.onerror=r.onend;
+    try{r.start()}catch(e){voiceReset()}
   };
-  w.append(b,live);return w;
+  return ui.wrap;
 }
 let PENDING_LINK='';
 let RESUME=null;
@@ -1408,20 +1440,7 @@ const mChips=(id,opts)=>{const v=mv(id);return eChips(opts,t=>v.sel.includes(t),
 const rChips=(id,opts)=>{const v=rv(id);return eChips(opts,t=>v.sel===t,t=>{v.sel=v.sel===t?'':t})};
 const hChips=(store,list)=>eChips(list,t=>store[t]===1,t=>{if(store[t]===1)delete store[t];else store[t]=1},true);
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let REC=null;
-function micBtn(t,set,onEnd){
-  if(!SR)return el('div','e-tip','키보드의 마이크 버튼을 누르고 말로 남겨도 돼요.');
-  const b=el('button','mic','말로 입력');b.type='button';
-  b.onclick=()=>{
-    if(REC){REC.stop();return}
-    const r=new SR();r.lang='ko-KR';r.continuous=true;r.interimResults=false;REC=r;
-    b.classList.add('rec');b.textContent='듣는 중… 다시 누르면 멈춰요';
-    r.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal){const s=e.results[i][0].transcript.trim();if(s){t.value=(t.value.trim()?t.value.trim()+' ':'')+s;set(t.value);changed()}}};
-    const end=()=>{REC=null;b.classList.remove('rec');b.textContent='말로 입력';onEnd&&onEnd()};
-    r.onend=end;r.onerror=end;
-    try{r.start()}catch(e){end()}
-  };
-  return b;
-}
+function micBtn(t,set,onEnd){return voiceButton(t,set,onEnd)}
 function eText(get,set,ph,big,cls){
   const w=el('div');const t=document.createElement(big?'textarea':'input');if(!big)t.type='text';if(cls)t.className=cls;
   t.placeholder=ph||'';t.value=get()||'';t.oninput=()=>{set(t.value);changed()};w.append(t);
@@ -2100,9 +2119,8 @@ function voiceMemo(place){openAct(b=>{
   const t=document.createElement('textarea');t.placeholder='말하거나 적기';
   const addNow=()=>{const v=t.value.trim();if(!v)return;const z=getQM(place.id);z.push({t:new Date().toISOString(),text:v});setQM(place.id,z);t.value='';draw();if(S&&PLACE&&String(PLACE.id)===String(place.id))changed();toast('메모했어요')};
   const vb=voiceButton(t,()=>{},addNow);
-  const add=el('button','e-btn primary','메모 추가');add.type='button';add.onclick=addNow;
-  const dn=el('button','e-btn ghost','완료');dn.type='button';dn.onclick=()=>{voiceStop();closeAct();if(TAB==='home')renderHome()};
-  b.append(list,t,vb,add,dn);
+  const dn=el('button','e-btn primary','완료');dn.type='button';dn.onclick=()=>{voiceStop();addNow();closeAct();if(TAB==='home')renderHome()};
+  b.append(list,vb,t,dn);
   setTimeout(()=>{const m=vb.matches&&vb.matches('button')?vb:vb.querySelector('button');if(m)m.click()},350);
 })}
 $('#dkAdd').onclick=()=>addFromLink();

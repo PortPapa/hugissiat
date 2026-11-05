@@ -572,9 +572,10 @@ public class MainActivity extends Activity {
         });
     }
 
-    /* ---------- 말로 남기기: 폰 음성 인식. 말이 끊겨도 1분까지 자동으로 다시 듣는다 ---------- */
+    /* ---------- 말로 남기기: 폰 음성 인식. 말이 끊겨도 5분까지 자동으로 다시 듣는다 ---------- */
     private static final int REQ_MIC = 51, REQ_NOTI = 52;
-    private static final long VOICE_MAX = 60_000;
+    private static final long VOICE_MAX = 300_000;
+    private long rmsAt = 0;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private SpeechRecognizer sr;
     private boolean voiceOn = false;
@@ -646,7 +647,12 @@ public class MainActivity extends Activity {
     private final RecognitionListener listener = new RecognitionListener() {
         @Override public void onReadyForSpeech(Bundle p) {}
         @Override public void onBeginningOfSpeech() {}
-        @Override public void onRmsChanged(float v) {}
+        @Override public void onRmsChanged(float v) {
+            long now = System.currentTimeMillis();
+            if (now - rmsAt < 90) return;
+            rmsAt = now;
+            voiceEvent("rms", String.valueOf(v));
+        }
         @Override public void onBufferReceived(byte[] b) {}
         @Override public void onEndOfSpeech() {}
         @Override public void onEvent(int t, Bundle p) {}
