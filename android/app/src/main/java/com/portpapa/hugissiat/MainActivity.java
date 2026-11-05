@@ -334,11 +334,23 @@ public class MainActivity extends Activity {
         JSONObject o = new JSONObject();
         try {
             o.put("op", "backup");
-            String root = driveFolder(token, "후기씨앗 백업", "root");
+            final boolean sil = job.optBoolean("silent", false);
             byte[] data = job.optString("data", "{}").getBytes(StandardCharsets.UTF_8);
+            File base0 = new File(getFilesDir(), "photos");
+            File[] keys0 = base0.listFiles(File::isDirectory);
+            long tot = data.length;
+            int cnt = 0;
+            if (keys0 != null) for (File k : keys0) { File[] fs0 = k.listFiles(f -> f.isFile() && !f.getName().startsWith(".")); if (fs0 != null) for (File f : fs0) { tot += f.length(); cnt++; } }
+            final long allB = tot;
+            final int pn = cnt;
+            final long[] done = {0};
+            int idx = 0;
+            driveProg("backup", sil, "prep", 0, pn, 0, allB, true);
+            String root = driveFolder(token, "후기씨앗 백업", "root");
             String id = driveFind(token, "backup.json", root, false);
             if (id != null) driveCall(token, "PATCH", "https://www.googleapis.com/upload/drive/v3/files/" + id + "?uploadType=media", "application/json; charset=UTF-8", data);
             else driveCreate(token, root, "backup.json", "application/json; charset=UTF-8", data);
+            done[0] += data.length;
             int up = 0;
             File base = new File(getFilesDir(), "photos");
             File[] keys = base.listFiles(File::isDirectory);
@@ -350,10 +362,15 @@ public class MainActivity extends Activity {
                     String kf = driveFolder(token, k.getName(), pr);
                     java.util.HashSet<String> have = driveNames(token, kf);
                     for (File f : fs) {
-                        if (have.contains(f.getName())) continue;
+                        idx++;
+                        final int ix = idx;
+                        driveProg("backup", sil, "photo", ix, pn, done[0], allB, true);
+                        if (have.contains(f.getName())) { done[0] += f.length(); continue; }
                         String ext = f.getName().replaceAll("^.*\\.", "").toLowerCase(java.util.Locale.ROOT);
                         String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-                        driveCreate(token, kf, f.getName(), mime == null ? "image/jpeg" : mime, readAll(f));
+                        final long b0 = done[0];
+                        driveCreate(token, kf, f.getName(), mime == null ? "image/jpeg" : mime, readAll(f), n -> driveProg("backup", sil, "photo", ix, pn, b0 + n, allB, false));
+                        done[0] += f.length();
                         up++;
                     }
                 }
@@ -375,10 +392,12 @@ public class MainActivity extends Activity {
             if (root == null) throw new Exception("none");
             String id = driveFind(token, "backup.json", root, false);
             if (id == null) throw new Exception("none");
+            driveProg("restore", false, "prep", 0, 0, 0, 1, true);
             String data = new String(driveDownload(token, id), StandardCharsets.UTF_8);
             int down = 0;
             String pr = driveFind(token, "photos", root, true);
             if (pr != null) {
+                java.util.ArrayList<Object[]> todo = new java.util.ArrayList<>();
                 JSONArray ks = driveList(token, pr, true);
                 for (int i = 0; i < ks.length(); i++) {
                     JSONObject k = ks.getJSONObject(i);
@@ -389,9 +408,14 @@ public class MainActivity extends Activity {
                         String nm = f.getString("name");
                         if (nm.contains("/") || nm.contains("..")) continue;
                         File out = new File(dir, nm);
-                        if (out.exists()) continue;
-                        try (OutputStream os = new FileOutputStream(out)) { os.write(driveDownload(token, f.getString("id"))); down++; }
+                        if (!out.exists()) todo.add(new Object[]{out, f.getString("id")});
                     }
+                }
+                int n = todo.size();
+                for (int i = 0; i < n; i++) {
+                    driveProg("restore", false, "photo", i + 1, n, i, n, true);
+                    Object[] t = todo.get(i);
+                    try (OutputStream os = new FileOutputStream((File) t[0])) { os.write(driveDownload(token, (String) t[1])); down++; }
                 }
             }
             o.put("ok", true);
@@ -610,7 +634,27 @@ public class MainActivity extends Activity {
         return s.replace("\\", "\\\\").replace("'", "\\'");
     }
 
+    interface Bytes { void on(long n); }
+    private volatile long progT = 0;
+    /** 드라이브 작업 진행률을 화면에 알린다 (op: save/backup/restore) */
+    private void driveProg(String op, boolean silent, String stage, int i, int n, long done, long total, boolean force) {
+        if (silent) return;
+        long now = System.currentTimeMillis();
+        if (!force && now - progT < 180) return;
+        progT = now;
+        try {
+            JSONObject o = new JSONObject();
+            o.put("op", op); o.put("stage", stage); o.put("i", i); o.put("n", n); o.put("done", done); o.put("total", total);
+            String js = "window.chdProgress&&window.chdProgress(" + JSONObject.quote(o.toString()) + ")";
+            runOnUiThread(() -> web.evaluateJavascript(js, null));
+        } catch (Exception ignored) {}
+    }
+
     private JSONObject driveCall(String token, String method, String url, String ctype, byte[] body) throws Exception {
+        return driveCall(token, method, url, ctype, body, null);
+    }
+
+    private JSONObject driveCall(String token, String method, String url, String ctype, byte[] body, Bytes cb) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         c.setConnectTimeout(15000);
         c.setReadTimeout(60000);
@@ -625,7 +669,18 @@ public class MainActivity extends Activity {
             c.setDoOutput(true);
             c.setRequestProperty("Content-Type", ctype);
             c.setFixedLengthStreamingMode(body.length);
-            try (OutputStream os = c.getOutputStream()) { os.write(body); }
+            try (OutputStream os = c.getOutputStream()) {
+                if (cb == null) os.write(body);
+                else {
+                    int off = 0;
+                    while (off < body.length) {
+                        int len = Math.min(32768, body.length - off);
+                        os.write(body, off, len);
+                        off += len;
+                        cb.on(off);
+                    }
+                }
+            }
         }
         int code = c.getResponseCode();
         InputStream in = code < 400 ? c.getInputStream() : c.getErrorStream();
@@ -662,6 +717,10 @@ public class MainActivity extends Activity {
     }
 
     private void driveCreate(String token, String parent, String name, String mime, byte[] data) throws Exception {
+        driveCreate(token, parent, name, mime, data, null);
+    }
+
+    private void driveCreate(String token, String parent, String name, String mime, byte[] data, Bytes cb) throws Exception {
         String bd = "chd" + System.nanoTime();
         JSONObject m = new JSONObject();
         m.put("name", name);
@@ -671,8 +730,10 @@ public class MainActivity extends Activity {
                 + "\r\nContent-Type: " + mime + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
         b.write(data);
         b.write(("\r\n--" + bd + "--").getBytes(StandardCharsets.UTF_8));
+        byte[] all = b.toByteArray();
+        final long head = all.length - data.length;
         driveCall(token, "POST", "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
-                "multipart/related; boundary=" + bd, b.toByteArray());
+                "multipart/related; boundary=" + bd, all, cb == null ? null : n -> cb.on(Math.max(0, Math.min(data.length, n - head))));
     }
 
     private static byte[] readAll(File f) throws Exception {
@@ -689,13 +750,22 @@ public class MainActivity extends Activity {
         try {
             JSONObject job = new JSONObject(jobJson);
             JSONArray path = job.getJSONArray("path");
+            File[] photos = photoFilesOf(job.optString("key", photoKey));
+            byte[] md0 = job.optString("md", "").getBytes(StandardCharsets.UTF_8);
+            long tot = md0.length;
+            for (File f : photos) tot += f.length();
+            final long allB = tot;
+            final long[] base = {0};
+            final int pn = photos.length;
+            driveProg("save", false, "prep", 0, pn, 0, allB, true);
             String parent = "root";
             for (int i = 0; i < path.length(); i++) {
                 String nm = path.getString(i).replaceAll("[\\\\/]", "_").trim();
                 if (!nm.isEmpty()) parent = driveFolder(token, nm, parent);
             }
             String mdName = job.optString("mdName", "후기 소스.md").replaceAll("[\\\\/:*?\"<>|]", "_");
-            byte[] md = job.optString("md", "").getBytes(StandardCharsets.UTF_8);
+            byte[] md = md0;
+            driveProg("save", false, "md", 0, pn, 0, allB, true);
             String mdId = driveFind(token, mdName, parent, false);
             if (mdId != null) {
                 driveCall(token, "PATCH", "https://www.googleapis.com/upload/drive/v3/files/" + mdId + "?uploadType=media",
@@ -703,17 +773,23 @@ public class MainActivity extends Activity {
             } else {
                 driveCreate(token, parent, mdName, "text/markdown; charset=UTF-8", md);
             }
+            base[0] += md.length;
             int added = 0, total = 0;
             String prefix = job.optString("prefix", "").replaceAll("[\\\\/:*?\"<>|]", " ").trim();
-            for (File f : photoFilesOf(job.optString("key", photoKey))) {
+            for (File f : photos) {
                 total++;
+                final int idx = total;
+                driveProg("save", false, "photo", idx, pn, base[0], allB, true);
                 String up = prefix.isEmpty() ? f.getName() : prefix + " " + f.getName();
-                if (driveFind(token, up, parent, false) != null) continue;
+                if (driveFind(token, up, parent, false) != null) { base[0] += f.length(); continue; }
                 String ext = f.getName().replaceAll("^.*\\.", "").toLowerCase(java.util.Locale.ROOT);
                 String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-                driveCreate(token, parent, up, mime == null ? "image/jpeg" : mime, readAll(f));
+                final long b0 = base[0];
+                driveCreate(token, parent, up, mime == null ? "image/jpeg" : mime, readAll(f), n -> driveProg("save", false, "photo", idx, pn, b0 + n, allB, false));
+                base[0] += f.length();
                 added++;
             }
+            driveProg("save", false, "done", pn, pn, allB, allB, true);
             JSONObject o = new JSONObject();
             o.put("folder", parent);
             o.put("url", "https://drive.google.com/drive/folders/" + parent);
