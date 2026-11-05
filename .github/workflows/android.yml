@@ -24,21 +24,35 @@ jobs:
         with:
           gradle-version: '8.14.3'
 
-      - name: 페이지를 앱 assets로 복사
+      - name: 페이지를 앱 assets로 복사 (오프라인용)
         run: |
           mkdir -p android/app/src/main/assets
           cp index.html android/app/src/main/assets/index.html
 
-      - name: 테스트용 APK 빌드
-        run: gradle -p android assembleDebug --no-daemon --stacktrace
+      - name: 고정 서명 키 준비
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.p12"
+          echo "SIGNING_KEYSTORE=$RUNNER_TEMP/upload.p12" >> "$GITHUB_ENV"
+
+      - name: 테스트용 APK + Play 업로드용 AAB 빌드
+        env:
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+          SIGNING_ALIAS: ${{ secrets.SIGNING_ALIAS }}
+        run: gradle -p android assembleDebug bundleRelease --no-daemon --stacktrace
 
       - name: 이름 정리
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk hugissiat-test.apk
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk hugissiat-test.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab hugissiat-release.aab
 
       - uses: actions/upload-artifact@v4
         with:
-          name: hugissiat-test
-          path: hugissiat-test.apk
+          name: hugissiat-build
+          path: |
+            hugissiat-test.apk
+            hugissiat-release.aab
 
       - name: 테스트 빌드 릴리스에 올리기 (폰에서 바로 받기용)
         uses: softprops/action-gh-release@v2
