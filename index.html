@@ -156,7 +156,7 @@ body.act #actBg{opacity:1;pointer-events:auto}body.act #act{transform:none}
 #tabbar button .f{display:none}#tabbar button.on .f{display:block}#tabbar button.on .l{display:none}
 #tabbar button.on{color:var(--acc-ink)}
 body:not(.flow){padding-bottom:76px}
-body:not(.flow) #easy{min-height:calc(100dvh - 57px - 76px)}
+body:not(.flow) #easy{min-height:calc(100dvh - var(--hdr,61px) - 76px)}
 html,body{overscroll-behavior:none}
 
 body:not(.flow) .e-foot{bottom:64px}
@@ -267,6 +267,10 @@ body[data-tab=plans] #viewPlans,body[data-tab=records] #viewRecords,body[data-ta
 .chips.groups .chip b{font-size:14px}.chips.groups .chip small{font-size:11.5px;color:var(--sub);font-weight:400}
 .set-l.g2{flex-direction:column;align-items:flex-start;gap:1px;padding:8px 0}.set-l.g2 small{font-size:12px;color:var(--sub)}
 .chips.sug{margin-top:10px}
+.dk-pill{color:var(--ink);font-weight:700}.dk-lbl{overflow:hidden;text-overflow:ellipsis}
+.vm-h{display:flex;align-items:center;justify-content:space-between;gap:8px}.vm-h h3{margin:0 0 8px}
+.vm-ch{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px;font:inherit;font-size:13px;color:var(--sub)}
+.th.sm{width:32px;height:32px;border-radius:8px;flex:none}
 .done-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
 .done-row .e-btn{text-align:center;font-weight:700;margin:0}
 .e-btn.drive{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:8px;font-weight:700}
@@ -294,7 +298,7 @@ body.sheet #sheetBg{opacity:1;pointer-events:auto}body.sheet #sheet{transform:no
 /* ---------- 쉬운 모드 ---------- */
 body.easy .wrap,body.easy #fabPreview,body.easy #btnSample,body.easy #btnCopy,body.easy #btnDown,body.easy .progress{display:none!important}
 body:not(.easy) #easy{display:none}
-#easy{max-width:560px;margin:0 auto;padding:14px 18px 0;min-height:calc(100dvh - 57px);box-sizing:border-box;display:flex;flex-direction:column}
+#easy{max-width:560px;margin:0 auto;padding:14px 18px 0;min-height:calc(100dvh - var(--hdr,61px));box-sizing:border-box;display:flex;flex-direction:column}
 .e-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;font-size:13px;color:var(--sub)}
 .e-top button{border:0;background:none;color:var(--sub);padding:8px 2px;font-size:14px}
 .e-top button:last-child{text-align:right}
@@ -380,8 +384,8 @@ body:not(.easy) #easy{display:none}
 <section class="view" id="viewHome"></section>
 <div id="dock">
   <button class="dk" id="dkSearch" type="button" aria-label="검색"><svg class="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m17.176 15.762l3.652 3.652c.359.41.405 1.01 0 1.414c-.404.405-1.004.359-1.414 0l-3.652-3.652c-1.145.85-2.399 1.459-3.814 1.702C5.871 19.921.72 14.327 2.272 8.355a8.5 8.5 0 0 1 1.979-3.618A8.55 8.55 0 0 1 7.68 2.478c6.112-2.146 12.292 3.095 11.198 9.47c-.243 1.415-.852 2.669-1.702 3.814M9.938 4.025a6.5 6.5 0 0 0-3.844 1.697a6.5 6.5 0 0 0-1.727 2.622c-1.558 4.436 2.021 9.03 6.695 8.631a6.5 6.5 0 0 0 3.844-1.697a6.5 6.5 0 0 0 1.727-2.622c1.558-4.436-2.021-9.03-6.695-8.631"/></svg></button>
-  <button class="dk-pill" id="dkPaste" type="button"><span class="ic"><svg class="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.155 13.083c.904.966 1.443 2.176 1.443 3.511c0 .863-.225 1.722-.652 2.472c-1.226 2.154-3.935 3.097-6.232 2.164c-.62-.252-1.143-.622-1.63-1.076l-1.438-1.438c-.13-.149-.206-.254-.258-.449c-.196-.73.494-1.42 1.224-1.224c.195.052.299.128.449.258c.771.677 1.409 1.667 2.407 2.072c2.608 1.059 5.13-1.81 3.736-4.258c-.157-.277-.291-.431-.51-.666l-2.781-2.781c-.499-.466-1.077-.788-1.762-.876a3 3 0 0 0-2.195.585c-.278.211-.466.471-.823.542c-.742.146-1.384-.589-1.14-1.305c.209-.611 1.339-1.259 1.893-1.484c1.894-.769 3.923-.299 5.394 1.077Zm-10.94-8.07a3 3 0 0 0-1.428-.585c-2.431-.311-4.206 2.32-2.992 4.454c.158.276.292.431.511.665l2.781 2.781c.79.738 1.84 1.082 2.906.803c.38-.1.739-.274 1.051-.511c.439-.335.723-.718 1.34-.508c.335.115.589.406.658.753c.12.608-.347 1.017-.784 1.349a5 5 0 0 1-1.757.856c-1.751.458-3.476-.06-4.781-1.28l-2.875-2.876c-1.543-1.65-1.928-3.987-.791-5.983c1.488-2.615 4.981-3.337 7.376-1.513c.514.392 1.853 1.782 1.924 1.863c.13.149.206.253.258.448c.226.842-.71 1.561-1.466 1.125l-.207-.159c-.603-.53-1.085-1.196-1.724-1.682"/></svg></span><span>네이버 지도 링크 붙여넣기</span></button>
-  <button class="dk" id="dkAdd" type="button" aria-label="추가"><svg class="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3.738 20.967c-.454-.122-.712-.516-.742-.966v-5.243c.015-.43.137-.84.395-1.189l.191-.225L13.896 3.03c.69-.638 1.714-.781 2.515-.25l.313.25l4.243 4.243c.771.834.771 1.994 0 2.828l-2.433 2.433l-7.881 7.881c-.396.37-.872.567-1.414.586H3.996Zm1.263-6.207l-.005 4.241l4.241-.005l7.176-7.169l-4.243-4.242Zm8.583-8.59l4.243 4.243l1.714-1.726l-4.231-4.231Z"/></svg></button>
+  <button class="dk-pill" id="dkPaste" type="button"><span class="ic"><svg class="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11 19.932c-2.814-.369-5.273-2.204-6.378-4.831a8 8 0 0 1-.416-1.285c-.126-.545-.272-1.159.214-1.575a1.01 1.01 0 0 1 1.553.327c.104.217.139.606.183.796c.114.491.291.966.524 1.413A6.05 6.05 0 0 0 12 17.999a6.05 6.05 0 0 0 5.319-3.222c.234-.447.411-.922.524-1.413c.083-.355.078-.725.327-1.015a1.01 1.01 0 0 1 1.584.086c.286.418.145.929.04 1.381q-.154.66-.416 1.285c-1.105 2.627-3.564 4.462-6.378 4.831V21l-.034.259c-.226.842-1.396.996-1.832.241c-.101-.175-.121-.302-.134-.5Zm6-7.903c-.093 3.218-2.956 5.588-6.146 4.841a5.03 5.03 0 0 1-2.391-1.333C7.521 14.594 7.038 13.35 7 12.029V6.971c.038-1.321.521-2.565 1.463-3.508C11.042.884 15.481 1.88 16.71 5.314c.193.539.274 1.087.29 1.657Zm-5.351-8.007C10.084 4.203 9.044 5.496 9 7.029v4.942c.048 1.668 1.285 3.027 3 3.027s2.952-1.359 3-3.027V7.029c-.052-1.814-1.498-3.222-3.351-3.007"/></svg></span><span class="dk-lbl">지금 메모</span></button>
+  <button class="dk" id="dkAdd" type="button" aria-label="추가"><svg class="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13 13v6c-.036.543-.428 1-1 1s-.964-.457-1-1v-6H5c-.543-.036-1-.428-1-1s.457-.964 1-1h6V5c.036-.543.428-1 1-1s.964.457 1 1v6h6c.543.036 1 .428 1 1s-.457.964-1 1Z"/></svg></button>
 </div>
 <button id="fabPreview" type="button">MD 미리보기</button>
 <div id="toast"></div>
@@ -1300,15 +1304,15 @@ window.chdVoice=ev=>{
   else if(o.type==='error'){if(o.text)toast(o.text)}
   else if(o.type==='end')voiceReset();
 };
-function voiceReset(){if(!VOICE)return;VOICE.btn.classList.remove('rec');VOICE.btn.textContent='말로 남기기 (최대 1분)';VOICE.live.textContent='';VOICE=null}
+function voiceReset(){if(!VOICE)return;const cb=VOICE.onEnd;setTimeout(()=>cb&&cb(),0);VOICE.btn.classList.remove('rec');VOICE.btn.textContent='말로 남기기 (최대 1분)';VOICE.live.textContent='';VOICE=null}
 function voiceStop(){if(IS_APP&&ChdNative.stopVoice)ChdNative.stopVoice();else voiceReset()}
-function voiceButton(t,set){
-  if(!(IS_APP&&ChdNative.startVoice))return micBtn(t,set);
+function voiceButton(t,set,onEnd){
+  if(!(IS_APP&&ChdNative.startVoice))return micBtn(t,set,onEnd);
   const w=el('div');const b=el('button','mic','말로 남기기 (최대 1분)');b.type='button';const live=el('div','e-tip','');
   b.onclick=()=>{
     if(VOICE&&VOICE.btn===b){voiceStop();return}
     if(VOICE)voiceStop();
-    VOICE={t,btn:b,live};b.classList.add('rec');b.textContent='듣는 중… 누르면 멈춰요';
+    VOICE={t,btn:b,live,onEnd};b.classList.add('rec');b.textContent='듣는 중… 누르면 멈춰요';
     ChdNative.startVoice();
   };
   w.append(b,live);return w;
@@ -1378,7 +1382,7 @@ const mChips=(id,opts)=>{const v=mv(id);return eChips(opts,t=>v.sel.includes(t),
 const rChips=(id,opts)=>{const v=rv(id);return eChips(opts,t=>v.sel===t,t=>{v.sel=v.sel===t?'':t})};
 const hChips=(store,list)=>eChips(list,t=>store[t]===1,t=>{if(store[t]===1)delete store[t];else store[t]=1},true);
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let REC=null;
-function micBtn(t,set){
+function micBtn(t,set,onEnd){
   if(!SR)return el('div','e-tip','키보드의 마이크 버튼을 누르고 말로 남겨도 돼요.');
   const b=el('button','mic','말로 입력');b.type='button';
   b.onclick=()=>{
@@ -1386,7 +1390,7 @@ function micBtn(t,set){
     const r=new SR();r.lang='ko-KR';r.continuous=true;r.interimResults=false;REC=r;
     b.classList.add('rec');b.textContent='듣는 중… 다시 누르면 멈춰요';
     r.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal){const s=e.results[i][0].transcript.trim();if(s){t.value=(t.value.trim()?t.value.trim()+' ':'')+s;set(t.value);changed()}}};
-    const end=()=>{REC=null;b.classList.remove('rec');b.textContent='말로 입력'};
+    const end=()=>{REC=null;b.classList.remove('rec');b.textContent='말로 입력';onEnd&&onEnd()};
     r.onend=end;r.onerror=end;
     try{r.start()}catch(e){end()}
   };
@@ -1712,7 +1716,8 @@ function addPlanFlow(){openAct(b=>{
   const run=async()=>{go.disabled=true;go.textContent='가져오는 중…';msg.textContent='';
     try{openPlanSheet(sanitize(await fetchPlace(inp.value)))}catch(e){msg.textContent=e.message||String(e);go.disabled=false;go.textContent='가져오기'}};
   go.onclick=run;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();run()}};
-  b.append(inp,go,msg);setTimeout(()=>inp.focus(),250);
+  const nl=el('div','done-links');const nb=el('button','','링크 없이 쓰기');nb.type='button';nb.onclick=()=>{closeAct();manualStart()};nl.append(nb);
+  b.append(inp,go,msg,nl);setTimeout(()=>inp.focus(),250);
 })}
 
 /* ---------- 내 정보 ---------- */
@@ -1883,7 +1888,7 @@ applyLook();
 const HOME_OPEN={recent:true,plans:true,done:true};
 function secHead(key,label){const h=el('button','sec-h'+(HOME_OPEN[key]?'':' closed'));h.type='button';h.append(label);h.insertAdjacentHTML('beforeend',svgD);h.onclick=()=>{HOME_OPEN[key]=!HOME_OPEN[key];renderHome()};return h}
 const svgD="<svg class=\"\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"m12 13.586l4.95-4.95c.481-.422 1.233-.381 1.573.207c.235.407.139.868-.159 1.207l-5.657 5.657c-.204.179-.429.293-.707.293s-.503-.114-.707-.293L5.636 10.05c-.179-.204-.293-.429-.293-.707c0-.927 1.053-1.281 1.707-.707Z\"/></svg>";
-function renderHome(){
+function renderHome(){updDock();
   const v=$('#viewHome');v.innerHTML='';
   const rs=getRecords(),ps=getPlans();
   if(!rs.length&&!ps.length){
@@ -1957,17 +1962,45 @@ async function readClip(){
   try{if(IS_APP&&ChdNative.readClipboard)return String(ChdNative.readClipboard()||'');if(navigator.clipboard&&navigator.clipboard.readText)return await navigator.clipboard.readText()}catch(e){}
   return '';
 }
-$('#dkPaste').onclick=async()=>{
+async function addFromLink(){
   const c=await readClip();
   if(/https:\/\/(naver\.me\/|[\w.-]*naver\.com\/)/.test(c))fetchAndChoose(c);else pasteSheet('');
-};
-$('#dkAdd').onclick=()=>openAct(b=>{
-  const ch=el('div','e-choices');
-  const B=(l,fn)=>{const x=el('button','e-btn',l);x.type='button';x.onclick=()=>{closeAct();fn()};ch.append(x)};
-  B('갈 곳 추가',addPlanFlow);
-  B('링크 없이 쓰기',manualStart);
-  b.append(ch);
-});
+}
+$('#dkPaste').onclick=()=>quickVoice();
+/* ---------- 지금 메모: 오늘 가는 곳(또는 방금 쓰던 곳)에 말로 바로 남기기 ---------- */
+function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
+function memoPlaces(){
+  const now=new Date(),out=[],seen=new Set();const push=p=>{if(p&&p.id&&!seen.has(String(p.id))){seen.add(String(p.id));out.push(p)}};
+  getPlans().filter(p=>p.when&&(sameDay(new Date(p.when),now)||Math.abs(new Date(p.when)-now)<6*3600e3))
+    .sort((a,b)=>Math.abs(new Date(a.when)-now)-Math.abs(new Date(b.when)-now)).forEach(p=>push(p.place));
+  getRecords().filter(r=>!r.sent&&r.updated&&now-r.updated<12*3600e3).forEach(r=>push(r.place));
+  return out;
+}
+function updDock(){const l=document.querySelector('#dkPaste .dk-lbl');if(!l)return;const c=memoPlaces()[0];l.textContent=c?c.name+' 메모':'지금 메모'}
+function quickVoice(){const c=memoPlaces();if(c.length)voiceMemo(c[0]);else pickMemoPlace()}
+function pickMemoPlace(){openAct(b=>{
+  b.append(el('h3','','어디 메모할까요?'));
+  const all=[],seen=new Set();[...getPlans().map(p=>p.place),...getRecords().map(r=>r.place)].forEach(p=>{if(p&&p.id&&!seen.has(String(p.id))){seen.add(String(p.id));all.push(p)}});
+  if(!all.length){const g=el('button','e-btn primary','가게 추가');g.type='button';g.onclick=()=>{closeAct();addFromLink()};b.append(g);return}
+  const list=el('div','set-box');
+  all.slice(0,12).forEach(p=>{const r=el('button','set-row');r.type='button';const l=el('span','set-l');l.append(thumbEl(p,'th sm'),p.name);r.append(l);r.onclick=()=>voiceMemo(p);list.append(r)});
+  b.append(list);
+})}
+function voiceMemo(place){openAct(b=>{
+  const hd=el('div','vm-h');hd.append(el('h3','',place.name));
+  const ch=el('button','vm-ch','바꾸기');ch.type='button';ch.onclick=()=>{voiceStop();pickMemoPlace()};hd.append(ch);b.append(hd);
+  const list=el('div','qm-list');
+  const draw=()=>{list.innerHTML='';getQM(place.id).forEach(m=>{const r=el('div','qm-item');r.append(el('span','qm-t',hhmm(m.t)),el('span','',m.text));list.append(r)});list.scrollTop=list.scrollHeight};
+  draw();
+  const t=document.createElement('textarea');t.placeholder='말하거나 적기';
+  const addNow=()=>{const v=t.value.trim();if(!v)return;const z=getQM(place.id);z.push({t:new Date().toISOString(),text:v});setQM(place.id,z);t.value='';draw();if(S&&PLACE&&String(PLACE.id)===String(place.id))changed();toast('메모했어요')};
+  const vb=voiceButton(t,()=>{},addNow);
+  const add=el('button','e-btn primary','메모 추가');add.type='button';add.onclick=addNow;
+  const dn=el('button','e-btn ghost','완료');dn.type='button';dn.onclick=()=>{voiceStop();closeAct();if(TAB==='home')renderHome()};
+  b.append(list,t,vb,add,dn);
+  setTimeout(()=>{const m=vb.matches&&vb.matches('button')?vb:vb.querySelector('button');if(m)m.click()},350);
+})}
+$('#dkAdd').onclick=()=>addFromLink();
 $('#dkSearch').onclick=()=>openAct(b=>{
   const inp=document.createElement('input');inp.type='text';inp.placeholder='가게 이름 검색';
   const list=el('div');list.style.marginTop='10px';
@@ -2017,6 +2050,9 @@ function openMdView(){openAct(b=>{
   row.append(s,c);b.append(row);
 })}
 
+/* 상단 바 실제 높이를 재서 화면 높이 계산에 쓴다 (안 맞으면 몇 px 스크롤이 생김) */
+function fitHdr(){const h=document.querySelector('header');if(h&&h.offsetHeight)document.documentElement.style.setProperty('--hdr',h.offsetHeight+'px')}
+addEventListener('resize',fitHdr);if(window.ResizeObserver)new ResizeObserver(fitHdr).observe(document.querySelector('header')||document.body);
 async function boot(){
   const h=decodeURIComponent(location.hash.slice(1));
   if(!PLACE&&h){
