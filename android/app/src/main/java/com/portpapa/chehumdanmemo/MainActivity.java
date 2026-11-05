@@ -178,7 +178,14 @@ public class MainActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                 Uri u = req.getUrl();
                 if (ours(u)) return false;
-                try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) {}
+                try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception e) {
+                    // 네이버 지도 앱이 없으면 웹 지도로
+                    if ("nmap".equals(u.getScheme())) {
+                        String q = u.getQueryParameter("name");
+                        if (q == null) q = u.getQueryParameter("query");
+                        try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://map.naver.com/p/search/" + Uri.encode(q == null ? "" : q)))); } catch (Exception ignored) {}
+                    }
+                }
                 return true;
             }
         });

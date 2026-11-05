@@ -10,8 +10,8 @@ android {
         applicationId 'com.portpapa.chehumdanmemo'
         minSdk 29
         targetSdk 36
-        versionCode 16
-        versionName '0.9.7'
+        versionCode 17
+        versionName '0.9.8'
     }
 
     // 고정 서명 키: GitHub Actions에서 환경변수로 받는다(키 파일은 저장소에 없음).
