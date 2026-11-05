@@ -920,10 +920,8 @@ public class MainActivity extends Activity {
             if (!trusted) return;
             shareFiles(name, md, biz, "");
         }
-    }
 
-    private void shareFiles(final String name, final String md, final String biz, final String prefix) {
-        {
+        private void shareFiles(final String name, final String md, final String biz, final String prefix) {
             runOnUiThread(() -> {
                 try {
                     File dir = new File(getCacheDir(), "share");
