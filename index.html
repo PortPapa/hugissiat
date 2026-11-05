@@ -1125,7 +1125,7 @@ function buildMD(){
   const C=CATS[S.cat];const biz=V('biz');
   const plan=PLACE?getPlans().find(p=>String(p.id)===String(PLACE.id)):null;
   const out=['---'];
-  [['업체명',biz],['업종',(PLACE&&PLACE.category)||C.label],['지역',V('region')],['방문일시',[V('visitDate'),S.f.visitTime||''].filter(Boolean).join(' ')],['체험단 플랫폼',S.f.platform||''],['플레이스ID',PLACE?PLACE.id:''],['작성일',today()]]
+  [['업체명',biz],['업종',(PLACE&&PLACE.category)||C.label],['지역',V('region')],['방문일시',[V('visitDate'),S.f.visitTime||''].filter(Boolean).join(' ')],['체험단 플랫폼',S.f.platform||''],['플레이스ID',PLACE?PLACE.id:'']]
     .forEach(([a,b])=>{if(b)out.push(`${a}: ${yamlQ(b)}`)});
   out.push('---','',`# ${biz||'(업체명)'}`,'');
   out.push('## 내 경험','');
@@ -1133,7 +1133,7 @@ function buildMD(){
   const rm=rateMD();if(rm.length)out.push('### 평가',...rm,'');
   const qm=PLACE?getQM(PLACE.id):[];
   if(qm.length)out.push('### 현장 메모',...qm.map(m=>`- ${hhmm(m.t)} ${m.text}`),'');
-  if(PHOTOS.length)out.push('### 사진',...PHOTOS.map(p=>`- ${p.name}`),'');
+  if(PHOTOS.length)out.push('### 사진',...PHOTOS.map(p=>'- '+fileBase()+' '+p.name),'');
   const pm=placeMD();
   if(pm.length)out.push('## 업체 정보',...pm,'');
   if(PLACE&&PLACE.blogs&&PLACE.blogs.length){
@@ -1177,7 +1177,9 @@ function refresh(){
 }
 
 /* ---------- 액션 ---------- */
-function fileName(){return `체험단_${(V('biz')||'메모').replace(/[\\/:*?"<>|\s]+/g,'_')}_${V('visitDate')||today()}.md`}
+/* 파일 이름: '2026-11-06 가게이름' (방문일, 없으면 오늘) */
+function fileBase(){return ((V('visitDate')||today())+' '+(V('biz')||(PLACE&&PLACE.name)||'메모')).replace(/[\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim()}
+function fileName(){return fileBase()+'.md'}
 function shareMD(){
   const md=buildMD();
   if(IS_APP){ChdNative.shareText(md);return}
@@ -1237,7 +1239,7 @@ function saveDrive(){
   if(!canDrive()){toast('앱을 최신 버전으로 업데이트해 주세요');return}
   if(!PLACE)return;
   const b=$('#btnDrive');if(b){b.disabled=true;driveLbl('저장하는 중…')}
-  const job=JSON.stringify({path:drivePath(),mdName:'후기 소스.md',md:buildMD(),key:String(PLACE.id)});
+  const job=JSON.stringify({path:drivePath(),mdName:fileName(),md:buildMD(),key:String(PLACE.id),prefix:fileBase()});
   adGate('drive',()=>ChdNative.driveSave(job));
 }
 window.chdDrive=s=>{
@@ -1280,8 +1282,9 @@ function adGate(kind,fn){
 window.chdAdDone=()=>{const f=AD_CB;AD_CB=null;if(f)f()};
 async function sendAll(){
   const md=buildMD();S.sent=true;save();
+  if(IS_APP&&ChdNative.shareAll2){const fb=fileBase();adGate('send',()=>ChdNative.shareAll2(fileName(),md,V('biz')||'',fb));return}
   if(IS_APP&&ChdNative.shareAll){adGate('send',()=>ChdNative.shareAll(fileName(),md,V('biz')||''));return}
-  const files=[new File([md],fileName(),{type:'text/markdown'}),...PHOTOS.filter(p=>p.file).map(p=>new File([p.file],p.name,{type:p.file.type}))];
+  const files=[new File([md],fileName(),{type:'text/markdown'}),...PHOTOS.filter(p=>p.file).map(p=>new File([p.file],fileBase()+' '+p.name,{type:p.file.type}))];
   try{
     if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files,title:fileName()});return}
     if(navigator.share){await navigator.share({title:fileName(),text:md});return}

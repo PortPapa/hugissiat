@@ -500,12 +500,14 @@ public class MainActivity extends Activity {
                 driveCreate(token, parent, mdName, "text/markdown; charset=UTF-8", md);
             }
             int added = 0, total = 0;
+            String prefix = job.optString("prefix", "").replaceAll("[\\\\/:*?\"<>|]", " ").trim();
             for (File f : photoFilesOf(job.optString("key", photoKey))) {
                 total++;
-                if (driveFind(token, f.getName(), parent, false) != null) continue;
+                String up = prefix.isEmpty() ? f.getName() : prefix + " " + f.getName();
+                if (driveFind(token, up, parent, false) != null) continue;
                 String ext = f.getName().replaceAll("^.*\\.", "").toLowerCase(java.util.Locale.ROOT);
                 String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-                driveCreate(token, parent, f.getName(), mime == null ? "image/jpeg" : mime, readAll(f));
+                driveCreate(token, parent, up, mime == null ? "image/jpeg" : mime, readAll(f));
                 added++;
             }
             JSONObject o = new JSONObject();
@@ -905,10 +907,23 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> driveAuth(job));
         }
 
+        /** 사진 이름을 '2026-11-06 가게이름 01.jpg'로 바꿔서 보낸다 */
+        @JavascriptInterface
+        public void shareAll2(final String name, final String md, final String biz, final String prefix) {
+            if (!trusted) return;
+            shareFiles(name, md, biz, prefix);
+        }
+
         /** MD 파일 + 고른 사진을 카톡·메일·드라이브 등으로 한 번에 보낸다 */
         @JavascriptInterface
         public void shareAll(final String name, final String md, final String biz) {
             if (!trusted) return;
+            shareFiles(name, md, biz, "");
+        }
+    }
+
+    private void shareFiles(final String name, final String md, final String biz, final String prefix) {
+        {
             runOnUiThread(() -> {
                 try {
                     File dir = new File(getCacheDir(), "share");
@@ -921,7 +936,23 @@ public class MainActivity extends Activity {
                     String auth = getPackageName() + ".files";
                     ArrayList<Uri> uris = new ArrayList<>();
                     uris.add(FileProvider.getUriForFile(MainActivity.this, auth, mdFile));
-                    for (File f : photoFiles()) uris.add(FileProvider.getUriForFile(MainActivity.this, auth, f));
+                    String pre = prefix == null ? "" : prefix.replaceAll("[\\\\/:*?\"<>|]", " ").trim();
+                    File out = new File(dir, "out");
+                    out.mkdirs();
+                    File[] olds = out.listFiles();
+                    if (olds != null) for (File f : olds) f.delete();
+                    for (File f : photoFiles()) {
+                        File g = f;
+                        if (!pre.isEmpty()) {
+                            g = new File(out, pre + " " + f.getName());
+                            try (InputStream in = new FileInputStream(f); OutputStream os = new FileOutputStream(g)) {
+                                byte[] buf = new byte[65536];
+                                int n;
+                                while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
+                            } catch (Exception e) { g = f; }
+                        }
+                        uris.add(FileProvider.getUriForFile(MainActivity.this, auth, g));
+                    }
                     String subject = "후기씨앗" + (biz == null || biz.isEmpty() ? "" : " - " + biz);
                     Intent send;
                     if (uris.size() == 1) {
