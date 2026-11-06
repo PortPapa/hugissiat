@@ -3041,7 +3041,7 @@ function openMdView(){openAct(b=>{
 })}
 
 /* ---------- 백업·복원 ---------- */
-const DEV_MAIL='waypointdockdev@gmail.com';
+const DEV_MAIL='hello@hugissiat.com';
 const STORE_URL='https://play.google.com/store/apps/details?id=com.portpapa.hugissiat';
 function backupData(){const d={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('chd-')&&k!=='chd-clip-used')d[k]=localStorage.getItem(k)}return JSON.stringify({v:1,at:Date.now(),data:d})}
 const lastBackup=()=>Number(localStorage.getItem('chd-backup-at')||0);
