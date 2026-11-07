@@ -626,8 +626,28 @@ public class MainActivity extends Activity {
             String op = j.optString("op", "");
             if ("backup".equals(op)) { pool.execute(() -> driveBackupRun(token, j)); return; }
             if ("restore".equals(op)) { pool.execute(() -> driveRestoreRun(token)); return; }
+            if ("inbox".equals(op)) { pool.execute(() -> driveInboxRun(token)); return; }
+            if ("inboxDone".equals(op)) { final String fid = j.optString("id", ""); pool.execute(() -> { try { if (!fid.isEmpty()) driveCall(token, "DELETE", "https://www.googleapis.com/drive/v3/files/" + fid, null, null); } catch (Exception ignored) {} }); return; }
         } catch (Exception ignored) {}
         pool.execute(() -> driveUpload(token, job));
+    }
+
+    /** 웹(hugissiat.com)에서 추가한 갈 곳: 드라이브 '후기씨앗/웹에서 추가.json'을 읽어 화면에 넘긴다. 화면이 반영한 뒤 inboxDone으로 지운다 */
+    private void driveInboxRun(String token) {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("op", "inbox");
+            String root = driveFind(token, "후기씨앗", "root", true);
+            String fid = root == null ? null : driveFind(token, "웹에서 추가.json", root, false);
+            if (fid != null) {
+                JSONObject data = driveCall(token, "GET", "https://www.googleapis.com/drive/v3/files/" + fid + "?alt=media", null, null);
+                o.put("id", fid);
+                o.put("data", data);
+            }
+            driveCb(true, o);
+        } catch (Exception e) {
+            driveCb(false, o);
+        }
     }
 
     private static String q(String s) {

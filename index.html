@@ -1452,6 +1452,7 @@ function saveDrive(){
 }
 window.chdDrive=s=>{
   let o={};try{o=JSON.parse(s)}catch(e){}
+  if(o.op==='inbox'){mergeWebInbox(o);return}
   const b=$('#btnDrive');if(b){b.disabled=false;b.style.removeProperty('--p');driveLbl(S&&S.drive?'드라이브에 다시 저장':'드라이브에 저장')}
   const card=DP.on&&DP.op==='save';
   if(o.ok&&o.connected){if(card)dpEnd(true,'구글 드라이브를 연결했어요');else toast('구글 드라이브를 연결했어요');if(TAB==='me')renderMe();return}
@@ -1459,6 +1460,22 @@ window.chdDrive=s=>{
     const m='드라이브에 저장했어요'+(o.added?' · 사진 '+o.added+'장':'');if(card)dpEnd(true,m);else toast(m);if(TAB==='me')renderMe();return}
   if(card)dpEnd(false,o.error||'저장하지 못했어요');else toast(o.error||'저장하지 못했어요');if(TAB==='me')renderMe();
 };
+/* ---------- 웹(hugissiat.com)에서 추가한 갈 곳 받기 ---------- */
+function verGte(v,w){const a=String(v||'0').split('.').map(Number),b=w.split('.').map(Number);for(let i=0;i<3;i++){if((a[i]||0)>(b[i]||0))return true;if((a[i]||0)<(b[i]||0))return false}return true}
+let INBOX_T=0;
+function pullWebInbox(){try{if(!(IS_APP&&ChdNative.driveLinked&&ChdNative.driveLinked()))return;if(!verGte(ChdNative.version&&ChdNative.version(),'0.9.17'))return;if(Date.now()-INBOX_T<60e3)return;INBOX_T=Date.now();ChdNative.driveSave(JSON.stringify({op:'inbox',silent:true}))}catch(e){}}
+function mergeWebInbox(o){
+  const items=o&&o.ok&&o.data&&Array.isArray(o.data.items)?o.data.items:[];
+  if(!items.length)return;
+  const pf=getPlatforms();let n=0;
+  items.forEach(it=>{if(it&&it.platform&&!pf.find(p=>p.name===it.platform))pf.push({name:it.platform,color:it.color||PCOLORS[pf.length%PCOLORS.length]})});
+  setPlatforms(pf);
+  items.forEach(it=>{if(!it||!it.place||!it.place.name)return;
+    const place=Object.assign({},it.place,{id:it.place.id||it.id});
+    addPlan(place,{when:it.when?new Date(it.when):null,noTime:!!it.noTime,label:it.label||'',platform:it.platform||'',due:it.due||''});n++});
+  if(o.id)ChdNative.driveSave(JSON.stringify({op:'inboxDone',id:o.id,silent:true}));
+  if(n){toast('웹에서 추가한 갈 곳 '+n+'곳을 가져왔어요');try{renderView()}catch(e){}}
+}
 /* ---------- 드라이브 진행률: 단계 · 퍼센트 · 남은 시간 ---------- */
 const DP={on:false,op:'',t0:0,d0:0,h:0};
 function dpShow(op){
@@ -2518,7 +2535,8 @@ function syncWidget(){
   }catch(e){}
 }
 /* 위젯·알림에서 들어온 동작 */
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncWidget()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncWidget();pullWebInbox()}});
+setTimeout(pullWebInbox,2500);
 window.chdAction=a=>{
   a=String(a||'');const k=a.split(':')[0],id=a.slice(k.length+1);
   if(k==='memo'){const p=id&&getPlans().find(x=>String(x.id)===id);if(p)voiceMemo(p.place);else quickVoice()}
