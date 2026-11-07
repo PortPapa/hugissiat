@@ -2497,11 +2497,28 @@ function syncWidget(){
     const fx=ps.filter(p=>p.when&&new Date(p.when).getTime()>Date.now()-12*3600e3).slice(0,3).map(p=>{const d=new Date(p.when);return {id:String(p.id),day:(d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+')',name:p.place.name,sub:[p.label,p.platform,p.due?dday(p.due):''].filter(Boolean).join(' · ')}});
     const tb=ps.filter(p=>!p.when).map(p=>p.place.name);
     const acc=getComputedStyle(document.documentElement).getPropertyValue('--acc').trim()||'#2a7c13';
-    const days=ps.filter(p=>p.when).map(p=>{const d=new Date(p.when);return {d:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),c:p.platform?pColor(p.platform):acc}});
-    ChdNative.syncWidget(JSON.stringify({next:nx?{id:String(nx.id),name:nx.place.name,label:planLabel(nx)}:null,fixed:fx,tbd:tb,days,acc,plans:ps.length,drafts}));
+    const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const hm=d=>String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    const t0=new Date();t0.setHours(0,0,0,0);const t1=new Date(t0.getTime()+864e5);
+    const days=ps.filter(p=>p.when).map(p=>{const d=new Date(p.when);return {d:ymd(d),c:p.platform?pColor(p.platform):acc,k:d<t0?'done':'v'}});
+    ps.filter(p=>p.due).forEach(p=>days.push({d:p.due,c:'#D9604A',k:'due'}));
+    getRecords().forEach(r=>{if(!String(r.id).startsWith('_')&&r.due&&!r.posted)days.push({d:r.due,c:'#D9604A',k:'due'})});
+    const today=ps.filter(p=>p.when&&new Date(p.when)>=t0&&new Date(p.when)<t1).sort((a,b)=>new Date(a.when)-new Date(b.when)).map(p=>({id:String(p.id),time:hm(new Date(p.when)),name:p.place.name,sub:[p.platform,p.due?dday(p.due):''].filter(Boolean).join(' · ')}));
+    const ws=new Date(t0);ws.setDate(t0.getDate()-t0.getDay());const we=new Date(ws.getTime()+7*864e5);
+    const week=[];ps.forEach(p=>{if(p.when){const d=new Date(p.when);if(d>=ws&&d<we)week.push({wd:d.getDay(),day:d.getDate(),time:hm(d),name:p.place.name,c:p.platform?pColor(p.platform):acc,t:d.getTime()})}
+      if(p.due){const [y,m,dd]=p.due.split('-').map(Number);const d=new Date(y,m-1,dd);if(d>=ws&&d<we)week.push({wd:d.getDay(),day:d.getDate(),time:'',name:p.place.name,due:1,t:d.getTime()+86399e3})}});
+    getRecords().forEach(r=>{if(String(r.id).startsWith('_')||!r.due||r.posted)return;const [y,m,dd]=r.due.split('-').map(Number);const d=new Date(y,m-1,dd);if(d>=ws&&d<we)week.push({wd:d.getDay(),day:d.getDate(),time:'',name:r.name,due:1,t:d.getTime()+86399e3})});
+    week.sort((a,b)=>a.t-b.t);week.forEach(x=>delete x.t);
+    const all=todoItems(),open=all.filter(x=>x.kind!=='end');
+    const sd=(a,b)=>ddayNum(a.due)-ddayNum(b.due);
+    const todo={late:open.filter(x=>x.due&&ddayNum(x.due)<0).length,soon:open.filter(x=>x.due&&ddayNum(x.due)>=0&&ddayNum(x.due)<=3).length,prog:open.length,post:all.filter(x=>x.kind==='post').length,write:all.filter(x=>x.kind==='write').length,
+      list:all.filter(x=>x.kind==='post'||x.kind==='write').sort(sd).slice(0,4).map(x=>({id:String(x.rec.id),name:x.name,kind:x.kind,dd:x.due?dday(x.due).replace('마감 ',''):'',hot:!!(x.due&&ddayNum(x.due)<=2)}))};
+    const wom=Math.ceil((t0.getDate()+new Date(t0.getFullYear(),t0.getMonth(),1).getDay())/7);
+    ChdNative.syncWidget(JSON.stringify({next:nx?{id:String(nx.id),name:nx.place.name,label:planLabel(nx)}:null,fixed:fx,tbd:tb,days,acc,plans:ps.length,drafts,today,week,wom,todo}));
   }catch(e){}
 }
 /* 위젯·알림에서 들어온 동작 */
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncWidget()});
 window.chdAction=a=>{
   a=String(a||'');const k=a.split(':')[0],id=a.slice(k.length+1);
   if(k==='memo'){const p=id&&getPlans().find(x=>String(x.id)===id);if(p)voiceMemo(p.place);else quickVoice()}
@@ -2509,6 +2526,8 @@ window.chdAction=a=>{
   else if(k==='tab'){setTab(id||'plans')}
   else if(k==='planmenu'){const p=getPlans().find(x=>String(x.id)===id);setTab('home');if(p)planMenu(p)}
   else if(k==='addplan'){setTab('plans');addPlanFlow()}
+  else if(k==='rec'){const r=getRecords().find(x=>String(x.id)===id);setTab('todo');if(r)placeSheet({rec:r})}
+  else if(k==='visit'){const p=getPlans().find(x=>String(x.id)===id);if(p){removePlan(p.id);applyPlace(p.place);visitFromPlan(p)}}
   else if(k==='add'){goHome();setTab('home');setTimeout(addFromLink,300)}
   else if(k==='start'){goHome();setTimeout(()=>window.chdFocus&&window.chdFocus(),300)}
 };

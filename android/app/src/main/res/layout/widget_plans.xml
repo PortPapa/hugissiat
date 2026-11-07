@@ -57,8 +57,18 @@
         android:id="@+id/w_cal"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="8dp"
         android:layout_weight="1"
         android:contentDescription="이번 달 방문 일정"
         android:scaleType="fitCenter" />
+
+    <ImageView
+        android:id="@+id/w_next"
+        android:layout_width="wrap_content"
+        android:layout_height="22dp"
+        android:layout_marginTop="8dp"
+        android:adjustViewBounds="true"
+        android:contentDescription="다음 일정"
+        android:scaleType="fitStart"
+        android:visibility="gone" />
 </LinearLayout>

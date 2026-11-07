@@ -56,6 +56,27 @@
         </activity>
 
         <receiver
+            android:name=".TodayWidget"
+            android:exported="false"
+            android:label="@string/widget_today">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_today_info" />
+        </receiver>
+        <receiver
+            android:name=".TodoWidget"
+            android:exported="false"
+            android:label="@string/widget_todo">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_todo_info" />
+        </receiver>        <receiver
             android:name=".NextPlanWidget"
             android:exported="false"
             android:label="@string/widget_next">
@@ -67,19 +88,7 @@
                 android:resource="@xml/widget_next_info" />
         </receiver>
 
-        <receiver
-            android:name=".QuickWidget"
-            android:exported="false"
-            android:label="@string/widget_quick">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_quick_info" />
-        </receiver>
-
-        <receiver
+                <receiver
             android:name=".ReminderReceiver"
             android:exported="true">
             <intent-filter>

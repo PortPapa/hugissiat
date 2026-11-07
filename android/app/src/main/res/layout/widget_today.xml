@@ -8,41 +8,28 @@
     android:padding="14dp">
 
     <ImageView
-        android:id="@+id/w_title"
-        android:layout_width="wrap_content"
-        android:layout_height="20dp"
-        android:adjustViewBounds="true"
-        android:contentDescription="후기씨앗"
-        android:scaleType="fitStart" />
-
-    <ImageView
-        android:id="@+id/w_sub"
-        android:layout_width="wrap_content"
-        android:layout_height="15dp"
-        android:layout_marginTop="4dp"
-        android:adjustViewBounds="true"
-        android:contentDescription="요약"
-        android:scaleType="fitStart" />
-
-    <FrameLayout
+        android:id="@+id/w_img"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:contentDescription="오늘 일정"
+        android:scaleType="fitStart" />
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="38dp"
+        android:layout_marginTop="8dp"
         android:orientation="horizontal">
 
         <ImageView
             android:id="@+id/w_btn1"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="@drawable/widget_btn"
-            android:contentDescription="링크로 시작"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
+            android:contentDescription="현장 메모"
+            android:paddingTop="11dp"
+            android:paddingBottom="11dp"
             android:scaleType="centerInside" />
 
         <FrameLayout
@@ -52,12 +39,12 @@
         <ImageView
             android:id="@+id/w_btn2"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="@drawable/widget_btn_primary"
-            android:contentDescription="현장 메모"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
+            android:contentDescription="다녀왔어요"
+            android:paddingTop="11dp"
+            android:paddingBottom="11dp"
             android:scaleType="centerInside" />
     </LinearLayout>
 </LinearLayout>

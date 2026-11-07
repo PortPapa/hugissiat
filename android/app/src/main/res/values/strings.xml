@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">후기씨앗</string>
-    <string name="widget_next">갈 곳 일정</string>
-    <string name="widget_quick">후기씨앗 바로가기</string>
+    <string name="widget_next">후기씨앗 일정</string>
+    <string name="widget_today">후기씨앗 오늘</string>
+    <string name="widget_todo">후기씨앗 할 일</string>
     <string name="sc_memo">지금 메모</string>
     <string name="sc_add">가게 추가</string>
 </resources>
