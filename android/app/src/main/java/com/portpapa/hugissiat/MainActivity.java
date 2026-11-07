@@ -100,6 +100,12 @@ public class MainActivity extends Activity {
     private String pendingAction = "";
     private int incomingPhotos = 0;
     private final ExecutorService pool = Executors.newFixedThreadPool(2);
+    /** 드라이브 저장은 한 줄로 차례차례 (화면은 바로 다음 기록을 쓸 수 있게) */
+    private final ExecutorService upq = Executors.newSingleThreadExecutor();
+    private final java.util.concurrent.atomic.AtomicInteger upWait = new java.util.concurrent.atomic.AtomicInteger(0);
+    private volatile String upRid = "", upName = "";
+    private static final String UP_CH = "upload";
+    private static final int UP_NOTI = 7301;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -629,7 +635,67 @@ public class MainActivity extends Activity {
             if ("inbox".equals(op)) { pool.execute(() -> driveInboxRun(token)); return; }
             if ("inboxDone".equals(op)) { final String fid = j.optString("id", ""); pool.execute(() -> { try { if (!fid.isEmpty()) driveCall(token, "DELETE", "https://www.googleapis.com/drive/v3/files/" + fid, null, null); } catch (Exception ignored) {} }); return; }
         } catch (Exception ignored) {}
-        pool.execute(() -> driveUpload(token, job));
+        upWait.incrementAndGet();
+        upq.execute(() -> { upWait.decrementAndGet(); driveUpload(token, job); });
+    }
+
+    /* ---------- 업로드 알림: 앱을 나가도 진행 상황이 보이게 ---------- */
+    private android.app.NotificationManager upNm() {
+        android.app.NotificationManager nm = (android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm != null && nm.getNotificationChannel(UP_CH) == null)
+            nm.createNotificationChannel(new android.app.NotificationChannel(UP_CH, "드라이브 업로드", android.app.NotificationManager.IMPORTANCE_LOW));
+        return nm;
+    }
+    private void upNoti(String title, String text, int max, int prog, boolean ongoing) {
+        try {
+            if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
+            android.app.NotificationManager nm = upNm(); if (nm == null) return;
+            android.app.PendingIntent pi = android.app.PendingIntent.getActivity(this, 7301, new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP), android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_UPDATE_CURRENT);
+            android.app.Notification.Builder b = new android.app.Notification.Builder(this, UP_CH).setSmallIcon(R.drawable.ic_stat)
+                    .setContentTitle(title).setContentText(text).setContentIntent(pi).setOnlyAlertOnce(true).setOngoing(ongoing).setAutoCancel(!ongoing);
+            if (max > 0) b.setProgress(max, prog, false); else if (ongoing) b.setProgress(0, 0, true);
+            nm.notify(UP_NOTI, b.build());
+        } catch (Exception ignored) {}
+    }
+
+    /** 올릴 사진: 긴 변 2048px·JPEG 88로 줄인다(블로그엔 충분, 용량 1/5~1/10). 이미 작으면 원본 */
+    private static final int UP_MAX = 2048;
+    private Object[] upPhoto(File f) {
+        try {
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(f.getAbsolutePath(), o);
+            int w = o.outWidth, h = o.outHeight;
+            boolean jpg = f.getName().toLowerCase(java.util.Locale.ROOT).matches(".*\\.(jpe?g)$");
+            if (w <= 0 || h <= 0) return new Object[]{readAll(f), f.getName()};
+            if (Math.max(w, h) <= UP_MAX && jpg && f.length() < 1_500_000) return new Object[]{readAll(f), f.getName()};
+            int ss = 1;
+            while (Math.max(w, h) / (ss * 2) >= UP_MAX) ss *= 2;
+            o = new BitmapFactory.Options();
+            o.inSampleSize = ss;
+            Bitmap b = BitmapFactory.decodeFile(f.getAbsolutePath(), o);
+            if (b == null) return new Object[]{readAll(f), f.getName()};
+            float sc = Math.min(1f, UP_MAX / (float) Math.max(b.getWidth(), b.getHeight()));
+            int rot = 0;
+            try {
+                int ori = new ExifInterface(f.getAbsolutePath()).getAttributeInt(ExifInterface.TAG_ORIENTATION, 1);
+                rot = ori == 6 ? 90 : ori == 3 ? 180 : ori == 8 ? 270 : 0;
+            } catch (Exception ignored) {}
+            if (sc < 1f || rot != 0) {
+                Matrix m = new Matrix();
+                if (sc < 1f) m.postScale(sc, sc);
+                if (rot != 0) m.postRotate(rot);
+                Bitmap b2 = Bitmap.createBitmap(b, 0, 0, b.getWidth(), b.getHeight(), m, true);
+                if (b2 != b) b.recycle();
+                b = b2;
+            }
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            b.compress(Bitmap.CompressFormat.JPEG, 88, out);
+            b.recycle();
+            return new Object[]{out.toByteArray(), f.getName().replaceAll("\\.[^.]+$", "") + ".jpg"};
+        } catch (Throwable e) {
+            try { return new Object[]{readAll(f), f.getName()}; } catch (Exception x) { return null; }
+        }
     }
 
     /** 웹(hugissiat.com)에서 추가한 갈 곳: 드라이브 '후기씨앗/웹에서 추가.json'을 읽어 화면에 넘긴다. 화면이 반영한 뒤 inboxDone으로 지운다 */
@@ -665,6 +731,7 @@ public class MainActivity extends Activity {
         try {
             JSONObject o = new JSONObject();
             o.put("op", op); o.put("stage", stage); o.put("i", i); o.put("n", n); o.put("done", done); o.put("total", total);
+            if ("save".equals(op)) { o.put("rid", upRid); o.put("name", upName); o.put("queue", upWait.get()); }
             String js = "window.chdProgress&&window.chdProgress(" + JSONObject.quote(o.toString()) + ")";
             runOnUiThread(() -> web.evaluateJavascript(js, null));
         } catch (Exception ignored) {}
@@ -767,60 +834,92 @@ public class MainActivity extends Activity {
     }
 
     private void driveUpload(String token, String jobJson) {
+        String rid = "", name = "";
         try {
             JSONObject job = new JSONObject(jobJson);
+            rid = job.optString("rid", job.optString("key", ""));
+            name = job.optString("name", "");
+            upRid = rid; upName = name;
             JSONArray path = job.getJSONArray("path");
             File[] photos = photoFilesOf(job.optString("key", photoKey));
-            byte[] md0 = job.optString("md", "").getBytes(StandardCharsets.UTF_8);
-            long tot = md0.length;
-            for (File f : photos) tot += f.length();
-            final long allB = tot;
-            final long[] base = {0};
+            byte[] md = job.optString("md", "").getBytes(StandardCharsets.UTF_8);
             final int pn = photos.length;
+            final long unit = 1000, allB = (pn + 1) * unit; // 진행률: 사진 한 장 = 1000, 후기 소스 = 1000
+            final String nmShow = name.isEmpty() ? "기록" : name;
             driveProg("save", false, "prep", 0, pn, 0, allB, true);
+            upNoti("드라이브에 올리는 중", nmShow, 0, 0, true);
             String parent = "root";
             for (int i = 0; i < path.length(); i++) {
                 String nm = path.getString(i).replaceAll("[\\\\/]", "_").trim();
                 if (!nm.isEmpty()) parent = driveFolder(token, nm, parent);
             }
+            final String folder = parent;
             String mdName = job.optString("mdName", "후기 소스.md").replaceAll("[\\\\/:*?\"<>|]", "_");
-            byte[] md = md0;
             driveProg("save", false, "md", 0, pn, 0, allB, true);
-            String mdId = driveFind(token, mdName, parent, false);
-            if (mdId != null) {
-                driveCall(token, "PATCH", "https://www.googleapis.com/upload/drive/v3/files/" + mdId + "?uploadType=media",
-                        "text/markdown; charset=UTF-8", md);
-            } else {
-                driveCreate(token, parent, mdName, "text/markdown; charset=UTF-8", md);
+            String mdId = driveFind(token, mdName, folder, false);
+            if (mdId != null) driveCall(token, "PATCH", "https://www.googleapis.com/upload/drive/v3/files/" + mdId + "?uploadType=media", "text/markdown; charset=UTF-8", md);
+            else driveCreate(token, folder, mdName, "text/markdown; charset=UTF-8", md);
+            final java.util.HashSet<String> have = driveNames(token, folder);
+            final String prefix = job.optString("prefix", "").replaceAll("[\\\\/:*?\"<>|]", " ").trim();
+            final java.util.concurrent.atomic.AtomicLong doneU = new java.util.concurrent.atomic.AtomicLong(unit);
+            final java.util.concurrent.atomic.AtomicInteger fin = new java.util.concurrent.atomic.AtomicInteger(0), added = new java.util.concurrent.atomic.AtomicInteger(0);
+            final long[] part = new long[pn];
+            final Exception[] err = {null};
+            ExecutorService px = Executors.newFixedThreadPool(3);
+            java.util.List<java.util.concurrent.Future<?>> fs = new ArrayList<>();
+            for (int k = 0; k < pn; k++) {
+                final int idx = k; final File f = photos[k];
+                fs.add(px.submit(() -> {
+                    if (err[0] != null) return;
+                    try {
+                        String base = f.getName().replaceAll("\\.[^.]+$", "");
+                        String upJ = (prefix.isEmpty() ? "" : prefix + " ") + base + ".jpg", upO = (prefix.isEmpty() ? "" : prefix + " ") + f.getName();
+                        if (!have.contains(upJ) && !have.contains(upO)) {
+                            Object[] p = upPhoto(f);
+                            if (p == null) throw new Exception("사진을 읽지 못했어요");
+                            byte[] data = (byte[]) p[0];
+                            String up = (prefix.isEmpty() ? "" : prefix + " ") + p[1];
+                            String ext = String.valueOf(p[1]).replaceAll("^.*\\.", "").toLowerCase(java.util.Locale.ROOT);
+                            String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+                            final long len = Math.max(1, data.length);
+                            driveCreate(token, folder, up, mime == null ? "image/jpeg" : mime, data, n -> {
+                                long v = n * unit / len; long d; synchronized (part) { d = v - part[idx]; part[idx] = v; }
+                                long now = doneU.addAndGet(d);
+                                driveProg("save", false, "photo", fin.get() + 1, pn, now, allB, false);
+                            });
+                            added.incrementAndGet();
+                        }
+                        long d; synchronized (part) { d = unit - part[idx]; part[idx] = unit; }
+                        long now = doneU.addAndGet(d);
+                        int c = fin.incrementAndGet();
+                        driveProg("save", false, "photo", Math.min(pn, c + 1), pn, now, allB, true);
+                        upNoti("드라이브에 올리는 중", nmShow + " · 사진 " + c + " / " + pn, pn, c, true);
+                    } catch (Exception e) { err[0] = e; }
+                }));
             }
-            base[0] += md.length;
-            int added = 0, total = 0;
-            String prefix = job.optString("prefix", "").replaceAll("[\\\\/:*?\"<>|]", " ").trim();
-            for (File f : photos) {
-                total++;
-                final int idx = total;
-                driveProg("save", false, "photo", idx, pn, base[0], allB, true);
-                String up = prefix.isEmpty() ? f.getName() : prefix + " " + f.getName();
-                if (driveFind(token, up, parent, false) != null) { base[0] += f.length(); continue; }
-                String ext = f.getName().replaceAll("^.*\\.", "").toLowerCase(java.util.Locale.ROOT);
-                String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-                final long b0 = base[0];
-                driveCreate(token, parent, up, mime == null ? "image/jpeg" : mime, readAll(f), n -> driveProg("save", false, "photo", idx, pn, b0 + n, allB, false));
-                base[0] += f.length();
-                added++;
-            }
+            for (java.util.concurrent.Future<?> fu : fs) { try { fu.get(); } catch (Exception ignored) {} }
+            px.shutdown();
+            if (err[0] != null) throw err[0];
             driveProg("save", false, "done", pn, pn, allB, allB, true);
             JSONObject o = new JSONObject();
-            o.put("folder", parent);
-            o.put("url", "https://drive.google.com/drive/folders/" + parent);
-            o.put("added", added);
-            o.put("photos", total);
+            o.put("rid", rid);
+            o.put("name", name);
+            o.put("folder", folder);
+            o.put("url", "https://drive.google.com/drive/folders/" + folder);
+            o.put("added", added.get());
+            o.put("photos", pn);
             o.put("path", path);
+            o.put("queue", upWait.get());
+            if (upWait.get() == 0) upNoti("드라이브에 저장했어요", nmShow + (added.get() > 0 ? " · 사진 " + added.get() + "장" : ""), 0, 0, false);
             driveCb(true, o);
         } catch (Exception e) {
             String m = String.valueOf(e.getMessage());
             if (m.contains("HTTP 401")) appPrefs().edit().putBoolean("drive", false).apply();
-            driveFail(m.contains("HTTP 401") ? "구글 연결이 끊겼어요. 다시 연결해 주세요" : "드라이브에 저장하지 못했어요");
+            String msg = m.contains("HTTP 401") ? "구글 연결이 끊겼어요. 다시 연결해 주세요" : "드라이브에 저장하지 못했어요";
+            upNoti("드라이브 저장 실패", (name.isEmpty() ? "" : name + " · ") + msg, 0, 0, false);
+            JSONObject o = new JSONObject();
+            try { o.put("error", msg); o.put("rid", rid); o.put("name", name); o.put("queue", upWait.get()); } catch (Exception ignored) {}
+            driveCb(false, o);
         }
     }
 

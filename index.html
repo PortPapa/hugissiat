@@ -411,7 +411,8 @@ body[data-tab=plans] #viewPlans,body[data-tab=todo] #viewTodo,body[data-tab=reco
 .dp-h{display:flex;justify-content:space-between;align-items:center;font-size:14.5px;gap:10px}.dp-p{color:var(--acc-ink);font-weight:700;font-variant-numeric:tabular-nums}
 .dp-bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:9px 0 7px}.dp-bar i{display:block;height:100%;width:0;background:var(--acc);border-radius:3px;transition:width .3s}
 #dprog.wait .dp-bar i{width:30%!important;animation:dpw 1.1s ease-in-out infinite}@keyframes dpw{0%{transform:translateX(-110%)}100%{transform:translateX(350%)}}
-.dp-s{font-size:12.5px;color:var(--sub)}.dp-s:empty{display:none}#dprog.bad b{color:#D9534F}#dprog.bad .dp-bar{display:none}
+.dp-s{font-size:12.5px;color:var(--sub)}.dp-s:empty{display:none}
+#dprog{cursor:pointer}#dprog.min{left:auto;right:12px;max-width:none;width:auto;padding:8px 12px;border-radius:999px}#dprog.min .dp-s,#dprog.min .dp-bar{display:none}#dprog.min .dp-h b{font-size:12.5px}#dprog.bad b{color:#D9534F}#dprog.bad .dp-bar{display:none}
 .e-btn.drive:disabled{opacity:1;background:linear-gradient(90deg,var(--acc-soft) var(--p,0%),var(--card) var(--p,0%))}
 #easy.is-done{min-height:calc(100dvh - 150px);display:flex;flex-direction:column;justify-content:center}#easy.is-done .e-q{text-align:center}
 .card{position:relative}.fav-b{position:absolute;top:6px;right:8px;color:#fff;font-size:16px;text-shadow:0 1px 4px rgba(0,0,0,.35)}
@@ -1443,22 +1444,38 @@ function drivePath(){
   return ['후기씨앗',(+d[0])+'년 '+(+d[1])+'월',String(+d[2]).padStart(2,'0')+' '+nm];
 }
 function driveLbl(t){const s=document.querySelector('#btnDrive .lbl');if(s)s.textContent=t}
+/* 백그라운드 업로드(0.9.17~): 저장을 누르면 줄을 세워 올리고, 그동안 다른 기록을 써도 된다 */
+const UPQ={};
+const bgUp=()=>{try{return verGte(ChdNative.version&&ChdNative.version(),'0.9.17')}catch(e){return false}};
+const curRid=()=>PLACE?String(PLACE.id):'';
 function saveDrive(){
   if(!canDrive()){toast('앱을 최신 버전으로 업데이트해 주세요');return}
   if(!PLACE)return;
-  const b=$('#btnDrive');if(b){b.disabled=true;driveLbl('저장하는 중…')}dpShow('save');
-  const job=JSON.stringify({path:drivePath(),mdName:fileName(),md:buildMD(),key:String(PLACE.id),prefix:fileBase()});
+  const rid=curRid(),name=(V('biz')||PLACE.name||'').trim();
+  if(UPQ[rid]){toast('이 기록은 지금 올리는 중이에요');return}
+  const bg=bgUp(),b=$('#btnDrive');
+  if(b){b.disabled=!bg;driveLbl(bg?'올리는 중…':'저장하는 중…')}
+  if(bg){UPQ[rid]={name,p:0};const n=Object.keys(UPQ).length;toast(n>1?'대기열에 넣었어요 ('+n+'개째). 다음 기록을 써도 돼요':'백그라운드로 올려요. 다음 기록을 써도 돼요')}
+  dpShow('save',name);
+  const job=JSON.stringify({path:drivePath(),mdName:fileName(),md:buildMD(),key:rid,rid,name,prefix:fileBase()});
   adGate('drive',()=>ChdNative.driveSave(job));
+}
+function markDrive(rid,url){
+  const now={at:Date.now(),url:url||''};
+  if(S&&(!rid||rid===curRid())){S.drive=now;save();return}
+  const k='chd-memo-v2-'+rid;try{const st=JSON.parse(localStorage.getItem(k)||'null');if(st){st.drive=now;localStorage.setItem(k,JSON.stringify(st))}}catch(e){}
 }
 window.chdDrive=s=>{
   let o={};try{o=JSON.parse(s)}catch(e){}
   if(o.op==='inbox'){mergeWebInbox(o);return}
-  const b=$('#btnDrive');if(b){b.disabled=false;b.style.removeProperty('--p');driveLbl(S&&S.drive?'드라이브에 다시 저장':'드라이브에 저장')}
-  const card=DP.on&&DP.op==='save';
+  const rid=o.rid!=null?String(o.rid):'',mine=!rid||rid===curRid();
+  if(rid)delete UPQ[rid];
+  const b=$('#btnDrive');if(b&&mine){b.disabled=false;b.style.removeProperty('--p');driveLbl(S&&S.drive?'드라이브에 다시 저장':'드라이브에 저장')}
+  const card=DP.on&&DP.op==='save',more=o.queue>0||Object.keys(UPQ).length>0,who=o.name?o.name+' · ':'';
   if(o.ok&&o.connected){if(card)dpEnd(true,'구글 드라이브를 연결했어요');else toast('구글 드라이브를 연결했어요');if(TAB==='me')renderMe();return}
-  if(o.ok){if(S){S.drive={at:Date.now(),url:o.url||''};save()}driveLbl('드라이브에 다시 저장');
-    const m='드라이브에 저장했어요'+(o.added?' · 사진 '+o.added+'장':'');if(card)dpEnd(true,m);else toast(m);if(TAB==='me')renderMe();return}
-  if(card)dpEnd(false,o.error||'저장하지 못했어요');else toast(o.error||'저장하지 못했어요');if(TAB==='me')renderMe();
+  if(o.ok){markDrive(rid,o.url);if(b&&mine)driveLbl('드라이브에 다시 저장');
+    const m=who+'드라이브에 저장했어요'+(o.added?' · 사진 '+o.added+'장':'');if(card&&!more)dpEnd(true,m);else toast(m);if(TAB==='me')renderMe();try{if(TAB!=='write'&&typeof renderView==='function')renderView()}catch(e){}return}
+  const em=who+(o.error||'저장하지 못했어요');if(card&&!more)dpEnd(false,em);else toast(em);if(TAB==='me')renderMe();
 };
 /* ---------- 웹(hugissiat.com)에서 추가한 갈 곳 받기 ---------- */
 function verGte(v,w){const a=String(v||'0').split('.').map(Number),b=w.split('.').map(Number);for(let i=0;i<3;i++){if((a[i]||0)>(b[i]||0))return true;if((a[i]||0)<(b[i]||0))return false}return true}
@@ -1478,22 +1495,25 @@ function mergeWebInbox(o){
 }
 /* ---------- 드라이브 진행률: 단계 · 퍼센트 · 남은 시간 ---------- */
 const DP={on:false,op:'',t0:0,d0:0,h:0};
-function dpShow(op){
+function dpShow(op,name){
   let c=$('#dprog');if(!c){c=el('div','');c.id='dprog';c.setAttribute('role','status');c.innerHTML='<div class="dp-h"><b></b><span class="dp-p"></span></div><div class="dp-bar"><i></i></div><div class="dp-s"></div>';document.body.append(c)}
   clearTimeout(DP.h);Object.assign(DP,{on:true,op,t0:0,d0:0});
-  c.className='show wait';c.querySelector('b').textContent={save:'드라이브에 저장 중',backup:'백업하는 중',restore:'백업 받아오는 중'}[op]||'저장 중';
+  c.className='show wait'+(DP.min?' min':'');c.querySelector('b').textContent=({save:'드라이브에 올리는 중',backup:'백업하는 중',restore:'백업 받아오는 중'}[op]||'저장 중')+(name?' · '+name:'');
+  c.onclick=()=>{if(DP.op==='save'&&DP.on){DP.min=!DP.min;c.classList.toggle('min',DP.min)}};
   c.querySelector('.dp-p').textContent='';c.querySelector('.dp-bar i').style.width='0%';c.querySelector('.dp-s').textContent='준비하는 중…';
 }
 function etaTxt(sec){return sec<8?'곧 끝나요':sec<60?'약 '+Math.ceil(sec/5)*5+'초 남음':'약 '+Math.ceil(sec/60)+'분 남음'}
 window.chdProgress=str=>{let o={};try{o=JSON.parse(str)}catch(e){return}
-  if(!DP.on||DP.op!==o.op)dpShow(o.op);
+  if(!DP.on||DP.op!==o.op||(o.name&&DP.name!==o.name)){dpShow(o.op,o.name);DP.name=o.name||''}
   const c=$('#dprog'),now=Date.now(),p=o.total>0?Math.min(1,o.done/o.total):0,pc=Math.round(p*100);
   const prep=o.stage==='prep';if(!prep&&!DP.t0){DP.t0=now;DP.d0=o.done}
   c.classList.toggle('wait',prep);c.querySelector('.dp-bar i').style.width=pc+'%';c.querySelector('.dp-p').textContent=prep?'':pc+'%';
   let st=prep?'폴더 확인하는 중…':o.stage==='md'?'후기 소스 올리는 중':o.stage==='photo'?'사진 '+o.i+' / '+o.n:o.stage==='done'?'마무리하는 중':'';
   const dt=now-DP.t0,dd=o.done-DP.d0;if(DP.t0&&dt>1500&&dd>0&&p<1)st+=' · '+etaTxt((o.total-o.done)/(dd/dt)/1000);
+  if(o.queue>0)st+=' · '+o.queue+'개 대기';if(o.op==='save'&&bgUp()&&!DP.min)st+=' · 눌러서 접기';
   c.querySelector('.dp-s').textContent=st;
-  const b=$('#btnDrive');if(b&&o.op==='save'&&!prep){b.style.setProperty('--p',pc+'%');driveLbl('저장 중 '+pc+'%')}
+  if(o.rid&&UPQ[o.rid])UPQ[o.rid].p=pc;
+  const b=$('#btnDrive');if(b&&o.op==='save'&&!prep&&(!o.rid||String(o.rid)===curRid())){b.style.setProperty('--p',pc+'%');driveLbl('올리는 중 '+pc+'%')}
 };
 function dpEnd(ok,msg){const c=$('#dprog');DP.on=false;if(!c)return;c.classList.remove('wait');c.classList.toggle('bad',!ok);
   if(ok)c.querySelector('.dp-bar i').style.width='100%';c.querySelector('.dp-p').textContent=ok?'100%':'';c.querySelector('b').textContent=msg;c.querySelector('.dp-s').textContent='';
@@ -2105,7 +2125,7 @@ function easyCards(){
     const c=el('button','e-btn','복사하기');c.type='button';c.onclick=()=>$('#btnCopy').click();
     row.append(s,c);b.append(row);
     if(canDrive()){const dv=el('button','e-btn drive');dv.type='button';dv.id='btnDrive';
-      dv.append(svgIcon(),el('span','lbl',S.drive?'드라이브에 다시 저장':'드라이브에 저장'));dv.onclick=saveDrive;b.append(dv);
+      const uq=UPQ[curRid()];dv.append(svgIcon(),el('span','lbl',uq?'올리는 중 '+(uq.p||0)+'%':S.drive?'드라이브에 다시 저장':'드라이브에 저장'));if(uq)dv.style.setProperty('--p',(uq.p||0)+'%');dv.onclick=saveDrive;b.append(dv);
       b.append(el('div','e-tip drive-path',drivePath().join(' / ')))}
     const lk=el('div','done-links');
     const e1=el('button','','자세히 수정하기');e1.type='button';e1.onclick=()=>setMode('full');
