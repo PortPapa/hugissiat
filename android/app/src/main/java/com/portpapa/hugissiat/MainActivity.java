@@ -473,8 +473,19 @@ public class MainActivity extends Activity {
                 Uri u = intent.getParcelableExtra(Intent.EXTRA_STREAM);
                 if (u != null) us.add(u);
             }
-            incomingPhotos = copyIncoming(us);
+            // 사진이 많으면 복사가 오래 걸려 화면이 멈추므로 따로 돌린다. 다 받은 뒤 화면에 알린다.
             intent.setAction(null);
+            incomingPhotos = 0;
+            if (us.isEmpty()) return;
+            if (us.size() >= 10) Toast.makeText(this, "사진 " + us.size() + "장을 받는 중이에요", Toast.LENGTH_SHORT).show();
+            new Thread(() -> {
+                int n = copyIncoming(us);
+                runOnUiThread(() -> {
+                    incomingPhotos = n;
+                    if (n > 0 && web != null)
+                        web.evaluateJavascript("window.chdBooted&&window.chdIncomingPhotos&&window.chdIncomingPhotos(" + n + ")", null);
+                });
+            }).start();
             return;
         }
         if (intent != null && Intent.ACTION_SEND.equals(intent.getAction())) {
@@ -1511,7 +1522,8 @@ public class MainActivity extends Activity {
                 Intent i;
                 if (Build.VERSION.SDK_INT >= 33) {
                     i = new Intent(MediaStore.ACTION_PICK_IMAGES);
-                    i.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, Math.min(30, MediaStore.getPickImagesMaxLimit()));
+                    // 기기가 허용하는 최대치(보통 100장)까지. 더 필요하면 '사진 더 고르기'로 이어 붙이거나 갤러리에서 공유
+                    i.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit());
                 } else {
                     i = new Intent(Intent.ACTION_GET_CONTENT);
                     i.setType("image/*");

@@ -3292,7 +3292,7 @@ function checkCrash(){if(!(IS_APP&&ChdNative.lastCrash))return;let c='';try{c=Ch
   setTimeout(()=>openAct(b=>{b.append(el('h3','','지난번에 앱이 멈췄어요'),el('div','e-tip','오류 내용을 보내주시면 고칠게요. 개인 기록은 들어가지 않아요.'));
     const row=el('div','done-row');const y=el('button','e-btn primary','오류 보내기');y.type='button';y.onclick=()=>{closeAct();mailTo('[후기씨앗] 오류 보고','버전 '+appVer()+'\n\n'+c)};const n=el('button','e-btn','괜찮아요');n.type='button';n.onclick=closeAct;row.append(y,n);b.append(row)}),900)}
 /* ---------- 갤러리에서 공유받은 사진: 어느 가게 사진인지 고르기 ---------- */
-window.chdIncomingPhotos=n=>{if(!n)return;goHome();openAct(b=>{
+window.chdIncomingPhotos=n=>{if(!n)return;if(window._incN===n&&Date.now()-(window._incAt||0)<8000)return;window._incN=n;window._incAt=Date.now();goHome();openAct(b=>{
   b.append(el('h3','','사진 '+n+'장을 어디에 넣을까요?'));
   const list=el('div','set-box');const all=allPlaces();
   if(!all.length)b.append(el('div','e-tip','먼저 가게나 제품을 추가해 주세요'));
@@ -3335,6 +3335,7 @@ async function boot(){
   document.body.dataset.tab=TAB;
   const act=IS_APP&&ChdNative.takeAction?ChdNative.takeAction():'';
   syncWidget();
+  window.chdBooted=1;
   if(planId){setMode('easy');window.chdOpenPlan(planId);return}
   if(act){setMode('easy');window.chdAction(act);return}
   if(incoming){window.chdIncoming(incoming);return}
