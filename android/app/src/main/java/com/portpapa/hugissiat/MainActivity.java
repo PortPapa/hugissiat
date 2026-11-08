@@ -154,7 +154,10 @@ public class MainActivity extends Activity {
 
         final WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .addPathHandler("/thumbs/", path -> serveLocal(path, true))
+                .addPathHandler("/photo/", path -> serveLocal(path, false))
                 .build();
+        pool.execute(this::shrinkStoredPhotos);
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -665,13 +668,93 @@ public class MainActivity extends Activity {
         }
     }
 
+    /* ---------- 사진은 가볍게: 썸네일은 파일로 한 번만 만들어 두고, 화면은 일반 이미지 주소로 불러온다 ---------- */
+    static final String LOCAL = "https://appassets.androidplatform.net";
+    private String thumbUrl(String key, File f) {
+        try { return LOCAL + "/thumbs/" + safeKey(key) + "/" + URLEncoder.encode(f.getName(), "UTF-8").replace("+", "%20") + "?v=" + f.length(); } catch (Exception e) { return ""; }
+    }
+    private String photoUrl(String key, File f) {
+        try { return LOCAL + "/photo/" + safeKey(key) + "/" + URLEncoder.encode(f.getName(), "UTF-8").replace("+", "%20") + "?v=" + f.length(); } catch (Exception e) { return ""; }
+    }
+    private final Object thumbLock = new Object();
+    /** /thumbs/KEY/NAME 은 320px 썸네일(없으면 만들어 저장), /photo/KEY/NAME 은 보관 중인 사진 */
+    private WebResourceResponse serveLocal(String path, boolean thumb) {
+        try {
+            String[] p = path.split("/", 2);
+            if (p.length < 2) return null;
+            String name = java.net.URLDecoder.decode(p[1], "UTF-8");
+            if (name.contains("/") || name.contains("..")) return null;
+            File src = new File(photoDirOf(p[0]), name);
+            if (!src.isFile()) return null;
+            if (!thumb) {
+                String ext = name.replaceAll("^.*\\.", "").toLowerCase(java.util.Locale.ROOT);
+                String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+                return new WebResourceResponse(mime == null ? "application/octet-stream" : mime, null, new FileInputStream(src));
+            }
+            File dir = new File(getFilesDir(), "thumbs/" + safeKey(p[0]));
+            File tf = new File(dir, name + "-" + src.length() + ".jpg");
+            if (!tf.isFile()) {
+                synchronized (thumbLock) {
+                    if (!tf.isFile()) {
+                        dir.mkdirs();
+                        String du = isVideo(src) ? videoData(src, 320, 72) : imageData(src, 320, 72);
+                        int c = du.indexOf(',');
+                        if (c < 0) return null;
+                        File tmp = new File(dir, tf.getName() + ".part");
+                        try (OutputStream os = new FileOutputStream(tmp)) { os.write(Base64.decode(du.substring(c + 1), Base64.DEFAULT)); }
+                        File[] old = dir.listFiles(x -> x.getName().startsWith(name + "-") && !x.getName().endsWith(".part"));
+                        if (old != null) for (File o : old) o.delete();
+                        tmp.renameTo(tf);
+                    }
+                }
+            }
+            WebResourceResponse r = new WebResourceResponse("image/jpeg", null, new FileInputStream(tf));
+            java.util.HashMap<String, String> h = new java.util.HashMap<>(); h.put("Cache-Control", "max-age=31536000");
+            r.setResponseHeaders(h);
+            return r;
+        } catch (Throwable e) { return null; }
+    }
+    /** 들여온 사진을 2048px JPEG로 줄여 보관 (블로그와 드라이브엔 이 크기면 충분). 영상과 작은 사진은 그대로 */
+    private File shrinkPhoto(File f, boolean allowRename) {
+        try {
+            if (isVideo(f)) return f;
+            String ext = f.getName().replaceAll("^.*\\.", "").toLowerCase(java.util.Locale.ROOT);
+            boolean jpg = ext.equals("jpg") || ext.equals("jpeg");
+            if (!jpg && !allowRename) return f;
+            BitmapFactory.Options o = new BitmapFactory.Options(); o.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(f.getAbsolutePath(), o);
+            if (o.outWidth <= 0) return f;
+            if (Math.max(o.outWidth, o.outHeight) <= UP_MAX && (jpg || f.length() < 400_000) && f.length() < 1_600_000) return f;
+            Object[] r = upPhoto(f);
+            if (r == null) return f;
+            byte[] data = (byte[]) r[0];
+            if (data.length >= f.length() && jpg) return f;
+            File out = new File(f.getParentFile(), jpg ? f.getName() : f.getName().replaceAll("\\.[^.]+$", "") + ".jpg");
+            File tmp = new File(f.getParentFile(), "." + out.getName() + ".part");
+            try (OutputStream os = new FileOutputStream(tmp)) { os.write(data); }
+            if (!jpg) f.delete();
+            if (tmp.renameTo(out)) return out;
+            tmp.delete();
+        } catch (Throwable ignored) {}
+        return f;
+    }
+    /** 예전에 원본 그대로 받아 둔 큰 사진을 한 번 줄여 둔다 (JPEG만, 이름 그대로) */
+    private void shrinkStoredPhotos() {
+        try {
+            if (appPrefs().getBoolean("shrunk1", false)) return;
+            File[] ks = new File(getFilesDir(), "photos").listFiles(File::isDirectory);
+            if (ks != null) for (File k : ks) { File[] fs = k.listFiles(File::isFile); if (fs != null) for (File f : fs) if (f.length() > 1_600_000) shrinkPhoto(f, false); }
+            appPrefs().edit().putBoolean("shrunk1", true).apply();
+        } catch (Throwable ignored) {}
+    }
+
     private String photosJson() {
         JSONArray a = new JSONArray();
         for (File f : photoFiles()) {
             try {
                 JSONObject o = new JSONObject();
                 o.put("name", f.getName());
-                o.put("thumb", thumbOf(f));
+                o.put("thumb", thumbUrl(photoKey, f));
                 if (isVideo(f)) o.put("video", true);
                 a.put(o);
             } catch (Exception ignored) {}
@@ -1292,7 +1375,9 @@ public class MainActivity extends Activity {
                     while ((n = in.read(b)) > 0) os.write(b, 0, n);
                 } catch (Exception e) {
                     out.delete();
+                    continue;
                 }
+                shrinkPhoto(out, true);
             }
             pushPhotos();
         });
@@ -1778,7 +1863,7 @@ public class MainActivity extends Activity {
         public String photoFull(String name) {
             if (!trusted || name == null || name.contains("/") || name.contains("..")) return "";
             File f = new File(photoDir(), name);
-            return f.exists() ? (isVideo(f) ? videoData(f, 1280, 85) : imageData(f, 1600, 85)) : "";
+            return f.exists() ? (isVideo(f) ? videoData(f, 1280, 85) : photoUrl(photoKey, f)) : "";
         }
 
         @JavascriptInterface
@@ -1808,7 +1893,7 @@ public class MainActivity extends Activity {
             File[] fs = d.listFiles();
             if (fs != null) for (File f : fs) f.delete();
             d.delete();
-            File g = guideDirOf(key); File[] gs = g.listFiles(); if (gs != null) for (File f : gs) f.delete(); g.delete();
+            File g = guideDirOf(key); File[] gs = g.listFiles(); if (gs != null) for (File f : gs) f.delete(); g.delete(); File th = new File(getFilesDir(), "thumbs/" + safeKey(key)); File[] ts = th.listFiles(); if (ts != null) for (File f : ts) f.delete(); th.delete();
         }
 
         @JavascriptInterface
@@ -1853,7 +1938,8 @@ public class MainActivity extends Activity {
             File dir = photoDirOf(key);
             for (File f : fs) {
                 String ext = f.getName().replaceAll("^.*\\.", "");
-                if (f.renameTo(new File(dir, String.format(java.util.Locale.ROOT, "%02d.%s", no++, ext)))) n++;
+                File dst = new File(dir, String.format(java.util.Locale.ROOT, "%02d.%s", no++, ext));
+                if (f.renameTo(dst)) { n++; shrinkPhoto(dst, true); }
             }
             if (safeKey(key).equals(photoKey)) pushPhotos();
             return n;
@@ -1904,7 +1990,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void deleteAll() {
             if (!trusted) return;
-            for (String dn : new String[]{"photos", "guides"}) {
+            for (String dn : new String[]{"photos", "guides", "thumbs"}) {
                 File[] ks = new File(getFilesDir(), dn).listFiles();
                 if (ks != null) for (File k : ks) {
                     File[] fs = k.listFiles();
