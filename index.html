@@ -2480,6 +2480,7 @@ function settleSheet(year,openM){
     const tot=el('div','st-tot');tot.append(el('b','',won(yv+yf)||'0원'),el('span','','협찬 '+(won(yv)||'0원')+' · 원고료 '+(won(yf)||'0원')+' · 혜택 받은 곳 '+yr.filter(r=>recMoney(r)).length+'곳'));b.append(tot);
     const last=year===now.getFullYear()?now.getMonth()+1:12;
     const ms=[];for(let m=last;m>=1;m--){const k=year+'-'+String(m).padStart(2,'0');const list=yr.filter(r=>recMonth(r)===k&&recMoney(r)).sort((a,b)=>recMoney(b)-recMoney(a));ms.push({m,k,list,t:list.reduce((x,r)=>x+recMoney(r),0)})}
+    {const lo=ms.reduce((m,x)=>x.t?x.m:m,13);while(ms.length>1&&ms[ms.length-1].m<lo)ms.pop()}
     const max=Math.max(1,...ms.map(x=>x.t));
     ms.forEach(x=>{const row=el('button','st-m'+(x.t?'':' zero'));row.type='button';const bar=el('div','rp-b');const i=el('i');i.style.width=x.t?Math.max(4,x.t/max*100)+'%':'0';i.style.background='var(--sage)';bar.append(i);
       row.append(el('span','',x.m+'월'),bar,el('b','',x.t?won(x.t):'-'));b.append(row);
@@ -2498,7 +2499,7 @@ function renderRecords(){
   {const mk=ymd(new Date()).slice(0,7);const mr=rs.filter(r=>!String(r.id).startsWith('_')&&recMonth(r)===mk);const t=mr.reduce((x,r)=>x+recMoney(r),0);
     const sb=el('button','mo-sum');sb.type='button';const tx=el('div');tx.append(el('span','',(new Date().getMonth()+1)+'월 받은 혜택 · 기록 '+mr.length+'건'),el('b','',won(t)||'0원'));sb.append(tx,el('small','','월별 정산 ›'));sb.onclick=()=>settleSheet();v.append(sb)}
   const groups=[];rs.forEach(r=>{const k=recMonth(r)||'날짜 없음';let g=groups.find(x=>x.k===k);if(!g){g={k,list:[]};groups.push(g)}g.list.push(r)});
-  groups.sort((a,b)=>b.k.localeCompare(a.k));
+  groups.sort((a,b)=>(a.k==='날짜 없음')-(b.k==='날짜 없음')||b.k.localeCompare(a.k));
   groups.forEach(g=>{const t=g.list.reduce((x,r)=>x+recMoney(r),0);const h=el('div','mo-h');h.append(el('span','',/^\d{4}-\d{2}$/.test(g.k)?monthLabel(g.k)+' · '+g.list.length+'곳':g.k));if(t){h.append(el('em','',won(t)));h.style.cursor='pointer';h.onclick=()=>settleSheet(+g.k.slice(0,4),g.k)}v.append(h);
   g.list.forEach(r=>{
     const row=el('div','rec');const i=el('div');row.append(thumbEl(r.place,'th'));
