@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 10~11용 로딩 화면: 크림 배경 + 가운데 새싹 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/bg" />
+    <item android:width="160dp" android:height="160dp" android:gravity="center" android:drawable="@drawable/splash_icon" />
+</layer-list>

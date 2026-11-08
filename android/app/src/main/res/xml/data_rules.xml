@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+: 클라우드 백업은 기록·설정만, 새 폰으로 옮기기(기기 간 전송)는 사진까지 -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="root" path="app_webview/" />
+        <include domain="sharedpref" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="root" path="app_webview/" />
+        <include domain="sharedpref" path="." />
+        <include domain="file" path="photos/" />
+    </device-transfer>
+</data-extraction-rules>

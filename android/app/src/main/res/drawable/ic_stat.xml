@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 알림용 흰 새싹 아이콘 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M12,21 L12,11" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,14 C8,14 5,11.5 4.5,7.5 C8.5,7.5 11.5,10 12,14 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,11.5 C12.5,7 15.5,4 20,3.5 C19.5,8 16.5,11 12,11.5 Z" />
+</vector>
