@@ -401,6 +401,13 @@ body[data-tab=plans] #viewPlans,body[data-tab=todo] #viewTodo,body[data-tab=reco
 #act .thumbs.sel .th img{transform:scale(.94);transition:transform .15s}
 .lbx img{touch-action:none;will-change:transform}
 .dk-pill.hold{transform:scale(.97);background:var(--acc-soft)}
+#dkPaste{touch-action:none;user-select:none;-webkit-user-select:none}
+#dkPaste .dk-lbl{flex:1;min-width:0;text-align:left;display:block}
+#dkPaste.drag{background:var(--acc-soft)}
+.dk-sw{flex:none;display:flex;flex-direction:column;align-items:center;gap:1px;padding-right:6px;color:var(--sub);font-size:10.5px;font-weight:600;line-height:1}
+.dk-sw b{font-variant-numeric:tabular-nums;font-weight:600}
+.dk-sw i{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;opacity:.55}
+.dk-sw i:first-child{border-bottom:4px solid currentColor}.dk-sw i:last-child{border-top:4px solid currentColor}
 .swr{position:relative;overflow:hidden;border-radius:12px}
 .swr-acts{position:absolute;right:0;top:0;bottom:0;display:flex}
 .swr-b{width:72px;border:0;font:inherit;font-size:13.5px;font-weight:700;color:var(--ink);background:var(--acc-soft)}.swr-b.acc{background:var(--acc);color:#fff}
@@ -3027,12 +3034,18 @@ async function addFromLink(){
   const c=await readClip();
   if(/https:\/\/(naver\.me\/|[\w.-]*naver\.com\/)/.test(c)||PROD_RE.test(c))fetchAndChoose(c);else pasteSheet('');
 }
-(()=>{const b=$('#dkPaste');let t=null,held=false;
-  b.addEventListener('pointerdown',()=>{held=false;t=setTimeout(()=>{t=null;held=true;buzz(20);b.classList.add('hold');const c=memoPlaces();voiceMemo(c.length?c[0]:INBOX,true)},380)});
-  const up=()=>{if(t){clearTimeout(t);t=null}if(held){b.classList.remove('hold');setTimeout(()=>voiceStop(),250)}};
+/* 하단 메모 바: 누르면 바로 녹음, 꾹 누르면 누르는 동안만 녹음, 위아래로 끌면 다른 캠페인 */
+(()=>{const b=$('#dkPaste');let t=null,held=false,y0=null,acc=0,dragged=false;
+  const STEP=34;
+  b.addEventListener('pointerdown',e=>{held=false;dragged=false;acc=0;y0=e.clientY;try{b.setPointerCapture(e.pointerId)}catch(x){}
+    t=setTimeout(()=>{t=null;if(dragged)return;held=true;buzz(20);b.classList.add('hold');voiceMemo(dockCur().p,true)},420)});
+  b.addEventListener('pointermove',e=>{if(y0==null||held)return;const dy=e.clientY-y0;
+    if(!dragged&&Math.abs(dy)>14){dragged=true;if(t){clearTimeout(t);t=null}b.classList.add('drag')}
+    if(dragged){const k=Math.trunc((dy-acc)/STEP);if(k){acc+=k*STEP;dockMove(k>0?-1:1)}}});
+  const up=()=>{y0=null;if(t){clearTimeout(t);t=null}b.classList.remove('drag');if(held){b.classList.remove('hold');setTimeout(()=>voiceStop(),250)}};
   b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);
   b.addEventListener('contextmenu',e=>e.preventDefault());
-  b.onclick=e=>{if(held){held=false;e.preventDefault();return}quickVoice()};
+  b.onclick=e=>{if(held||dragged){held=false;dragged=false;e.preventDefault();return}quickVoice()};
 })();
 /* ---------- 지금 메모: 오늘 가는 곳(또는 방금 쓰던 곳)에 말로 바로 남기기 ---------- */
 function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
@@ -3043,10 +3056,29 @@ function memoPlaces(){
   getRecords().filter(r=>!r.sent&&r.updated&&now-r.updated<12*3600e3).forEach(r=>push(r.place));
   return out;
 }
-function updDock(){const l=document.querySelector('#dkPaste .dk-lbl');if(!l)return;const c=memoPlaces()[0];l.textContent=c?c.name+' 메모':'지금 메모'}
 const INBOX={id:'_inbox',name:'가게 없이 메모'};
 const isInbox=p=>p&&String(p.id)==='_inbox';
-function quickVoice(){const c=memoPlaces();voiceMemo(c.length?c[0]:INBOX)}
+/* 하단 바에서 고를 수 있는 캠페인: 오늘 갈 곳 → 다가오는 갈 곳 → 쓰는 중인 기록 → 가게 없이 메모 */
+let DOCK_SEL=null;
+function dockList(){
+  const out=[],seen=new Set();const push=p=>{if(p&&p.id&&p.name&&!seen.has(String(p.id))){seen.add(String(p.id));out.push(p)}};
+  memoPlaces().forEach(push);
+  const now=Date.now(),tm=p=>p.when?new Date(p.when).getTime():Infinity;
+  getPlans().slice().sort((a,b)=>{const pa=tm(a)<now-864e5?1:0,pb=tm(b)<now-864e5?1:0;return pa-pb||tm(a)-tm(b)}).forEach(p=>push(p.place));
+  getRecords().filter(r=>!r.posted&&!String(r.id).startsWith('_')&&r.place).sort((a,b)=>(b.updated||0)-(a.updated||0)).forEach(r=>push(r.place));
+  push(INBOX);return out;
+}
+function dockCur(){const l=dockList();let i=l.findIndex(p=>String(p.id)===String(DOCK_SEL));if(i<0)i=0;return {l,i,p:l[i]||INBOX}}
+function dockMove(d){const {l,i}=dockCur();if(l.length<2)return;const n=(i+d+l.length)%l.length;DOCK_SEL=String(l[n].id);buzz(8);updDock(d)}
+function updDock(dir){const b=document.querySelector('#dkPaste'),l=b&&b.querySelector('.dk-lbl');if(!l)return;
+  const {l:list,i,p}=dockCur();const txt=isInbox(p)?'가게 없이 메모':p.name+' 메모';
+  let sw=b.querySelector('.dk-sw');if(!sw){sw=el('span','dk-sw');b.append(sw)}
+  sw.innerHTML=list.length>1?'<i></i><b>'+(i+1)+'/'+list.length+'</b><i></i>':'';
+  if(dir&&l.textContent!==txt&&l.animate&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    l.animate([{transform:'translateY(0)',opacity:1},{transform:'translateY('+(dir>0?-60:60)+'%)',opacity:0}],{duration:110,easing:'ease-in'}).onfinish=()=>{l.textContent=txt;l.animate([{transform:'translateY('+(dir>0?60:-60)+'%)',opacity:0},{transform:'translateY(0)',opacity:1}],{duration:180,easing:'cubic-bezier(.22,1,.36,1)'})};
+  }else l.textContent=txt;
+}
+function quickVoice(){voiceMemo(dockCur().p,true)}
 /* 메모 옮기기: from 가게의 i번째(또는 여러 개) 메모를 to 가게로 */
 function moveQM(fromId,idxs,toId){
   const a=getQM(fromId);const take=idxs.map(i=>a[i]).filter(Boolean);if(!take.length)return 0;
@@ -3114,7 +3146,7 @@ function pickMemoPlace(){openAct(b=>{
   all.slice(0,12).forEach(p=>{const r=el('button','set-row');r.type='button';const l=el('span','set-l');l.append(thumbEl(p,'th sm'),p.name);r.append(l);r.onclick=()=>voiceMemo(p);list.append(r)});
   b.append(list);
 })}
-function voiceMemo(place,now){openAct(b=>{
+function voiceMemo(place,now){if(place&&place.id){DOCK_SEL=String(place.id);setTimeout(()=>{try{updDock()}catch(e){}},0)}openAct(b=>{
   const hd=el('div','vm-h');hd.append(el('h3','',place.name));
   const ch=el('button','vm-ch','바꾸기');ch.type='button';ch.onclick=()=>{voiceStop();pickMemoPlace()};hd.append(ch);b.append(hd);
   const list=el('div','qm-list');
