@@ -363,6 +363,9 @@ body[data-tab=plans] #viewPlans,body[data-tab=todo] #viewTodo,body[data-tab=reco
 .rv-ph{aspect-ratio:1;border:0;padding:0;border-radius:10px;overflow:hidden;background:var(--acc-soft)}
 .rv-ph img{width:100%;height:100%;object-fit:cover;display:block}
 .rv-ph.add{border:1.5px dashed var(--line);background:var(--card);color:var(--sub);font-size:22px}
+.rv-ph{position:relative}
+.thumbs .th .vb,.rv-ph .vb{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.62);color:#fff;font-size:10.5px;font-style:normal;font-weight:700;border-radius:6px;padding:1px 5px;pointer-events:none}
+.lbx-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:76px;height:76px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:30px;padding:0 0 0 6px;box-shadow:0 0 0 2px rgba(255,255,255,.7)}
 .lbx{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center}
 .lbx img{max-width:100%;max-height:100%;object-fit:contain}
 .lbx-n{position:absolute;top:calc(14px + env(safe-area-inset-top));left:0;right:0;text-align:center;color:#fff;font-size:13.5px;font-weight:700}
@@ -732,7 +735,9 @@ function guideSheet(id,title,after){openAct(b=>{
   if(IS_APP&&ChdNative.pickGuide){
     const fl=el('div','g-files');const draw=list=>{fl.innerHTML='';list.forEach(f=>{const r=el('div','g-file');if(f.thumb){const im=document.createElement('img');im.src=f.thumb;im.alt='';r.append(im)}else r.append(el('i','g-ic',f.kind==='pdf'?'PDF':'TXT'));r.append(el('span','g-n',f.name));const d=el('button','g-x','×');d.type='button';d.setAttribute('aria-label','빼기');d.onclick=()=>{ChdNative.removeGuide(String(id),f.name);recPatch(id,st=>{if(st.drive)st.drive.sig=''});draw(guideList(id))};r.append(d);fl.append(r)})};
     draw(guideList(id));b.append(fl);
-    const add=el('button','e-btn','+ PDF·캡처 넣기');add.type='button';add.onclick=()=>{window.chdGuides=(k,js)=>{if(String(k)!==safeK(id))return;let l=[];try{l=JSON.parse(js)}catch(e){}draw(l);recPatch(id,st=>{if(st.drive)st.drive.sig=''});toast('가이드를 넣었어요')};ChdNative.pickGuide(String(id))};b.append(add);
+    const onG=()=>{window.chdGuides=(k,js)=>{if(String(k)!==safeK(id))return;let l=[];try{l=JSON.parse(js)}catch(e){}draw(l);recPatch(id,st=>{if(st.drive)st.drive.sig=''});toast('가이드를 넣었어요')}};
+    if(ChdNative.pickGuideImages){const gr=el('div','done-row');const a1=el('button','e-btn','+ 캡처 사진 (여러 장)');a1.type='button';a1.onclick=()=>{onG();ChdNative.pickGuideImages(String(id))};const a2=el('button','e-btn','+ PDF·파일');a2.type='button';a2.onclick=()=>{onG();ChdNative.pickGuide(String(id))};gr.append(a1,a2);b.append(gr)}
+    else{const add=el('button','e-btn','+ PDF·캡처 넣기');add.type='button';add.onclick=()=>{onG();ChdNative.pickGuide(String(id))};b.append(add)}
   }else b.append(el('div','e-tip','PDF·캡처 넣기는 앱을 업데이트하면 돼요'));
   const ok=el('button','e-btn primary','완료');ok.type='button';ok.onclick=()=>{closeAct();if(after)setTimeout(after,300)};b.append(ok);
 })}
@@ -1374,7 +1379,7 @@ function buildMD(){
   const rm=rateMD();if(rm.length)out.push('### 평가',...rm,'');
   const qm=PLACE?getQM(PLACE.id):[];
   if(qm.length)out.push(prod?'### 사용 일지':'### 현장 메모',...qm.map(m=>prod&&useDay(m.t)>0?`- ${useDay(m.t)}일차 (${hhmm(m.t)}) ${m.text}`:`- ${hhmm(m.t)} ${m.text}`),'');
-  if(PHOTOS.length)out.push('### 사진',...PHOTOS.map(p=>'- '+fileBase()+' '+p.name),'');
+  if(PHOTOS.length)out.push('### 사진',...PHOTOS.map(p=>'- '+fileBase()+' '+p.name+(p.video?' (영상)':'')),'');
   const pm=placeMD();
   if(pm.length)out.push(prod?'## 제품 정보':'## 업체 정보',...pm,'');
   if(PLACE&&PLACE.blogs&&PLACE.blogs.length){
@@ -1682,7 +1687,7 @@ function openPhotoSheet(){PHOTO_SHEET=true;openAct(b=>{
   else if(PHOTOS.length>1)hd.append(el('span','ph-tip','꾹 눌러 끌면 순서 바꾸기 · 그냥 떼면 여러 장 선택'));
   b.append(hd);
   if(PHOTOS.length){const g=el('div','thumbs'+(PSEL?' sel':''));
-    PHOTOS.forEach((p,i)=>{const t=el('div','th'+(PSEL&&PSEL.has(i)?' on':''));t.dataset.n=p.name;const im=document.createElement('img');im.src=p.thumb;im.alt='';const s=el('span','',String(i+1));const ub=upBadge(p);if(ub)t.append(ub);
+    PHOTOS.forEach((p,i)=>{const t=el('div','th'+(PSEL&&PSEL.has(i)?' on':''));t.dataset.n=p.name;const im=document.createElement('img');im.src=p.thumb;im.alt='';const s=el('span','',String(i+1));const ub=upBadge(p);if(ub)t.append(ub);if(p.video)t.append(el('i','vb','▶ 영상'));
       if(PSEL){t.append(im,s,el('i','ck'));t.onclick=()=>{PSEL.has(i)?PSEL.delete(i):PSEL.add(i);buzz(6);refreshPhotoViews()}}
       else{const x=el('button','','×');x.type='button';x.onclick=e=>{e.stopPropagation();removePhoto(i)};t.append(im,s,x);t.onclick=()=>{if(t._held){t._held=false;return}lightbox(i)};dragTile(t,i,g)}
       g.append(t)});
@@ -1696,7 +1701,7 @@ function photoBlock(){
   w.append(el('div','e-label',`후기에 쓸 사진 (선택)${PHOTOS.length?' · '+PHOTOS.length+'장':''}`));
   if(PHOTOS.length){
     const g=el('div','thumbs');
-    PHOTOS.forEach((p,i)=>{const t=el('div','th');t.dataset.n=p.name;const im=document.createElement('img');im.src=p.thumb;im.alt='';const s=el('span','',String(i+1));const x=el('button','','×');x.type='button';x.onclick=()=>removePhoto(i);t.append(im,s,x);const ub=upBadge(p);if(ub)t.append(ub);g.append(t)});
+    PHOTOS.forEach((p,i)=>{const t=el('div','th');t.dataset.n=p.name;const im=document.createElement('img');im.src=p.thumb;im.alt='';const s=el('span','',String(i+1));const x=el('button','','×');x.type='button';x.onclick=()=>removePhoto(i);t.append(im,s,x);const ub=upBadge(p);if(ub)t.append(ub);if(p.video)t.append(el('i','vb','▶ 영상'));g.append(t)});
     w.append(g);
   }
   const b=el('button','mic',PHOTOS.length?'사진 더 고르기':'사진 고르기');b.type='button';b.onclick=pickPhotos;w.append(b);
@@ -3189,7 +3194,7 @@ function openRecView(){openAct(b=>{
   const sub=[V('visitDate')?V('visitDate')+(S.f.visitTime?' '+S.f.visitTime:''):'',S.f.platform||''].filter(Boolean).join(' · ');
   b.append(el('h3','',V('biz')||(PLACE&&PLACE.name)||'기록'));if(sub)b.append(el('div','e-tip',sub));
   b.append(campLine(openRecView));
-  if(PHOTOS.length){const g=el('div','rv-grid');PHOTOS.forEach((p,i)=>{const t=el('button','rv-ph');t.type='button';t.dataset.n=p.name;const im=document.createElement('img');im.src=p.thumb;im.alt='';t.append(im);const ub=upBadge(p);if(ub)t.append(ub);t.onclick=()=>lightbox(i);g.append(t)});
+  if(PHOTOS.length){const g=el('div','rv-grid');PHOTOS.forEach((p,i)=>{const t=el('button','rv-ph');t.type='button';t.dataset.n=p.name;const im=document.createElement('img');im.src=p.thumb;im.alt='';t.append(im);const ub=upBadge(p);if(ub)t.append(ub);if(p.video)t.append(el('i','vb','▶ 영상'));t.onclick=()=>lightbox(i);g.append(t)});
     const ad=el('button','rv-ph add','+');ad.type='button';ad.onclick=()=>{closeAct();pickPhotos()};g.append(ad);b.append(g)}
   else{const ad=el('button','e-btn','+ 사진 넣기');ad.type='button';ad.onclick=()=>{closeAct();pickPhotos()};b.append(ad)}
   const qm=PLACE?getQM(PLACE.id):[];
@@ -3205,9 +3210,10 @@ function openRecView(){openAct(b=>{
 /* 사진 크게 보기: 좌우로 넘기기, 누르면 닫기 */
 function lightbox(i){
   const lb=el('div','lbx');const im=document.createElement('img');const cnt=el('div','lbx-n');
+  const pl=el('button','lbx-play','▶');pl.type='button';pl.setAttribute('aria-label','영상 재생');pl.style.display='none';pl.onclick=e=>{e.stopPropagation();const p=PHOTOS[i];if(p&&IS_APP&&ChdNative.openVideo)ChdNative.openVideo(p.name)};
   let sc=1,tx=0,ty=0;const apply=(anim)=>{im.style.transition=anim?'transform .2s':'none';im.style.transform='translate('+tx+'px,'+ty+'px) scale('+sc+')'};
   const reset=()=>{sc=1;tx=0;ty=0;apply(true);lb.style.background=''};
-  const show=k=>{i=(k+PHOTOS.length)%PHOTOS.length;const p=PHOTOS[i];im.src=p.thumb;cnt.textContent=(i+1)+' / '+PHOTOS.length;reset();
+  const show=k=>{i=(k+PHOTOS.length)%PHOTOS.length;const p=PHOTOS[i];im.src=p.thumb;cnt.textContent=(i+1)+' / '+PHOTOS.length+(p.video?' · 영상':'');pl.style.display=p.video?'':'none';reset();
     if(IS_APP&&ChdNative.photoFull){setTimeout(()=>{try{const u=ChdNative.photoFull(p.name);if(u&&PHOTOS[i]===p)im.src=u}catch(e){}},10)}};
   const prev=el('button','lbx-a l','‹');prev.type='button';prev.onclick=e=>{e.stopPropagation();show(i-1)};
   const next=el('button','lbx-a r','›');next.type='button';next.onclick=e=>{e.stopPropagation();show(i+1)};
@@ -3230,7 +3236,7 @@ function lightbox(i){
       if(!moved){const now=Date.now();if(now-last<280){if(sc===1){sc=2.5;const r=im.getBoundingClientRect();tx=(r.left+r.width/2-t0.x)*1.5;ty=(r.top+r.height/2-t0.y)*1.5;apply(true)}else reset();last=0;lb._dbl=true}else last=now}}
     t0=null},{passive:true});
   lb.onclick=e=>{if(e.target!==lb&&e.target!==im)return;setTimeout(()=>{if(lb._dbl){lb._dbl=false;return}if(sc===1&&Date.now()-last>=270)close()},300)};
-  lb.append(im,cnt);if(PHOTOS.length>1)lb.append(prev,next);document.body.append(lb);LBX=lb;show(i);
+  lb.append(im,cnt,pl);if(PHOTOS.length>1)lb.append(prev,next);document.body.append(lb);LBX=lb;show(i);
 }
 let LBX=null;
 function openMdView(){openAct(b=>{

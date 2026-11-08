@@ -36,6 +36,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
+import android.media.MediaMetadataRetriever;
+import android.media.ThumbnailUtils;
 import android.util.Base64;
 import android.webkit.MimeTypeMap;
 
@@ -268,8 +270,7 @@ public class MainActivity extends Activity {
         int n = 0;
         ContentResolver cr = getContentResolver();
         for (Uri u : us) {
-            String ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(cr.getType(u));
-            if (ext == null || ext.isEmpty() || "jpeg".equals(ext)) ext = "jpg";
+            String ext = extOf(cr, u);
             File out = new File(d, String.format(java.util.Locale.ROOT, "%03d.%s", n, ext));
             try (InputStream in = cr.openInputStream(u); OutputStream os = new FileOutputStream(out)) {
                 byte[] b = new byte[65536];
@@ -279,6 +280,49 @@ public class MainActivity extends Activity {
             } catch (Exception e) { out.delete(); }
         }
         return n;
+    }
+
+    /** 사진·영상 확장자: MIME으로 정하고, 모르면 영상은 mp4, 사진은 jpg */
+    private static String extOf(ContentResolver cr, Uri u) {
+        String mime = null;
+        try { mime = cr.getType(u); } catch (Exception ignored) {}
+        String ext = mime == null ? null : MimeTypeMap.getSingleton().getExtensionFromMimeType(mime);
+        if (ext == null || ext.isEmpty()) ext = mime != null && mime.startsWith("video/") ? "mp4" : "jpg";
+        ext = ext.toLowerCase(java.util.Locale.ROOT);
+        return "jpeg".equals(ext) ? "jpg" : ext;
+    }
+
+    private static final java.util.regex.Pattern VIDEO_RE = java.util.regex.Pattern.compile(".*\\.(mp4|mov|3gp|3g2|webm|mkv|m4v|avi)$", java.util.regex.Pattern.CASE_INSENSITIVE);
+    static boolean isVideo(File f) { return VIDEO_RE.matcher(f.getName()).matches(); }
+
+    /** 영상 첫 장면을 max px 이하 JPEG data URL로. 한 번 만든 건 캐시(vthumb)에 둔다 */
+    private String videoData(File f, int max, int quality) {
+        File dir = new File(getCacheDir(), "vthumb");
+        dir.mkdirs();
+        File c = new File(dir, Integer.toHexString((f.getAbsolutePath() + "|" + f.length() + "|" + f.lastModified()).hashCode()) + "_" + max + ".jpg");
+        try {
+            if (!c.exists() || c.length() == 0) {
+                Bitmap b = null;
+                try { b = ThumbnailUtils.createVideoThumbnail(f, new android.util.Size(max, max), null); } catch (Throwable ignored) {}
+                if (b == null) {
+                    MediaMetadataRetriever r = new MediaMetadataRetriever();
+                    try { r.setDataSource(f.getAbsolutePath()); b = r.getFrameAtTime(0); } catch (Throwable ignored) {} finally { try { r.release(); } catch (Throwable ignored) {} }
+                }
+                if (b == null) return "";
+                float sc = Math.min(1f, max / (float) Math.max(b.getWidth(), b.getHeight()));
+                if (sc < 1f) {
+                    Bitmap b2 = Bitmap.createScaledBitmap(b, Math.max(1, Math.round(b.getWidth() * sc)), Math.max(1, Math.round(b.getHeight() * sc)), true);
+                    if (b2 != b) b.recycle();
+                    b = b2;
+                }
+                try (OutputStream os = new FileOutputStream(c)) { b.compress(Bitmap.CompressFormat.JPEG, quality, os); }
+                b.recycle();
+            }
+            return "data:image/jpeg;base64," + Base64.encodeToString(readAll(c), Base64.NO_WRAP);
+        } catch (Throwable e) {
+            c.delete();
+            return "";
+        }
     }
 
     private int nextPhotoNoOf(String key) {
@@ -348,7 +392,8 @@ public class MainActivity extends Activity {
             File[] keys0 = base0.listFiles(File::isDirectory);
             long tot = data.length;
             int cnt = 0;
-            if (keys0 != null) for (File k : keys0) { File[] fs0 = k.listFiles(f -> f.isFile() && !f.getName().startsWith(".")); if (fs0 != null) for (File f : fs0) { tot += f.length(); cnt++; } }
+            // 영상은 기록 폴더에만 올리고 백업에는 넣지 않는다 (드라이브 용량 두 배 방지)
+            if (keys0 != null) for (File k : keys0) { File[] fs0 = k.listFiles(f -> f.isFile() && !f.getName().startsWith(".") && !isVideo(f)); if (fs0 != null) for (File f : fs0) { tot += f.length(); cnt++; } }
             final long allB = tot;
             final int pn = cnt;
             final long[] done = {0};
@@ -365,7 +410,7 @@ public class MainActivity extends Activity {
             if (keys != null && keys.length > 0) {
                 String pr = driveFolder(token, "photos", root);
                 for (File k : keys) {
-                    File[] fs = k.listFiles(f -> f.isFile() && !f.getName().startsWith("."));
+                    File[] fs = k.listFiles(f -> f.isFile() && !f.getName().startsWith(".") && !isVideo(f));
                     if (fs == null || fs.length == 0) continue;
                     String kf = driveFolder(token, k.getName(), pr);
                     java.util.HashSet<String> have = driveNames(token, kf);
@@ -463,7 +508,8 @@ public class MainActivity extends Activity {
             return;
         }
         String type = intent == null ? null : intent.getType();
-        if (intent != null && type != null && type.startsWith("image/")
+        boolean media = type != null && (type.startsWith("image/") || type.startsWith("video/") || "*/*".equals(type));
+        if (intent != null && media
                 && (Intent.ACTION_SEND.equals(intent.getAction()) || Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction()))) {
             ArrayList<Uri> us = new ArrayList<>();
             if (Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction())) {
@@ -473,11 +519,16 @@ public class MainActivity extends Activity {
                 Uri u = intent.getParcelableExtra(Intent.EXTRA_STREAM);
                 if (u != null) us.add(u);
             }
-            // 사진이 많으면 복사가 오래 걸려 화면이 멈추므로 따로 돌린다. 다 받은 뒤 화면에 알린다.
+            // 사진·영상이 많으면 복사가 오래 걸려 화면이 멈추므로 따로 돌린다. 다 받은 뒤 화면에 알린다.
+            if (us.isEmpty() && "*/*".equals(type)) {
+                CharSequence t0 = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
+                if (t0 != null) incoming = t0.toString();
+                return;
+            }
             intent.setAction(null);
             incomingPhotos = 0;
             if (us.isEmpty()) return;
-            if (us.size() >= 10) Toast.makeText(this, "사진 " + us.size() + "장을 받는 중이에요", Toast.LENGTH_SHORT).show();
+            if (us.size() >= 10) Toast.makeText(this, "사진·영상 " + us.size() + "개를 받는 중이에요", Toast.LENGTH_SHORT).show();
             new Thread(() -> {
                 int n = copyIncoming(us);
                 runOnUiThread(() -> {
@@ -581,7 +632,7 @@ public class MainActivity extends Activity {
     }
 
     private String thumbOf(File f) {
-        return imageData(f, 240, 70);
+        return isVideo(f) ? videoData(f, 240, 70) : imageData(f, 240, 70);
     }
 
     /** 사진을 max px 이하로 줄여 data URL로 (크게 보기용은 1600) */
@@ -621,6 +672,7 @@ public class MainActivity extends Activity {
                 JSONObject o = new JSONObject();
                 o.put("name", f.getName());
                 o.put("thumb", thumbOf(f));
+                if (isVideo(f)) o.put("video", true);
                 a.put(o);
             } catch (Exception ignored) {}
         }
@@ -911,7 +963,7 @@ public class MainActivity extends Activity {
         JSONObject m = new JSONObject(); m.put("name", name);
         driveCall(token, "PATCH", "https://www.googleapis.com/drive/v3/files/" + id + "?fields=id", "application/json; charset=UTF-8", m.toString().getBytes(StandardCharsets.UTF_8));
     }
-    private static final java.util.regex.Pattern PHOTO_RE = java.util.regex.Pattern.compile("^\\d{4}-\\d{2}-\\d{2} .+ \\d{2,3}( \\(\\d+\\))?\\.(jpe?g|png|heic|heif|webp|gif)$", java.util.regex.Pattern.CASE_INSENSITIVE);
+    private static final java.util.regex.Pattern PHOTO_RE = java.util.regex.Pattern.compile("^\\d{4}-\\d{2}-\\d{2} .+ \\d{2,3}( \\(\\d+\\))?\\.(jpe?g|png|heic|heif|webp|gif|mp4|mov|3gp|3g2|webm|mkv|m4v|avi)$", java.util.regex.Pattern.CASE_INSENSITIVE);
 
     /** 기록 폴더를 휴지통으로 (앱에서 기록을 지울 때 사용자가 고르면) */
     private void driveTrashRun(String token, JSONObject job) {
@@ -923,6 +975,65 @@ public class MainActivity extends Activity {
             driveTrash(token, fid);
             driveCb(true, o);
         } catch (Exception e) { driveCb(false, o); }
+    }
+
+    private static String readStream(InputStream in) throws Exception {
+        if (in == null) return "";
+        try (InputStream x = in) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] b = new byte[8192];
+            int n;
+            while ((n = x.read(b)) > 0) out.write(b, 0, n);
+            return out.toString("UTF-8");
+        }
+    }
+
+    /** 큰 파일(영상)을 이어올리기 방식으로 파일에서 바로 흘려 올린다. 메모리에 통째로 올리지 않는다 */
+    private String driveUploadFile(String token, String parent, String name, String mime, File f, Bytes cb) throws Exception {
+        JSONObject m = new JSONObject();
+        m.put("name", name);
+        m.put("parents", new JSONArray().put(parent));
+        byte[] meta = m.toString().getBytes(StandardCharsets.UTF_8);
+        long len = f.length();
+        HttpURLConnection c = (HttpURLConnection) new URL("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id").openConnection();
+        c.setConnectTimeout(15000);
+        c.setReadTimeout(60000);
+        c.setRequestMethod("POST");
+        c.setRequestProperty("Authorization", "Bearer " + token);
+        c.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+        c.setRequestProperty("X-Upload-Content-Type", mime);
+        c.setRequestProperty("X-Upload-Content-Length", String.valueOf(len));
+        c.setDoOutput(true);
+        c.setFixedLengthStreamingMode(meta.length);
+        try (OutputStream os = c.getOutputStream()) { os.write(meta); }
+        int code = c.getResponseCode();
+        if (code >= 400) throw new Exception("HTTP " + code + " " + readStream(c.getErrorStream()));
+        String loc = c.getHeaderField("Location");
+        try { readStream(c.getInputStream()); } catch (Exception ignored) {}
+        c.disconnect();
+        if (loc == null || loc.isEmpty()) throw new Exception("업로드 주소를 받지 못했어요");
+        HttpURLConnection p = (HttpURLConnection) new URL(loc).openConnection();
+        p.setConnectTimeout(15000);
+        p.setReadTimeout(180000);
+        p.setRequestMethod("PUT");
+        p.setRequestProperty("Authorization", "Bearer " + token);
+        p.setRequestProperty("Content-Type", mime);
+        p.setDoOutput(true);
+        p.setFixedLengthStreamingMode(len);
+        try (InputStream in = new FileInputStream(f); OutputStream os = p.getOutputStream()) {
+            byte[] b = new byte[262144];
+            int n;
+            long off = 0;
+            while ((n = in.read(b)) > 0) {
+                os.write(b, 0, n);
+                off += n;
+                if (cb != null) cb.on(off);
+            }
+        }
+        int pc = p.getResponseCode();
+        String s = readStream(pc < 400 ? p.getInputStream() : p.getErrorStream());
+        if (pc >= 400) throw new Exception("HTTP " + pc + " " + s);
+        return s.isEmpty() ? "" : new JSONObject(s).optString("id", "");
     }
 
     private static byte[] readAll(File f) throws Exception {
@@ -1032,8 +1143,9 @@ public class MainActivity extends Activity {
             java.util.List<java.util.concurrent.Future<?>> fs = new ArrayList<>();
             for (int k = 0; k < pn; k++) {
                 final int idx = k; final File f = photos[k];
-                final String want = (prefix.isEmpty() ? "" : prefix + " ") + f.getName().replaceAll("\\.[^.]+$", "") + ".jpg";
+                final boolean vid = isVideo(f);
                 final String orig = (prefix.isEmpty() ? "" : prefix + " ") + f.getName();
+                final String want = vid ? orig : (prefix.isEmpty() ? "" : prefix + " ") + f.getName().replaceAll("\\.[^.]+$", "") + ".jpg";
                 final String kid = known != null ? known.optString(f.getName(), "") : "";
                 fs.add(px.submit(() -> {
                     if (err[0] != null) return;
@@ -1042,6 +1154,17 @@ public class MainActivity extends Activity {
                         if (!kid.isEmpty() && byId.containsKey(kid)) { id = kid; if (!want.equals(byId.get(kid))) driveRename(token, kid, want); }
                         else if (list.containsKey(want)) id = list.get(want);
                         else if (list.containsKey(orig)) id = list.get(orig);
+                        if (id == null && vid) {
+                            // 영상: 줄이지 않고 파일에서 바로 흘려 올린다 (통째로 메모리에 올리면 앱이 죽는다)
+                            String ext = f.getName().replaceAll("^.*\\.", "").toLowerCase(java.util.Locale.ROOT);
+                            String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+                            final long len = Math.max(1, f.length());
+                            id = driveUploadFile(token, folderF, orig, mime == null ? "video/mp4" : mime, f, n -> {
+                                long v = n * unit / len; long d; synchronized (part) { d = v - part[idx]; part[idx] = v; }
+                                driveProg("save", false, "photo", fin.get() + 1, pn, doneU.addAndGet(d), allB, false);
+                            });
+                            added.incrementAndGet();
+                        }
                         if (id == null) {
                             Object[] p = upPhoto(f);
                             if (p == null) throw new Exception("사진을 읽지 못했어요");
@@ -1156,14 +1279,12 @@ public class MainActivity extends Activity {
             uris.add(data.getData());
         }
         if (uris.isEmpty()) return;
-        runOnUiThread(() -> Toast.makeText(this, "사진 " + uris.size() + "장을 불러오는 중이에요", Toast.LENGTH_SHORT).show());
+        runOnUiThread(() -> Toast.makeText(this, "사진·영상 " + uris.size() + "개를 불러오는 중이에요", Toast.LENGTH_SHORT).show());
         pool.execute(() -> {
             int no = nextPhotoNo();
             ContentResolver cr = getContentResolver();
             for (Uri u : uris) {
-                String ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(cr.getType(u));
-                if (ext == null || ext.isEmpty()) ext = "jpg";
-                if ("jpeg".equals(ext)) ext = "jpg";
+                String ext = extOf(cr, u);
                 File out = new File(photoDir(), String.format(java.util.Locale.ROOT, "%02d.%s", no++, ext));
                 try (InputStream in = cr.openInputStream(u); OutputStream os = new FileOutputStream(out)) {
                     byte[] b = new byte[65536];
@@ -1521,17 +1642,64 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> {
                 Intent i;
                 if (Build.VERSION.SDK_INT >= 33) {
+                    // 사진과 영상을 함께 보여 준다(타입 지정 없음). 기기가 허용하는 최대치(보통 100개)까지, 고른 순서대로
                     i = new Intent(MediaStore.ACTION_PICK_IMAGES);
-                    // 기기가 허용하는 최대치(보통 100장)까지. 더 필요하면 '사진 더 고르기'로 이어 붙이거나 갤러리에서 공유
                     i.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit());
+                    i.putExtra(MediaStore.EXTRA_PICK_IMAGES_IN_ORDER, true);
+                } else {
+                    i = new Intent(Intent.ACTION_GET_CONTENT);
+                    i.setType("*/*");
+                    i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/*", "video/*"});
+                    i.addCategory(Intent.CATEGORY_OPENABLE);
+                    i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                }
+                try { startActivityForResult(i, REQ_PICK); } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "사진을 고를 수 없어요", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        /** 가이드 캡처: 사진 선택기로 여러 장 한 번에 (고른 순서대로) */
+        @JavascriptInterface
+        public void pickGuideImages(String key) {
+            if (!trusted) return;
+            guideKey = safeKey(key);
+            appPrefs().edit().putString("guideKey", guideKey).apply();
+            runOnUiThread(() -> {
+                Intent i;
+                if (Build.VERSION.SDK_INT >= 33) {
+                    i = new Intent(MediaStore.ACTION_PICK_IMAGES);
+                    i.setType("image/*");
+                    i.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit());
+                    i.putExtra(MediaStore.EXTRA_PICK_IMAGES_IN_ORDER, true);
                 } else {
                     i = new Intent(Intent.ACTION_GET_CONTENT);
                     i.setType("image/*");
                     i.addCategory(Intent.CATEGORY_OPENABLE);
                     i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
                 }
-                try { startActivityForResult(i, REQ_PICK); } catch (Exception e) {
-                    Toast.makeText(MainActivity.this, "사진을 고를 수 없어요", Toast.LENGTH_SHORT).show();
+                try { startActivityForResult(i, REQ_GUIDE); } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "캡처를 고를 수 없어요", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        /** 영상은 폰의 동영상 앱으로 연다 */
+        @JavascriptInterface
+        public void openVideo(String name) {
+            if (!trusted || name == null || name.contains("/") || name.contains("..")) return;
+            final File f = new File(photoDir(), name);
+            if (!f.exists()) return;
+            runOnUiThread(() -> {
+                try {
+                    Uri u = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f);
+                    String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.replaceAll("^.*\\.", "").toLowerCase(java.util.Locale.ROOT));
+                    Intent v = new Intent(Intent.ACTION_VIEW);
+                    v.setDataAndType(u, mime == null ? "video/*" : mime);
+                    v.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(v);
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "영상을 열 앱이 없어요", Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -1610,7 +1778,7 @@ public class MainActivity extends Activity {
         public String photoFull(String name) {
             if (!trusted || name == null || name.contains("/") || name.contains("..")) return "";
             File f = new File(photoDir(), name);
-            return f.exists() ? imageData(f, 1600, 85) : "";
+            return f.exists() ? (isVideo(f) ? videoData(f, 1280, 85) : imageData(f, 1600, 85)) : "";
         }
 
         @JavascriptInterface
@@ -1777,7 +1945,8 @@ public class MainActivity extends Activity {
         }
 
         private void shareFiles(final String name, final String md, final String biz, final String prefix) {
-            runOnUiThread(() -> {
+            // 영상까지 복사하면 오래 걸리므로 복사는 뒤에서 하고, 공유 창만 화면에서 연다
+            pool.execute(() -> {
                 try {
                     File dir = new File(getCacheDir(), "share");
                     dir.mkdirs();
@@ -1823,9 +1992,14 @@ public class MainActivity extends Activity {
                     for (int i = 1; i < uris.size(); i++) clip.addItem(new ClipData.Item(uris.get(i)));
                     send.setClipData(clip);
                     send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    startActivity(Intent.createChooser(send, "후기 소스 보내기"));
+                    final Intent chooser = Intent.createChooser(send, "후기 소스 보내기");
+                    runOnUiThread(() -> {
+                        try { startActivity(chooser); } catch (Exception e) {
+                            Toast.makeText(MainActivity.this, "보내지 못했어요. MD 복사를 써주세요.", Toast.LENGTH_LONG).show();
+                        }
+                    });
                 } catch (Exception e) {
-                    Toast.makeText(MainActivity.this, "보내지 못했어요. MD 복사를 써주세요.", Toast.LENGTH_LONG).show();
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "보내지 못했어요. MD 복사를 써주세요.", Toast.LENGTH_LONG).show());
                 }
             });
         }

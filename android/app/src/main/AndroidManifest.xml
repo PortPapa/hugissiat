@@ -48,6 +48,7 @@
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
             </intent-filter>
             <!-- 앱 아이콘 길게 누르기: 지금 메모 / 가게 추가 -->
             <meta-data
