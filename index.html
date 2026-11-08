@@ -2689,7 +2689,7 @@ function renderMe(){
   v.append(pc,rpg,
     group('일정',[row('내 블로그',getBlogs().length?getBlogs().map(x=>x.name).join(', '):'하나만 써요',()=>blogSheet()),row('체험단 플랫폼',dots,()=>platformSheet()),row('다녀온 뒤 알림',st.remindH+'시간 뒤',()=>remindSheet())]),
     canDrive()?group('저장',[row('구글 드라이브',dOn?'연결됨':'연결 안 됨',()=>driveSheet(),{cls:dOn?'on':''}),dOn?row('전체 동기화','바뀐 것·빠진 사진 맞추기',()=>syncAll()):null,dOn?row('백업·복원',lastBackup()?new Date(lastBackup()).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 백업':'백업 전',()=>backupSheet()):null]):'',
-    group('정보',[row('사용법','',()=>document.body.classList.add('sheet')),row('의견 보내기','',()=>feedback()),IS_APP?row('앱 평가하기','',()=>rateApp()):null,row('개인정보처리방침','',()=>privacySheet()),ver?row('버전',ver,null,{noChev:true,cls:'static'}):null]),
+    group('정보',[row('사용법','',()=>document.body.classList.add('sheet')),row('의견 보내기','',()=>feedback()),row('디스코드 커뮤니티','사용법·문의',()=>openCommunity()),IS_APP?row('앱 평가하기','',()=>rateApp()):null,row('개인정보처리방침','',()=>privacySheet()),ver?row('버전',ver,null,{noChev:true,cls:'static'}):null]),
     group('',[row('모든 데이터 지우기','',()=>deleteAllSheet(),{cls:'danger'})])
   );
 }
@@ -3374,6 +3374,8 @@ function errLog(){try{return JSON.parse(localStorage.getItem('chd-errs')||'[]')}
 window.addEventListener('error',e=>{try{const a=errLog();a.push(new Date().toISOString().slice(5,16)+' '+String(e.message).slice(0,160));localStorage.setItem('chd-errs',JSON.stringify(a.slice(-5)))}catch(x){}});
 function mailTo(subject,body){location.href='mailto:'+DEV_MAIL+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body)}
 function feedback(){const e=errLog();mailTo('[후기씨앗] 의견','여기에 의견을 적어주세요.\n\n\n----\n버전 '+appVer()+' / '+navigator.userAgent.replace(/.*Android/,'Android').slice(0,60)+(e.length?'\n최근 오류:\n'+e.join('\n'):''))}
+const COMMUNITY_URL='https://discord.gg/dKZhZNbCp4';
+function openCommunity(){if(IS_APP)location.href=COMMUNITY_URL;else window.open(COMMUNITY_URL,'_blank','noopener')}
 function rateApp(){location.href=IS_APP?'market://details?id=com.portpapa.hugissiat':STORE_URL}
 async function privacySheet(){let html='';try{const r=await fetch('privacy.html?'+Date.now());const t=await r.text();const m=t.match(/<main[^>]*>([\s\S]*?)<\/main>/);html=m?m[1]:''}catch(e){}
   openAct(b=>{const v=el('div','md-view pv');v.innerHTML=html||'<p>인터넷에 연결되면 볼 수 있어요.</p>';b.append(v)})}
