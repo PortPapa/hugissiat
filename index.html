@@ -2503,7 +2503,7 @@ function renderRecords(){
   groups.forEach(g=>{const t=g.list.reduce((x,r)=>x+recMoney(r),0);const h=el('div','mo-h');h.append(el('span','',/^\d{4}-\d{2}$/.test(g.k)?monthLabel(g.k)+' · '+g.list.length+'곳':g.k));if(t){h.append(el('em','',won(t)));h.style.cursor='pointer';h.onclick=()=>settleSheet(+g.k.slice(0,4),g.k)}v.append(h);
   g.list.forEach(r=>{
     const row=el('div','rec');const i=el('div');row.append(thumbEl(r.place,'th'));
-    const t=el('b','',r.name);t.append(el('span','st'+(r.sent||r.done?' done':''),recStatus(r)));
+    const t=el('b','',r.name);if(r.platform)t.append(pBadge(r.platform));t.append(el('span','st'+(r.sent||r.done?' done':''),recStatus(r)));
     const nm=getQM(r.id).length;
     i.append(t,el('span','',[recDate(r),r.place&&r.place.category,nm?'메모 '+nm:''].filter(Boolean).join(' · ')));
     const more=el('button','ib');more.type='button';more.innerHTML=ICO.more;more.setAttribute('aria-label','메뉴');
@@ -2545,6 +2545,7 @@ function todoItems(){
 function updTodoDot(){const d=document.getElementById('todoDot');if(!d)return;const n=todoItems().filter(x=>x.kind!=='end'&&x.due&&ddayNum(x.due)<=2).length;d.classList.toggle('on',n>0)}
 function todoRow(x){
   const row=el('div','li td-row');row.append(thumbEl(x.place,'th'));const tx=el('div','tx');const nm=el('div','nm',x.name);
+  {const pf=(x.plan&&x.plan.platform)||(x.rec&&x.rec.platform);if(pf)nm.append(pBadge(pf))}
   if(x.due&&x.kind!=='end'){const n=ddayNum(x.due);nm.append(el('span','due'+(n<=2?' hot':''),dday(x.due)))}
   const sub=el('div','sub');
   const pr=x.place&&x.place.product;
