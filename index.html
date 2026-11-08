@@ -1375,10 +1375,12 @@ function buildMD(){
   const C=CATS[S.cat];const biz=V('biz');
   const plan=PLACE?getPlans().find(p=>String(p.id)===String(PLACE.id)):null;
   const prod=S.cat==='product';const out=['---'];
+  // 체험단 정보: 기록에 없으면 갈 곳에 적어 둔 걸로 채운다 (나중에 플랫폼별로 찾기 쉽게)
+  const cpf=S.f.platform||(plan&&plan.platform)||'',cbl=S.f.blog||(plan&&plan.blog)||'',cdu=S.f.due||(plan&&plan.due)||'';
   if(prod){const P=PLACE||{};const ud=V('visitDate')?useDay(Date.now()):0;
-    [['제품명',biz],['브랜드',P.brand||''],['분류',P.catPath||''],['가격',P.sale&&P.price&&P.sale<P.price?won(P.sale)+' (정가 '+won(P.price)+')':won(P.sale||P.price)],['받은 날',V('visitDate')],['사용 기간',ud>0?ud+'일째':''],['체험단 플랫폼',S.f.platform||''],['상품 링크',P.placeUrl||'']]
+    [['제품명',biz],['브랜드',P.brand||''],['분류',P.catPath||''],['가격',P.sale&&P.price&&P.sale<P.price?won(P.sale)+' (정가 '+won(P.price)+')':won(P.sale||P.price)],['받은 날',V('visitDate')],['사용 기간',ud>0?ud+'일째':''],['체험단 플랫폼',cpf],['블로그',cbl],['후기 마감일',cdu],['상품 링크',P.placeUrl||'']]
       .forEach(([a,b])=>{if(b)out.push(a+': '+yamlQ(b))})}
-  else [['업체명',biz],['업종',(PLACE&&PLACE.category)||C.label],['지역',V('region')],['방문일시',[V('visitDate'),S.f.visitTime||''].filter(Boolean).join(' ')],['체험단 플랫폼',S.f.platform||''],['플레이스ID',PLACE?PLACE.id:'']]
+  else [['업체명',biz],['업종',(PLACE&&PLACE.category)||C.label],['지역',V('region')],['방문일시',[V('visitDate'),S.f.visitTime||''].filter(Boolean).join(' ')],['체험단 플랫폼',cpf],['블로그',cbl],['후기 마감일',cdu],['플레이스ID',PLACE?PLACE.id:'']]
     .forEach(([a,b])=>{if(b)out.push(`${a}: ${yamlQ(b)}`)});
   out.push('---','',`# ${biz||'(업체명)'}`,'');
   out.push('## 내 경험','');
