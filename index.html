@@ -757,17 +757,22 @@ function guideSheet(id,title,after){openAct(b=>{
   const ok=el('button','e-btn primary','완료');ok.type='button';ok.onclick=()=>{closeAct();if(after)setTimeout(after,300)};b.append(ok);
 })}
 /* ---------- 기록의 캠페인 정보: 블로그·플랫폼·마감일·금액·가이드 ---------- */
-function campLabel(){if(!S)return '';const p=[];if(S.f.blog&&getBlogs().length>1)p.push(S.f.blog);if(S.f.platform)p.push(S.f.platform);if(S.f.due)p.push('마감 '+dday(S.f.due));if(+S.f.value)p.push('협찬 '+won(S.f.value));if(+S.f.fee)p.push('원고료 '+won(S.f.fee));const g=PLACE?guideCount(PLACE.id):0;if(g)p.push('가이드 '+g);return p.join(' · ')}
+function campText(f,id){f=f||{};const p=[];if(f.blog&&getBlogs().length>1)p.push(f.blog);if(f.platform)p.push(f.platform);if(f.due)p.push('마감 '+dday(f.due));if(+f.value)p.push('협찬 '+won(f.value));if(+f.fee)p.push('원고료 '+won(f.fee));const g=id?guideCount(id):0;if(g)p.push('가이드 '+g);return p.join(' · ')}
+function campLabel(){if(!S)return '';return campText(S.f,PLACE&&PLACE.id)}
 function campLine(after){const t=campLabel(),b=el('button','amt-line'+(t?'':' empty'),t||'+ 캠페인 정보 (마감일 · 협찬 금액 · 가이드)');b.type='button';b.onclick=()=>campSheet(after);return b}
-function campSheet(after){if(!PLACE||!S)return;const st={blog:S.f.blog||defBlog(),platform:S.f.platform||'',due:S.f.due||'',value:+S.f.value||0,fee:+S.f.fee||0};
+/* rid를 주면 열려 있지 않은 기록도 바로 고친다 (기록 탭·할 일에서) */
+function campSheet(after,rid,title){const open=!!(S&&PLACE&&(!rid||String(PLACE.id)===String(rid)));if(!open&&!rid)return;
+  const id=open?PLACE.id:rid,nm=open?PLACE.name:(title||'');const f0=open?S.f:(((recState(id)||{}).f)||{});
+  const st={blog:f0.blog||defBlog(),platform:f0.platform||'',due:f0.due||'',value:+f0.value||0,fee:+f0.fee||0};
   openAct(b=>{b.append(el('h3','','캠페인 정보'));
     const bs=getBlogs();if(bs.length>1)b.append(el('div','e-label','블로그'),pickChips(bs.map(x=>x.name),()=>st.blog,v=>{st.blog=v}));
     const pf=getPlatforms();if(pf.length)b.append(el('div','e-label','플랫폼'),pickChips(pf.map(x=>x.name),()=>st.platform,v=>{st.platform=v}));
     const du=document.createElement('input');du.type='date';du.value=st.due;du.oninput=()=>{st.due=du.value};b.append(el('div','e-label','후기 마감일'),du);
     b.append(moneyRow(st));
-    const commit=()=>{S.f.blog=st.blog;S.f.platform=st.platform;S.f.due=st.due;S.f.value=st.value||0;S.f.fee=st.fee||0;if(st.blog)setSettings({lastBlog:st.blog});save()};
-    const g=guideCount(PLACE.id),gb=el('button','amt-line'+(g?'':' empty'),g?'캠페인 가이드 '+g+'개 ›':'+ 캠페인 가이드 넣기 (텍스트 · PDF · 캡처)');gb.type='button';
-    gb.onclick=()=>{commit();guideSheet(PLACE.id,PLACE.name,()=>campSheet(after))};b.append(el('div','e-label','캠페인 가이드'),gb);
+    const put=f=>{f.blog=st.blog;f.platform=st.platform;f.due=st.due;f.value=st.value||0;f.fee=st.fee||0};
+    const commit=()=>{if(st.blog)setSettings({lastBlog:st.blog});if(open){put(S.f);save()}else{recPatch(id,x=>{x.f=x.f||{};put(x.f)});syncWidget()}};
+    const g=guideCount(id),gb=el('button','amt-line'+(g?'':' empty'),g?'캠페인 가이드 '+g+'개 ›':'+ 캠페인 가이드 넣기 (텍스트 · PDF · 캡처)');gb.type='button';
+    gb.onclick=()=>{commit();guideSheet(id,nm,()=>campSheet(after,rid,title))};b.append(el('div','e-label','캠페인 가이드'),gb);
     const sv=el('button','e-btn primary','저장');sv.type='button';sv.onclick=()=>{commit();closeAct();toast('저장했어요');if(after)setTimeout(after,300)};b.append(sv)})}
 /* 협찬 금액(판매가 기준)·원고료 입력칸 */
 function moneyIn(v,on){const i=document.createElement('input');i.type='text';i.inputMode='numeric';i.placeholder='0';i.autocomplete='off';
@@ -2518,6 +2523,7 @@ function recordMenu(r){openAct(b=>{
   if(r.sent||r.done)B('보기','primary',()=>viewRecord(r));
   B('이어서 쓰기',(r.sent||r.done)?'':'primary',()=>openRecord(r,false));
   B('보내기','',()=>openRecord(r,true));
+  B('캠페인 정보','',()=>campSheet(()=>renderView(),r.id,r.name));
   if(r.place)B('사진 추가','',()=>{openRecord(r,true);setTimeout(pickPhotos,400)});
   if(r.place)B('현장 메모','',()=>openQuickMemo(r.place));
   B('삭제','',()=>{if(confirm('지울까요?')){deleteRecord(r.id);renderRecords();toast('지웠어요')}});
@@ -2985,6 +2991,9 @@ function placeSheet(o){
       const r=el('div','ps-row');let when='날짜 미정';if(plan.when){const d=new Date(plan.when);when=(d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+')'+(plan.noTime?'':' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'))}
       r.append(when);if(lateVisit(plan))r.append(el('span','due hot','마감 후 방문'));if(plan.platform)r.append(pBadge(plan.platform));if(plan.due){const dd=dday(plan.due);r.append(el('span','due'+(/오늘|지남|D-[12]$/.test(dd)?' hot':''),dd))}
       bx.append(r);bx.onclick=()=>openPlanSheet(plan.place);b.append(bx)}
+    if(rec){const f=(st&&st.f)||{},ct=campText(f,place.id);const bx=el('div','ps-box');const hd=el('div','ps-bh');hd.append('캠페인 정보');const ed=el('button','',ct?'수정':'추가');ed.type='button';hd.append(ed);bx.append(hd);
+      const r=el('div','ps-row');if(ct){if(f.platform)r.append(pBadge(f.platform));r.append(el('span','',ct.replace(f.platform?f.platform+(ct===f.platform?'':' · '):'','')))}else r.append(el('span','','플랫폼 · 마감일 · 협찬 금액 · 가이드'));bx.append(r);
+      bx.onclick=()=>campSheet(()=>{renderView();const nr=getRecords().find(x=>String(x.id)===String(rec.id));if(nr)placeSheet({rec:nr})},rec.id,place.name);b.append(bx)}
     if(rec&&!done){const bx=el('div','ps-box');bx.append(el('div','ps-bh','작성 중'));const r=el('div','ps-row');r.append('질문 '+((st&&st.step)||0)+'개 답했어요');bx.append(r);b.append(bx)}
     if(done){const L=expSummary(st,place.id);if(L.length){const bx=el('div','ps-box');bx.append(el('div','ps-bh','내 경험 요약'));const t=el('div','ps-sum');L.forEach((l,i)=>{if(i)t.append(document.createElement('br'));t.append(l)});bx.append(t);
       bx.onclick=()=>{closeAct();viewRecord(rec)};b.append(bx)}}
