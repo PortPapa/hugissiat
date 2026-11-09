@@ -757,7 +757,7 @@ function guideSheet(id,title,after){openAct(b=>{
   const ok=el('button','e-btn primary','완료');ok.type='button';ok.onclick=()=>{closeAct();if(after)setTimeout(after,300)};b.append(ok);
 })}
 /* ---------- 기록의 캠페인 정보: 블로그·플랫폼·마감일·금액·가이드 ---------- */
-function campText(f,id){f=f||{};const p=[];if(f.blog&&getBlogs().length>1)p.push(f.blog);if(f.platform)p.push(f.platform);if(f.due)p.push('마감 '+dday(f.due));if(+f.value)p.push('협찬 '+won(f.value));if(+f.fee)p.push('원고료 '+won(f.fee));const g=id?guideCount(id):0;if(g)p.push('가이드 '+g);return p.join(' · ')}
+function campText(f,id){f=f||{};const p=[];if(f.blog&&getBlogs().length>1)p.push(f.blog);if(f.platform)p.push(f.platform);if(f.due)p.push(dday(f.due));if(+f.value)p.push('협찬 '+won(f.value));if(+f.fee)p.push('원고료 '+won(f.fee));const g=id?guideCount(id):0;if(g)p.push('가이드 '+g);return p.join(' · ')}
 function campLabel(){if(!S)return '';return campText(S.f,PLACE&&PLACE.id)}
 function campLine(after){const t=campLabel(),b=el('button','amt-line'+(t?'':' empty'),t||'+ 캠페인 정보 (마감일 · 협찬 금액 · 가이드)');b.type='button';b.onclick=()=>campSheet(after);return b}
 /* rid를 주면 열려 있지 않은 기록도 바로 고친다 (기록 탭·할 일에서) */
@@ -2320,7 +2320,7 @@ function renderEasy(){
   if(ph&&!c.done&&c.id!=='start'&&S.step===0){const hh=el('div','e-hero');const im=document.createElement('img');im.src=px(ph,'f640_380');im.alt='';im.referrerPolicy='no-referrer';im.onerror=()=>hh.remove();hh.append(im);box.append(hh)}
   if(PLACE&&!c.done){const nm=getQM(PLACE.id).length;const mm=el('div','e-memo');const mb=el('button','',`+ 현장 메모${nm?` (${nm})`:''}`);mb.type='button';mb.onclick=()=>openQuickMemo(PLACE);
     const pb=el('button','',`+ 사진${PHOTOS.length?` (${PHOTOS.length})`:''}`);pb.type='button';pb.onclick=()=>pickPhotos();
-    const cb=el('button','',S.f.due?'캠페인 · 마감 '+dday(S.f.due):'+ 캠페인 정보');cb.type='button';cb.onclick=()=>campSheet(renderEasyKeep);mm.append(pb,mb,cb);box.append(mm)}
+    const cb=el('button','',S.f.due?'캠페인 · '+dday(S.f.due):'+ 캠페인 정보');cb.type='button';cb.onclick=()=>campSheet(renderEasyKeep);mm.append(pb,mb,cb);box.append(mm)}
   if(c.src&&c.hint)box.append(el('div','e-src',c.src));
   const qh=el('h1','e-q');const qm=String(c.q).match(/^(\S+)(\s[\s\S]*)$/);if(c.em&&!c.done){qh.append(el('em','',c.em),String(c.q).slice(c.em.length))}else if(qm&&!c.done){qh.append(el('em','',qm[1]),qm[2])}else qh.textContent=c.q;box.append(qh);if(c.sub)box.append(el('p','e-sub',c.sub));
   const body=el('div','e-body');box.append(body);
