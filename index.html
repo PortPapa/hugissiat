@@ -2500,7 +2500,7 @@ function settleSheet(year,openM){
 function renderRecords(){
   const v=$('#viewRecords');v.innerHTML='';
   const rs=getRecords();
-  if(!rs.length){const h=el('div','hello');h.innerHTML=sproutSvg(0);h.append(el('b','','아직 기록이 없어요'));const go=el('button','e-btn primary hello-go','가게 추가');go.type='button';go.onclick=()=>addFromLink();h.append(go);v.append(h);return}
+  if(!rs.length){const h=el('div','hello');h.innerHTML=sproutSvg(0);h.append(el('b','','아직 기록이 없어요'));const go=el('button','e-btn primary hello-go','캠페인 추가');go.type='button';go.onclick=()=>addFromLink();h.append(go);v.append(h);return}
   {const mk=ymd(new Date()).slice(0,7);const mr=rs.filter(r=>!String(r.id).startsWith('_')&&recMonth(r)===mk);const t=mr.reduce((x,r)=>x+recMoney(r),0);
     const sb=el('button','mo-sum');sb.type='button';const tx=el('div');tx.append(el('span','',(new Date().getMonth()+1)+'월 받은 혜택 · 기록 '+mr.length+'건'),el('b','',won(t)||'0원'));sb.append(tx,el('small','','월별 정산 ›'));sb.onclick=()=>settleSheet();v.append(sb)}
   const groups=[];rs.forEach(r=>{const k=recMonth(r)||'날짜 없음';let g=groups.find(x=>x.k===k);if(!g){g={k,list:[]};groups.push(g)}g.list.push(r)});
@@ -3079,7 +3079,7 @@ function pasteSheet(prefill){openAct(b=>{
     try{const d=await fetchPlace(inp.value);closeAct();afterFetch(d)}catch(e){msg.textContent=e.message||String(e);go.disabled=false;go.textContent='가져오기'}};
   go.onclick=run;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();run()}};
   const nb=el('button','e-btn','직접 입력하기');nb.type='button';nb.style.marginTop='8px';nb.onclick=()=>manualStart();
-  b.append(el('h3','','가게 추가'),inp,go,msg,el('div','or-line','또는'),nb);setTimeout(()=>inp.focus(),250);
+  b.append(el('h3','','캠페인 추가'),inp,go,msg,el('div','or-line','또는'),nb);setTimeout(()=>inp.focus(),250);
 })}
 async function readClip(){
   try{if(IS_APP&&ChdNative.readClipboard)return String(ChdNative.readClipboard()||'');if(navigator.clipboard&&navigator.clipboard.readText)return await navigator.clipboard.readText()}catch(e){}
@@ -3150,7 +3150,7 @@ function pickPlaceFor(title,fromId,idxs,after){openAct(b=>{
   const list=el('div','set-box');
   allPlaces().filter(p=>String(p.id)!==String(fromId)).slice(0,20).forEach(p=>{const r=el('button','set-row');r.type='button';const l=el('span','set-l');l.append(thumbEl(p,'th sm'),p.name);r.append(l);
     r.onclick=()=>{const n=moveQM(fromId,idxs,p.id);closeAct();toast(p.name+'에 메모 '+n+'개를 옮겼어요');after&&after();if(TAB==='home')renderHome()};list.append(r)});
-  const ad=el('button','set-row add');ad.type='button';ad.append(el('span','set-l','+ 새 가게 추가'));
+  const ad=el('button','set-row add');ad.type='button';ad.append(el('span','set-l','+ 새 캠페인 추가'));
   ad.onclick=()=>{PENDING_ATTACH={from:fromId,idxs};addFromLink()};list.append(ad);
   b.append(list);
 })}
@@ -3390,7 +3390,7 @@ function checkCrash(){if(!(IS_APP&&ChdNative.lastCrash))return;let c='';try{c=Ch
 window.chdIncomingPhotos=n=>{if(!n)return;if(window._incN===n&&Date.now()-(window._incAt||0)<8000)return;window._incN=n;window._incAt=Date.now();goHome();openAct(b=>{
   b.append(el('h3','','사진 '+n+'장을 어디에 넣을까요?'));
   const list=el('div','set-box');const all=allPlaces();
-  if(!all.length)b.append(el('div','e-tip','먼저 가게나 제품을 추가해 주세요'));
+  if(!all.length)b.append(el('div','e-tip','먼저 캠페인(가게나 제품)을 추가해 주세요'));
   all.slice(0,20).forEach(p=>{const r=el('button','set-row');r.type='button';const l=el('span','set-l');l.append(thumbEl(p,'th sm'),p.name);r.append(l);
     r.onclick=()=>{const k=ChdNative.importShared(String(p.id));closeAct();buzz(12);toast(p.name+'에 사진 '+k+'장을 넣었어요');if(PLACE&&String(PLACE.id)===String(p.id)){loadPhotos();refreshPhotoViews()}};list.append(r)});
   const no=el('button','e-btn ghost','넣지 않기');no.type='button';no.onclick=()=>{ChdNative.dropShared();closeAct()};
