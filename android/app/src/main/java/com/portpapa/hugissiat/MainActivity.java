@@ -1185,7 +1185,7 @@ public class MainActivity extends Activity {
                     o.put("unshared", email);
                 } else {
                     JSONObject p = new JSONObject(); p.put("role", "reader"); p.put("type", "user"); p.put("emailAddress", email);
-                    String msg = "후기씨앗 기록을 공유했어요. 후기씨앗 앱의 내 정보 > 기록 공유 > 공유받은 기록 연결에서 '공유 기록.json'을 한 번 고르면 기록 탭에서 볼 수 있어요.";
+                    String msg = "후기씨앗 기록을 공유했어요. 후기씨앗 앱의 내 정원 > 기록 공유 > 공유받은 기록 연결에서 '공유 기록.json'을 한 번 고르면 기록 탭에서 볼 수 있어요.";
                     driveCall(token, "POST", "https://www.googleapis.com/drive/v3/files/" + root + "/permissions?sendNotificationEmail=true&emailMessage=" + URLEncoder.encode(msg, "UTF-8"), "application/json; charset=UTF-8", p.toString().getBytes(StandardCharsets.UTF_8));
                     o.put("shared", email);
                 }
