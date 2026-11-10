@@ -905,6 +905,8 @@ public class MainActivity extends Activity {
             o.put("op", "inbox");
             String root = driveFind(token, "후기씨앗", "root", true);
             String fid = root == null ? null : driveFind(token, "웹에서 추가.json", root, false);
+            String cfg = root == null ? null : driveFind(token, "블로그 폴더.json", root, false);
+            if (cfg != null) { try { o.put("cfg", driveCall(token, "GET", "https://www.googleapis.com/drive/v3/files/" + cfg + "?alt=media", null, null)); } catch (Exception ignored) {} }
             if (fid != null) {
                 JSONObject data = driveCall(token, "GET", "https://www.googleapis.com/drive/v3/files/" + fid + "?alt=media", null, null);
                 o.put("id", fid);
@@ -942,6 +944,11 @@ public class MainActivity extends Activity {
     }
 
     private JSONObject driveCall(String token, String method, String url, String ctype, byte[] body, Bytes cb) throws Exception {
+        // 공유받은 폴더가 공유 드라이브에 있어도 되게
+        if (url.contains("googleapis.com/") && url.contains("/drive/v3/files") && !url.contains("supportsAllDrives")) {
+            url += (url.contains("?") ? "&" : "?") + "supportsAllDrives=true";
+            if (url.contains("files?") && url.contains("q=")) url += "&includeItemsFromAllDrives=true";
+        }
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         c.setConnectTimeout(15000);
         c.setReadTimeout(60000);
@@ -1148,7 +1155,14 @@ public class MainActivity extends Activity {
             driveProg("save", false, "prep", 0, pn, 0, allB, true);
             upNoti("드라이브에 올리는 중", nmShow, 0, 0, true);
             // 1) 폴더: 알고 있는 폴더면 이름·위치만 바꾸고, 없으면 경로대로 찾거나 만든다
-            String parent = "root";
+            //    base가 있으면 (블로그별 공유 폴더) 그 폴더 아래에 만든다
+            String base = job.optString("base", "");
+            if (!base.isEmpty()) {
+                JSONObject bi = driveCall(token, "GET", "https://www.googleapis.com/drive/v3/files/" + base + "?fields=id,trashed,capabilities(canAddChildren)", null, null);
+                JSONObject cap = bi.optJSONObject("capabilities");
+                if (bi.optBoolean("trashed", false) || (cap != null && !cap.optBoolean("canAddChildren", true))) throw new Exception("공유 폴더에 저장할 권한이 없어요");
+            }
+            String parent = base.isEmpty() ? "root" : base;
             for (int i = 0; i < path.length() - 1; i++) {
                 String nm = path.getString(i).replaceAll("[\\\\/]", "_").trim();
                 if (!nm.isEmpty()) parent = driveFolder(token, nm, parent);
@@ -1301,7 +1315,7 @@ public class MainActivity extends Activity {
         } catch (Throwable e) {
             String m = String.valueOf(e.getMessage());
             if (m.contains("HTTP 401")) appPrefs().edit().putBoolean("drive", false).apply();
-            String msg = m.contains("HTTP 401") ? "구글 연결이 끊겼어요. 다시 연결해 주세요" : "드라이브에 저장하지 못했어요";
+            String msg = m.contains("HTTP 401") ? "구글 연결이 끊겼어요. 다시 연결해 주세요" : m.contains("공유 폴더") ? m : (m.contains("HTTP 404") && jobJson.contains("\"base\"")) ? "공유 폴더를 찾을 수 없어요. 웹 설정에서 폴더를 다시 골라 주세요" : "드라이브에 저장하지 못했어요";
             upNoti("드라이브 저장 실패", (name.isEmpty() ? "" : name + " · ") + msg, 0, 0, false);
             JSONObject o = new JSONObject();
             try { o.put("error", msg); o.put("rid", rid); o.put("name", name); o.put("queue", upWait.get()); } catch (Exception ignored) {}

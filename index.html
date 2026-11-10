@@ -468,6 +468,7 @@ i.v{background:var(--acc)}i.dn{background:#B9B3A8}i.du{background:transparent;bo
 .rp-money{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 4px}.rp-money div{border-radius:14px;background:var(--acc-soft,#eef3ea);padding:12px}.rp-money span{display:block;font-size:12px;color:var(--sub)}.rp-money b{display:block;font-size:19px;margin:2px 0;font-variant-numeric:tabular-nums;color:var(--acc-ink)}.rp-money small{font-size:11.5px;color:var(--sub)}
 .rp-top{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;margin-bottom:6px}
 .rp-top b{display:block;font-size:22px;font-variant-numeric:tabular-nums;color:var(--acc-ink)}.rp-top span{font-size:12px;color:var(--sub)}
+.blog-loc{display:block;font-size:12px;color:var(--sub);font-weight:500;margin-top:2px}
 .mo-sum{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:16px;background:var(--acc-soft,#eef3ea);padding:14px 16px;margin:2px 0 6px;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
 .mo-sum span{font-size:12.5px;color:var(--sub);display:block}.mo-sum b{font-size:20px;display:block;margin-top:2px}.mo-sum small{margin-left:auto;font-size:12.5px;color:var(--sub);white-space:nowrap}
 .mo-h{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;font-weight:700;color:var(--sub);margin:16px 4px 6px}.mo-h em{font-style:normal;color:var(--ink)}
@@ -732,11 +733,20 @@ function defBlog(){const bs=getBlogs();if(!bs.length)return '';const l=getSettin
 function pickChips(list,cur,on){const box=el('div','chips');list.forEach(t=>{const b=el('button','chip'+(cur()===t?' on':''),t);b.type='button';b.onclick=()=>{on(cur()===t?'':t);box.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x.textContent===cur()))};box.append(b)});return box}
 function blogSheet(){openAct(b=>{
   b.append(el('h3','','내 블로그'),el('p','','블로그를 여러 개 쓰면 기록마다 블로그를 고르고, 드라이브에 블로그별 폴더로 나눠 저장해요.'),el('div','e-tip','후기씨앗 / 블로그 이름 / 2026년 11월 / 05 가게'));
-  const list=el('div','blog-list');const draw=()=>{list.innerHTML='';getBlogs().forEach((x,i)=>{const r=el('div','blog-row');r.append(el('span','',x.name));const d=el('button','',' 삭제');d.type='button';d.onclick=()=>{const a=getBlogs();a.splice(i,1);setSettings({blogs:a});draw();renderMe()};r.append(d);list.append(r)});if(!getBlogs().length)list.append(el('div','e-tip','아직 없어요. 블로그를 하나만 쓰면 비워 둬도 돼요.'))};draw();
+  const list=el('div','blog-list');const draw=()=>{list.innerHTML='';getBlogs().forEach((x,i)=>{const r=el('div','blog-row');const nm=el('span','',x.name);if(sharedOk()){const loc=el('small','blog-loc',x.folder&&x.folder.id?'공유 폴더 · '+(x.folder.name||''):'내 드라이브');nm.append(loc);nm.style.cursor='pointer';nm.onclick=()=>blogLocSheet(x.name)}r.append(nm);const d=el('button','',' 삭제');d.type='button';d.onclick=()=>{const a=getBlogs();a.splice(i,1);setSettings({blogs:a});draw();renderMe()};r.append(d);list.append(r)});if(!getBlogs().length)list.append(el('div','e-tip','아직 없어요. 블로그를 하나만 쓰면 비워 둬도 돼요.'))};draw();
   const inp=document.createElement('input');inp.type='text';inp.placeholder='블로그 이름 (예: 맛집 블로그)';inp.autocomplete='off';
   const add=el('button','e-btn primary','추가');add.type='button';add.onclick=()=>{const n=inp.value.trim().replace(/[\\/]/g,' ');if(!n)return;const a=getBlogs();if(a.some(x=>x.name===n)){toast('이미 있어요');return}a.push({name:n});setSettings({blogs:a});inp.value='';draw();renderMe()};
   inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();add.click()}};
   b.append(list,inp,add);
+  if(sharedOk())b.append(el('div','e-tip','블로그 이름을 누르면 저장 위치를 바꿀 수 있어요. 배우자나 팀이 공유해 준 폴더에도 저장돼요.'));
+})}
+function blogLocSheet(name){const f=blogFolder(name);openAct(b=>{
+  b.append(el('h3','',name+' 저장 위치'),el('div','e-tip drive-path',f?(f.name||'공유 폴더')+' / 2026.11.05 가게':'후기씨앗 / '+name+' / 2026년 11월 / 05 가게'));
+  const ch=el('div','e-choices');
+  const g=el('button','e-btn primary',f?'다른 공유 폴더 고르기':'공유받은 폴더 고르기');g.type='button';
+  g.onclick=()=>{closeAct();toast('브라우저에서 폴더를 고르고 앱으로 돌아오면 바로 반영돼요');INBOX_T=0;setTimeout(()=>{location.href='https://hugissiat.com/settings?blog='+encodeURIComponent(name)+'#folders'},500)};ch.append(g);
+  if(f){const m=el('button','e-btn','내 드라이브로 되돌리기');m.type='button';m.onclick=()=>{const a=getBlogs(),x=a.find(y=>y.name===name);if(x){x.folder=null;x.folderAt=Date.now();setSettings({blogs:a})}closeAct();toast('내 드라이브에 저장할게요');try{renderMe()}catch(e){}};ch.append(m)}
+  b.append(ch,el('div','e-tip','공유받은 폴더는 편집자 권한이 있어야 저장돼요. 이미 저장한 기록은 다시 저장하거나 전체 동기화하면 새 위치로 옮겨져요.'));
 })}
 /* ---------- 캠페인 가이드: 텍스트 + PDF·캡처 (드라이브 저장 때 '가이드' 폴더로) ---------- */
 const safeK=k=>String(k).replace(/[^0-9A-Za-z_-]/g,'')||'_';
@@ -1517,12 +1527,25 @@ function usePhotoKey(id){
 /* ---------- 구글 드라이브: 후기씨앗 / 2026년 11월 / 06 가게이름 / 후기 소스.md + 사진 ---------- */
 const canDrive=()=>IS_APP&&!!ChdNative.driveSave;
 const driveLinked=()=>{try{return canDrive()&&ChdNative.driveLinked()}catch(e){return false}};
+/* 블로그별 저장 위치: 웹(hugissiat.com 설정)에서 고른 공유 폴더가 있으면 그 아래에 저장 (0.9.21~) */
+function sharedOk(){try{return IS_APP&&verGte(ChdNative.version&&ChdNative.version(),'0.9.21')}catch(e){return false}}
+function curBlog(){return String((S&&S.f&&S.f.blog)||(getBlogs().length===1?getBlogs()[0].name:'')).replace(/[\\/]/g,' ').trim()}
+function blogFolder(name){const b=getBlogs().find(x=>x.name===name);return b&&b.folder&&b.folder.id?b.folder:null}
+function driveBase(){return sharedOk()?blogFolder(curBlog()):null}
 function drivePath(){
   const d=(V('visitDate')||today()).split('-');
   const nm=(V('biz')||(PLACE&&PLACE.name)||'가게').replace(/[\\/]/g,' ').trim();
-  const bl=String(S.f.blog||(getBlogs().length===1?getBlogs()[0].name:'')).replace(/[\\/]/g,' ').trim();
-  return ['후기씨앗',...(bl?[bl]:[]),(+d[0])+'년 '+(+d[1])+'월',String(+d[2]).padStart(2,'0')+' '+nm];
+  const bl=curBlog(),bf=driveBase();
+  const tail=[(+d[0])+'년 '+(+d[1])+'월',String(+d[2]).padStart(2,'0')+' '+nm];
+  // 공유 폴더: 다른 사람이 만든 월 폴더는 안 보여서 같은 이름이 겹치므로, 날짜를 붙인 폴더 한 단계로
+  return bf?[bf.name||bl||'공유 폴더',d[0]+'.'+String(+d[1]).padStart(2,'0')+'.'+String(+d[2]).padStart(2,'0')+' '+nm]:['후기씨앗',...(bl?[bl]:[]),...tail];
 }
+/* 웹에서 고른 블로그별 폴더(후기씨앗/블로그 폴더.json)를 앱 설정에 반영. 더 최근에 바꾼 쪽이 이긴다 */
+function applyBlogCfg(cfg){try{const m=cfg&&cfg.blogs;if(!m||typeof m!=='object')return;const a=getBlogs();let ch=false;
+  Object.keys(m).forEach(k=>{const e=m[k]||{},name=String(k).replace(/[\\/]/g,' ').trim();if(!name)return;let b=a.find(x=>x.name===name);
+    if(!b){b={name};a.push(b);ch=true}
+    if((+e.at||0)>(+b.folderAt||0)){b.folder=e.id?{id:String(e.id),name:String(e.name||name)}:null;b.folderAt=+e.at||Date.now();ch=true}});
+  if(ch){setSettings({blogs:a});if(TAB==='me')try{renderMe()}catch(e){}}}catch(e){}}
 function driveLbl(t){const s=document.querySelector('#btnDrive .lbl');if(s)s.textContent=t}
 /* 백그라운드 업로드(0.9.17~): 저장을 누르면 줄을 세워 올리고, 그동안 다른 기록을 써도 된다 */
 const UPQ={};let UP_LAST='';
@@ -1556,11 +1579,12 @@ function jobFor(rid,mirror){
     if(!isCur){let pl=null;try{pl=JSON.parse(localStorage.getItem('chd-place-'+rid)||'null')}catch(e){}if(!pl)return null;
       PLACE=pl;KEY='chd-memo-v2-'+rid;S=load();if(!S)return null;
       let names=[];try{names=IS_APP&&ChdNative.photoNames?JSON.parse(ChdNative.photoNames(rid)||'[]'):[]}catch(e){}PHOTOS=names.map(n=>({name:n}))}
-    const d0=S.drive||{};let path=drivePath(),prefix=fileBase();
-    if(!V('visitDate')&&d0.path&&d0.prefix){path=d0.path;prefix=d0.prefix} // 날짜가 없으면 처음 저장한 폴더 그대로
+    const d0=S.drive||{};let path=drivePath(),prefix=fileBase();const bf=driveBase(),base=bf?bf.id:'';
+    if(!V('visitDate')&&d0.path&&d0.prefix&&(d0.base||'')===base){path=d0.path;prefix=d0.prefix} // 날짜가 없으면 처음 저장한 폴더 그대로
     const md=buildMD(),name=(V('biz')||PLACE.name||'').trim(),gt=guideText(rid);
-    const sig=hashStr([md.replace(/^사용 기간:.*$/m,''),path.join('/'),PHOTOS.map(p=>p.name).join(','),gt].join('|'));
-    const job={path,mdName:prefix+'.md',md,key:rid,rid,name,prefix,guideKey:rid,guideText:gt,folderId:d0.folder||folderFromUrl(d0.url),files:d0.files||{},mirror:!!mirror,t0:Date.now(),sig};
+    const sig=hashStr([md.replace(/^사용 기간:.*$/m,''),base+path.join('/'),PHOTOS.map(p=>p.name).join(','),gt].join('|'));
+    const job={path:base?path.slice(1):path,show:path,base,mdName:prefix+'.md',md,key:rid,rid,name,prefix,guideKey:rid,guideText:gt,folderId:d0.folder||folderFromUrl(d0.url),files:d0.files||{},mirror:!!mirror,t0:Date.now(),sig};
+    if(!base)delete job.base;
     return {job,name,sig,photos:PHOTOS.length,blogMissing:getBlogs().length>1&&!S.f.blog,synced:!!d0.at&&d0.sig===sig&&Object.keys(d0.files||{}).length>=PHOTOS.length,saved:!!d0.at};
   }finally{if(!isCur){S=sv.S;PLACE=sv.PLACE;PHOTOS=sv.PHOTOS;KEY=sv.KEY}}
 }
@@ -1604,7 +1628,7 @@ function syncAll(){
 function markDrive(rid,o,job){
   recPatch(rid||curRid(),st=>{const d=st.drive||{};const t0=job&&job.t0||0;
     const files=o.files&&Object.keys(o.files).length?o.files:(d.files||{});
-    st.drive={...d,at:Date.now(),url:o.url||d.url||'',folder:o.folder||d.folder||folderFromUrl(o.url),files,path:o.path||(job&&job.path)||d.path,prefix:(job&&job.prefix)||d.prefix,
+    st.drive={...d,at:Date.now(),url:o.url||d.url||'',folder:o.folder||d.folder||folderFromUrl(o.url),files,path:(job&&job.show)||o.path||(job&&job.path)||d.path,base:job?(job.base||''):(d.base||''),prefix:(job&&job.prefix)||d.prefix,
       sig:job&&(!t0||(st.updated||0)<=t0+800)?job.sig:''}; // 올리는 동안 또 고쳤으면 다음에 다시 맞춘다
     st.upPh=Object.keys(files)});
 }
@@ -1629,6 +1653,7 @@ function verGte(v,w){const a=String(v||'0').split('.').map(Number),b=w.split('.'
 let INBOX_T=0;
 function pullWebInbox(){try{if(!(IS_APP&&ChdNative.driveLinked&&ChdNative.driveLinked()))return;if(!verGte(ChdNative.version&&ChdNative.version(),'0.9.17'))return;if(Date.now()-INBOX_T<60e3)return;INBOX_T=Date.now();ChdNative.driveSave(JSON.stringify({op:'inbox',silent:true}))}catch(e){}}
 function mergeWebInbox(o){
+  if(o&&o.ok&&o.cfg)applyBlogCfg(o.cfg);
   const items=o&&o.ok&&o.data&&Array.isArray(o.data.items)?o.data.items:[];
   if(!items.length)return;
   const pf=getPlatforms();let n=0;
