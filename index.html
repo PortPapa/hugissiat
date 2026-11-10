@@ -613,6 +613,21 @@ body.flow>#easy,body.flow>.wrap{flex:1 0 auto;width:100%}
 /* ---------- 배경: 모서리에 옅은 수채 번짐(분홍·노랑·초록) + 오른쪽 아래 새싹 그림. 쓰는 화면에서는 뺀다 ---------- */
 body:not(.flow)::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(70% 34% at 100% 0,rgba(239,169,192,.30),transparent 70%),radial-gradient(80% 36% at 0 100%,rgba(132,162,130,.30),transparent 70%),radial-gradient(50% 24% at 0 18%,rgba(255,230,163,.28),transparent 70%)}
 body:not(.flow)::after{content:'';position:fixed;right:-34px;bottom:54px;width:230px;height:230px;z-index:-1;pointer-events:none;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><g fill='none' stroke='%2384A282' stroke-width='5' stroke-linecap='round'><path d='M100 190 V90'/><path d='M100 120 C60 118 38 92 36 56 C74 58 98 82 100 120Z' fill='%23A9C2A4'/><path d='M100 96 C132 94 156 72 160 40 C128 42 104 62 100 96Z' fill='%23A9C2A4'/></g></svg>") no-repeat center/contain;opacity:.16;transform:rotate(-8deg)}
+/* ---------- 자라는 새싹 아이콘 · 연속으로 피우면 테두리 · 꽃 모음 ---------- */
+.av{position:relative}.av.grow svg{width:36px;height:36px}.set-av svg{width:38px;height:38px}
+.av.pop svg{animation:avpop .8s ease-out}@keyframes avpop{0%{transform:scale(.6) rotate(-12deg)}55%{transform:scale(1.28) rotate(6deg)}100%{transform:none}}
+.av[data-sk="1"]{box-shadow:0 0 0 2.5px #e9b949}.av.on[data-sk="1"]{box-shadow:0 0 0 2.5px #e9b949,0 0 0 4.5px var(--acc)}
+.av[data-sk="2"]::before,.av[data-sk="3"]::before{content:'';position:absolute;inset:-3.5px;border-radius:50%;padding:3px;background:conic-gradient(#d9a326,#fff1b8,#e9b949,#fbe08a,#c98f14,#fff1b8,#d9a326);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:avspin 7s linear infinite;pointer-events:none}
+.av[data-sk="3"]::before{background:conic-gradient(#ef8fb5,#f6cb3f,#9bd18b,#8fc0ee,#b8a6ee,#ef8fb5);animation-duration:5s}
+.av.on[data-sk="2"],.av.on[data-sk="3"]{box-shadow:0 0 0 5.5px var(--acc)}
+@keyframes avspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.av::before,.av.pop svg{animation:none!important}}
+.fl-nav{display:flex;align-items:center;justify-content:center;gap:18px;margin:6px 0 2px}.fl-nav button{border:0;background:none;font-size:22px;color:var(--sub);padding:2px 12px}.fl-nav button:disabled{opacity:.25}
+.fl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 6px;margin:12px 0 8px}
+.fl-c{display:flex;flex-direction:column;align-items:center;gap:1px}.fl-c b{font-size:13px;margin-top:4px}.fl-c span{font-size:11.5px;color:var(--sub)}
+.fl-av{width:58px;height:58px;border-radius:50%;background:var(--line);display:flex;align-items:center;justify-content:center}.fl-av svg{width:46px;height:46px;filter:grayscale(1);opacity:.5}
+.fl-c.on .fl-av{background:var(--blush)}.fl-c.on .fl-av svg,.fl-c.cur .fl-av svg{filter:none;opacity:1}.fl-c.cur .fl-av{background:var(--blush);box-shadow:0 0 0 2px var(--acc)}
+.fl-c.fut .fl-av{background:transparent;border:1.5px dashed var(--line)}.fl-c.fut .fl-av svg{opacity:.28}
 </style>
 </head>
 <body>
@@ -2563,7 +2578,7 @@ let TAB='home';
 const ICO={more:"<svg class=\"\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"m12.475 16.564l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm0-6l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm0-6l.418.216c.985.72.742 2.274-.418 2.656L12 7.513l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656L12 4.487Z\"/></svg>"};
 const TABS=['home','plans','records','memo','me']; // 첫 탭(home)이 할 일 화면
 function setTab(t){document.querySelectorAll('.conf').forEach(x=>x.remove());if(!TABS.includes(t))t='home';TAB=t;document.body.dataset.tab=t;closeAct();ANIM=true;try{renderView()}finally{ANIM=false}viewIn();updChrome();window.scrollTo(0,0)}
-function renderView(){updTodoDot();setTimeout(dockCoach,1500);setTimeout(syncDue,300);setTimeout(tryNewVer,800);if(TAB==='plans')renderPlans();else if(TAB==='records')renderRecords();else if(TAB==='memo')renderMemo();else if(TAB==='me')renderMe();else renderHome()}
+function renderView(){updTodoDot();updAvatar();setTimeout(dockCoach,1500);setTimeout(syncDue,300);setTimeout(tryNewVer,800);if(TAB==='plans')renderPlans();else if(TAB==='records')renderRecords();else if(TAB==='memo')renderMemo();else if(TAB==='me')renderMe();else renderHome()}
 function inFlow(){return !!S&&(!!PLACE||S.mode==='full'||(S.step||0)>0)}
 function updChrome(){
   if(!S)return;const f=inFlow();document.body.classList.toggle('flow',f);
@@ -2615,7 +2630,7 @@ function getRecords(){
     let st={},pl=null;try{st=JSON.parse(localStorage.getItem(k)||'{}')||{}}catch(e){}
     try{pl=JSON.parse(localStorage.getItem('chd-place-'+m[1])||'null')}catch(e){}
     if(!pl){try{const l=JSON.parse(localStorage.getItem(LAST_KEY)||'null');if(l&&String(l.id)===m[1])pl=l}catch(e){}}
-    out.push({id:m[1],name:(pl&&pl.name)||(st.f&&st.f.biz)||'(이름 없음)',place:pl,updated:st.updated||0,step:st.step||0,sent:!!st.sent,done:!!st.done,posted:!!st.posted,postUrl:st.postUrl||'',due:(st.f&&st.f.due)||'',visitDate:(st.f&&st.f.visitDate)||'',platform:(st.f&&st.f.platform)||'',value:+(st.f&&st.f.value)||0,fee:+(st.f&&st.f.fee)||0,blog:(st.f&&st.f.blog)||''});
+    out.push({id:m[1],name:(pl&&pl.name)||(st.f&&st.f.biz)||'(이름 없음)',place:pl,updated:st.updated||0,step:st.step||0,sent:!!st.sent,done:!!st.done,posted:!!st.posted,postedAt:st.postedAt||0,postUrl:st.postUrl||'',due:(st.f&&st.f.due)||'',visitDate:(st.f&&st.f.visitDate)||'',platform:(st.f&&st.f.platform)||'',value:+(st.f&&st.f.value)||0,fee:+(st.f&&st.f.fee)||0,blog:(st.f&&st.f.blog)||''});
   }
   return out.sort((a,b)=>b.updated-a.updated);
 }
@@ -2709,11 +2724,88 @@ function recordMenu(r){openAct(b=>{
   b.append(ch);
 })}
 
+/* ---------- 왼쪽 위 새싹: 이번 달 발행한 글 수만큼 자라요(BLOOM_N편에 활짝). 달마다 꽃이 다르고, 연속으로 피우면 테두리가 바뀌어요 ---------- */
+/* 후기씨앗 달마다 다른 꽃 (48x48 기준). flowerSvg(month 1~12, stage 0~4) → svg 문자열
+   stage: 0 씨앗, 1 새싹, 2 잎 둘, 3 꽃봉오리, 4 활짝 */
+(function (g) {
+  const f = n => (+n).toFixed(2).replace(/\.?0+$/, '');
+  const ring = (n, d, fill, rot, extra) => { let s = ''; for (let i = 0; i < n; i++) s += `<path d="${d}" fill="${fill}" transform="rotate(${f((360 / n) * i + (rot || 0))})"${extra || ''}/>`; return s; };
+  const round = (l, w) => `M0 0C${f(-w)} ${f(-l * .25)} ${f(-w)} ${f(-l * .92)} 0 ${f(-l)}C${f(w)} ${f(-l * .92)} ${f(w)} ${f(-l * .25)} 0 0Z`;
+  const notch = (l, w) => `M0 0C${f(-w)} ${f(-l * .3)} ${f(-w * 1.05)} ${f(-l * .96)} ${f(-w * .38)} ${f(-l)}L0 ${f(-l * .84)}L${f(w * .38)} ${f(-l)}C${f(w * 1.05)} ${f(-l * .96)} ${f(w)} ${f(-l * .3)} 0 0Z`;
+  const point = (l, w) => `M0 0Q${f(-w)} ${f(-l * .5)} 0 ${f(-l)}Q${f(w)} ${f(-l * .5)} 0 0Z`;
+  const teeth = (l, w) => `M0 0C${f(-w * .8)} ${f(-l * .3)} ${f(-w)} ${f(-l * .78)} ${f(-w * .72)} ${f(-l * .97)}L${f(-w * .36)} ${f(-l * .88)}L0 ${f(-l)}L${f(w * .36)} ${f(-l * .88)}L${f(w * .72)} ${f(-l * .97)}C${f(w)} ${f(-l * .78)} ${f(w * .8)} ${f(-l * .3)} 0 0Z`;
+  const dots = (n, r, rad, fill, rot) => { let s = ''; for (let i = 0; i < n; i++) { const a = ((360 / n) * i + (rot || 0)) * Math.PI / 180; s += `<circle cx="${f(r * Math.cos(a))}" cy="${f(r * Math.sin(a))}" r="${rad}" fill="${fill}"/>`; } return s; };
+  const stamens = (n, len, col, tip) => { let s = ''; for (let i = 0; i < n; i++) { const a = ((360 / n) * i + 18) * Math.PI / 180; s += `<path d="M0 0L${f(len * Math.cos(a))} ${f(len * Math.sin(a))}" stroke="${col}" stroke-width=".5" stroke-linecap="round"/>`; } return s + dots(n, len, .75, tip, 18); };
+  const SAGE = '#84A282', LEAF = '#A9C2A4';
+
+  /* 꽃 머리: 중심 (0,0), 반지름 11 안쪽 */
+  const HEAD = {
+    1: () => ring(5, round(10.6, 6.6), '#b9323f', 36) + ring(5, round(10.2, 6.4), '#dc4a55', 0) + ring(5, round(5.6, 3), '#e96a70', 36) + `<circle r="3.5" fill="#f7cf4d"/>` + dots(8, 2.3, .62, '#e19a1c', 10) + `<circle r=".9" fill="#e19a1c"/>`,
+    2: () => ring(5, round(10, 6.2), '#fde9ee', 0, ' stroke="#f0b6c6" stroke-width=".55"') + ring(5, round(4.6, 2.4), '#f8cbd7', 0) + stamens(10, 4.6, '#d98aa0', '#e8b23f') + `<circle r="1.3" fill="#e58aa3"/>`,
+    3: () => { const one = (x, y, s, r) => `<g transform="translate(${x} ${y}) scale(${s}) rotate(${r})">` + ring(4, round(6.4, 2.5), '#f4bf1f', 0) + ring(4, round(6, 2.1), '#fbd84a', 0) + `<circle r="1.5" fill="#e3941a"/></g>`; return one(-5.2, 3.4, .92, 20) + one(5.6, 1.2, .86, 55) + one(-.4, -5.4, 1.02, 0); },
+    4: () => ring(5, notch(10.6, 5.6), '#f5b9cc', 36, ' opacity=".55"') + ring(5, notch(10.4, 5.4), '#fbd9e3', 0, ' stroke="#f3b3c6" stroke-width=".45"') + ring(5, round(4.4, 1.9), '#f39ab6', 0) + stamens(5, 3.6, '#d9537a', '#f6c84a') + `<circle r="1.2" fill="#d9537a"/>`,
+    5: () => `<circle r="10.4" fill="#cf3f66"/>` + ring(5, round(10.6, 7), '#e4587c', 0, ' stroke="#c23a61" stroke-width=".5"') + ring(5, round(8, 5.6), '#ec7191', 36, ' stroke="#cf4a70" stroke-width=".45"') + ring(4, round(5.6, 4), '#dd4c72', 18, ' stroke="#b83057" stroke-width=".4"') + `<path d="M-1.8 .4a2 2 0 1 1 2.2 1.8a3.2 3.2 0 1 1 -3 -3.6" fill="none" stroke="#a82850" stroke-width=".95" stroke-linecap="round"/>`,
+    6: () => { const cols = ['#9db5f1', '#b8a6ee', '#8fc0ee', '#a9a2ec']; const fl = (x, y, s, c, r) => `<g transform="translate(${f(x)} ${f(y)}) scale(${s}) rotate(${r})">` + dots(4, 1.9, 1.95, c, 45) + `<circle r=".8" fill="#fff8d6"/></g>`; let s = `<circle r="10.2" fill="#c9cdf5"/>`; for (let i = 0; i < 7; i++) { const a = (360 / 7) * i * Math.PI / 180; s += fl(8 * Math.cos(a), 8 * Math.sin(a), .9, cols[i % 4], i * 25); } for (let i = 0; i < 5; i++) { const a = ((360 / 5) * i + 30) * Math.PI / 180; s += fl(4.2 * Math.cos(a), 4.2 * Math.sin(a), 1, cols[(i + 2) % 4], i * 40); } return s + fl(0, 0, 1, '#b8a6ee', 10); },
+    7: () => ring(14, point(11.4, 2.7), '#eea31b', 12.8) + ring(14, point(10.6, 2.6), '#fbcb3a', 0) + `<circle r="5.2" fill="#6a4322"/><circle r="3.5" fill="#8b5a2b"/>` + dots(10, 4.3, .5, '#4d2f16', 0) + dots(6, 2, .45, '#5c3a1c', 20),
+    8: () => ring(5, round(10.8, 7), '#f1a9c8', 36, ' opacity=".6"') + ring(5, round(10.6, 6.8), '#f9c9dc', 0, ' stroke="#f0a3c2" stroke-width=".45"') + ring(5, point(6.4, 2.6), '#c22f5e', 0) + `<circle r="2" fill="#a11f49"/><path d="M0 0L2.6 -4.6" stroke="#f6d76a" stroke-width="1.5" stroke-linecap="round"/>` + `<circle cx="2.6" cy="-4.6" r="1" fill="#fbe79a"/>`,
+    9: () => ring(8, teeth(10.8, 3.7), '#ec7fae', 0) + ring(8, `M0 -2.4L0 -8.6`, 'none', 0, ' stroke="#d85c95" stroke-width=".55" stroke-linecap="round"') + `<circle r="2.8" fill="#d9a01e"/><circle r="2" fill="#f7cf3f"/>` + dots(6, 1.1, .35, '#d9a01e', 0),
+    10: () => ring(18, round(11, 1.8), '#e07f25', 10) + ring(14, round(8.8, 1.9), '#f29a33', 0) + ring(10, round(6.2, 1.9), '#f8b74c', 18) + ring(6, round(3.6, 1.6), '#fbd16e', 0) + `<circle r="1.3" fill="#d9741a"/>`,
+    11: () => `<path d="${round(10.6, 6.6)}" fill="#6843b3" transform="rotate(-30)"/><path d="${round(10.6, 6.6)}" fill="#7650c2" transform="rotate(30)"/><path d="${round(9.8, 6)}" fill="#9a76dc" transform="rotate(-104)"/><path d="${round(9.8, 6)}" fill="#9a76dc" transform="rotate(104)"/><path d="${round(10.4, 7.6)}" fill="#f7cb45" transform="rotate(180)"/>` + [180, -104, 104].map((a, i) => `<path d="${point(i ? 4.6 : 6.2, i ? 1.9 : 2.8)}" fill="#3a2266" transform="rotate(${a})"/>`).join('') + `<circle r="1.5" fill="#fbe98a"/>`,
+    12: () => ring(3, point(12, 4.6), '#5c8c5a', 60) + ring(6, point(10.8, 4.2), '#b12a2a', 30) + ring(6, point(10.6, 4), '#d93b3b', 0) + ring(6, `M0 -1.6L0 -7.6`, 'none', 0, ' stroke="#b12a2a" stroke-width=".5" stroke-linecap="round"') + dots(5, 1.5, .85, '#f2c744', 0) + `<circle r=".8" fill="#9bbf5a"/>`
+  };
+  const NAME = { 1: '동백', 2: '매화', 3: '개나리', 4: '벚꽃', 5: '장미', 6: '수국', 7: '해바라기', 8: '무궁화', 9: '코스모스', 10: '국화', 11: '팬지', 12: '포인세티아' };
+  const BUD = { 1: '#dc4a55', 2: '#f8cbd7', 3: '#f4bf1f', 4: '#f5b9cc', 5: '#e4587c', 6: '#a9b5f1', 7: '#f2b22a', 8: '#f1a9c8', 9: '#ec7fae', 10: '#f29a33', 11: '#7650c2', 12: '#d93b3b' };
+  const WOOD = { 2: 1, 3: 1, 4: 1 }; // 나뭇가지에 피는 꽃은 갈색 줄기
+
+  function flowerSvg(month, stage) {
+    const m = ((month - 1) % 12 + 12) % 12 + 1, st = WOOD[m] ? '#9a7658' : SAGE;
+    let s = `<rect x="9" y="41.5" width="30" height="4" rx="2" fill="${SAGE}" opacity=".28"/>`;
+    if (stage <= 0) s += `<ellipse cx="24" cy="38.6" rx="5.6" ry="3.8" fill="#c08457"/><path d="M24 35q1.8 -4 4.8 -4.2" stroke="${SAGE}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+    else {
+      const top = stage === 1 ? 30 : stage === 2 ? 24 : stage === 3 ? 20 : 26;
+      s += `<path d="M24 42V${top}" stroke="${stage >= 3 ? st : SAGE}" stroke-width="2.6" stroke-linecap="round"/>`;
+      const ly = stage === 1 ? 36 : stage >= 4 ? 39 : 35;
+      s += `<path d="M24 ${ly}C17.5 ${ly} 13 ${ly - 5} 12.6 ${ly - 9.4}C19 ${ly - 9.4} 23.6 ${ly - 5} 24 ${ly}Z" fill="${LEAF}"/>`;
+      if (stage >= 2) s += `<path d="M24 ${ly - 3}C24.6 ${ly - 9.4} 29.4 ${ly - 13} 35 ${ly - 13.2}C34.6 ${ly - 7} 30 ${ly - 3} 24 ${ly - 3}Z" fill="${SAGE}"/>`;
+      if (stage === 3) s += `<path d="M24 20C20.4 17.6 20.6 11.4 24 8.4C27.4 11.4 27.6 17.6 24 20Z" fill="${BUD[m]}"/><path d="M20.6 16.4C21.6 19.4 22.8 20.6 24 21C25.2 20.6 26.4 19.4 27.4 16.4C26.2 18 25 18.6 24 18.6C23 18.6 21.8 18 20.6 16.4Z" fill="${SAGE}"/>`;
+      if (stage >= 4) s += `<g transform="translate(24 15.6) scale(1.28)">${HEAD[m]()}</g>`;
+    }
+    return `<svg viewBox="0 0 48 48" aria-hidden="true">${s}</svg>`;
+  }
+  g.flowerSvg = flowerSvg; g.FLOWER_NAME = NAME;
+})(typeof window !== 'undefined' ? window : globalThis);
+const BLOOM_N=4;
+const ymKey=(y,mo)=>y+'-'+String(mo).padStart(2,'0');
+function postedByMonth(){const m={};getRecords().forEach(r=>{if(!r.posted||String(r.id).startsWith('_'))return;const t=r.postedAt||r.updated;if(!t)return;const d=new Date(t);const k=ymKey(d.getFullYear(),d.getMonth()+1);m[k]=(m[k]||0)+1});return m}
+function growStage(n){return n>=BLOOM_N?4:Math.max(0,Math.floor(n*4/BLOOM_N))}
+/* 연속으로 꽃 피운 달 수. 이번 달이 아직 안 피었어도 지난달까지 이어졌으면 살아 있는 것으로 센다 */
+function bloomStreak(pm){const now=new Date();let y=now.getFullYear(),mo=now.getMonth()+1,k=(pm[ymKey(y,mo)]||0)>=BLOOM_N?1:0;for(let i=0;i<240;i++){mo--;if(mo<1){mo=12;y--}if((pm[ymKey(y,mo)]||0)>=BLOOM_N)k++;else break}return k}
+function growNow(){const pm=postedByMonth(),now=new Date(),mo=now.getMonth()+1,n=pm[ymKey(now.getFullYear(),mo)]||0;return {pm,mo,y:now.getFullYear(),n,st:growStage(n),sk:bloomStreak(pm)}}
+function updAvatar(){try{const g=growNow(),a=$('#tabMe');if(!a)return;const sig=g.mo+':'+g.st;
+  if(a.dataset.g!==sig){a.innerHTML=flowerSvg(g.mo,g.st);a.dataset.g=sig}
+  a.classList.add('grow');a.dataset.sk=g.sk>=6?'3':g.sk>=3?'2':g.sk>=2?'1':'';
+  a.setAttribute('aria-label','내 정보 · 이번 달 '+g.n+'편 발행');
+  const key=ymKey(g.y,g.mo),prev=(localStorage.getItem('chd-grow')||'').split(':');
+  if(prev[0]===key&&+prev[1]<g.st&&!noMotion()){a.classList.remove('pop');void a.offsetWidth;a.classList.add('pop');setTimeout(()=>a.classList.remove('pop'),900)}
+  localStorage.setItem('chd-grow',key+':'+g.st)}catch(e){}}
+/* 발행 직후 한마디 */
+function growMsg(){try{const g=growNow();if(g.n===BLOOM_N)return FLOWER_NAME[g.mo]+' 활짝! '+g.mo+'월 꽃을 피웠어요'+(g.sk>=2?' · '+g.sk+'달 연속':'');if(g.n<BLOOM_N)return '끝! 수고했어요 · '+(BLOOM_N-g.n)+'편 더 쓰면 꽃이 펴요';return ''}catch(e){return ''}}
+function flowerSheet(year){const g=growNow(),y=year||g.y;openAct(b=>{
+  b.append(...hInfo('꽃 모음',['한 달에 글 '+BLOOM_N+'편을 발행하면 그 달의 꽃이 펴요. 달이 바뀌면 다시 씨앗부터 자라요.','꽃을 연속으로 피우면 왼쪽 위 테두리가 바뀌어요. 2달은 금색, 3달은 도는 금빛, 6달은 무지개빛이에요.']));
+  const ys=Object.keys(g.pm).map(k=>+k.slice(0,4)),minY=Math.min(g.y,...ys);
+  if(minY<g.y){const nav=el('div','fl-nav');const p=el('button','','‹'),n=el('button','','›');p.type=n.type='button';p.disabled=y<=minY;n.disabled=y>=g.y;p.onclick=()=>flowerSheet(y-1);n.onclick=()=>flowerSheet(y+1);p.setAttribute('aria-label','이전 해');n.setAttribute('aria-label','다음 해');nav.append(p,el('b','',y+'년'),n);b.append(nav)}
+  const grid=el('div','fl-grid');let got=0;
+  for(let mo=1;mo<=12;mo++){const n=g.pm[ymKey(y,mo)]||0,st=growStage(n),cur=y===g.y&&mo===g.mo,future=y>g.y||(y===g.y&&mo>g.mo),on=st>=4;if(on)got++;
+    const c=el('div','fl-c'+(on?' on':'')+(cur?' cur':'')+(future?' fut':''));const av=el('div','fl-av');av.innerHTML=flowerSvg(mo,future?0:st);
+    c.append(av,el('b','',mo+'월'),el('span','',on?FLOWER_NAME[mo]:future?FLOWER_NAME[mo]:n?n+'편':cur?'0편':'-'));grid.append(c)}
+  b.append(el('div','e-tip',y+'년에 '+got+'송이'+(y===g.y&&g.sk>=2?' · '+g.sk+'달 연속':'')+(y===g.y&&g.n<BLOOM_N?' · 이번 달 '+g.n+'/'+BLOOM_N+'편':'')),grid);
+})}
+
 /* ---------- 할 일: 방문 예정 → 기록 작성 → 블로그 발행 → 끝 ---------- */
 function setPosted(id,on,url){const k='chd-memo-v2-'+id;try{const st=JSON.parse(localStorage.getItem(k)||'{}');st.posted=!!on;st.postedAt=on?Date.now():null;if(url!==undefined)st.postUrl=url;localStorage.setItem(k,JSON.stringify(st));if(S&&PLACE&&String(PLACE.id)===String(id)){S.posted=st.posted;S.postUrl=st.postUrl}}catch(e){}}
 function postSheet(r){
   if(!r.posted){closeAct();setPosted(r.id,true);buzz(15);renderView();confetti();
-    undoToast('끝! 수고했어요',()=>{setPosted(r.id,false);renderView()});return}
+    undoToast(growMsg()||'끝! 수고했어요',()=>{setPosted(r.id,false);renderView()});return}
   openAct(b=>{b.append(el('h3','',r.name),el('div','e-tip','블로그 발행 완료로 옮겨둔 곳이에요.'));
     const row=el('div','done-row');const ok=el('button','e-btn primary','그대로 두기');ok.type='button';ok.onclick=closeAct;
     const un=el('button','e-btn','아직 안 올렸어요');un.type='button';un.onclick=()=>{setPosted(r.id,false);closeAct();renderView()};row.append(ok,un);b.append(row)});
@@ -2867,7 +2959,9 @@ function renderMe(){
   let ver='';try{ver=IS_APP&&ChdNative.version?ChdNative.version():''}catch(e){}
   const dOn=driveLinked();
   const rpg=el('div','set-g');rpg.append(el('div','set-h','내 기록 리포트'),reportBox());
+  const gw=growNow(),gy=Object.keys(gw.pm).filter(k=>k.startsWith(gw.y+'-')&&gw.pm[k]>=BLOOM_N).length;
   v.append(pc,rpg,
+    group('꽃 모음',[row('올해 피운 꽃',gy+'송이'+(gw.sk>=2?' · '+gw.sk+'달 연속':'')+' · 이번 달 '+Math.min(gw.n,BLOOM_N)+'/'+BLOOM_N+'편',()=>flowerSheet())]),
     group('일정',[row('내 블로그',getBlogs().length?getBlogs().map(x=>x.name).join(', '):'하나만 써요',()=>blogSheet()),row('체험단 플랫폼',dots,()=>platformSheet()),row('알림','다녀온 뒤 '+st.remindH+'시간 · 마감 '+(st.dueOff?'끔':'3일·1일 전'),()=>remindSheet())]),
     canDrive()?group('저장',[row('구글 드라이브',dOn?'연결됨':'연결 안 됨',()=>driveSheet(),{cls:dOn?'on':''}),dOn?row('전체 동기화','바뀐 것·빠진 사진 맞추기',()=>syncAll()):null,dOn&&freeOk()?row('저장 공간 정리','드라이브에 올라간 사진 비우기',()=>storageSheet()):null,shareOk()?row('기록 공유',shareState(),()=>shareSheet()):null,dOn?row('백업·복원',lastBackup()?new Date(lastBackup()).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 백업':'백업 전',()=>backupSheet()):null]):'',
     group('정보',[row('사용법','',()=>document.body.classList.add('sheet')),row('의견 보내기','',()=>feedback()),row('디스코드 커뮤니티','사용법·문의',()=>openCommunity()),IS_APP?row('앱 평가하기','',()=>rateApp()):null,row('개인정보처리방침','',()=>privacySheet()),ver?row('버전',ver,null,{noChev:true,cls:'static'}):null]),
