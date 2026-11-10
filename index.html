@@ -2254,7 +2254,7 @@ function easyCards(){
       sm.onclick=()=>setTab('plans');b.append(sm);
     }
   }});
-  cards.push({id:'with',src:'누구랑',q:visit?'누구랑 갔어요?':'누구랑 같이 썼어요?',body:b=>{
+  if(visit)cards.push({id:'with',src:'누구랑',q:'누구랑 갔어요?',body:b=>{ // 제품 기록에는 묻지 않는다
     const saved=getGroups().slice().sort((x,y)=>(y.used||0)-(x.used||0));
     const presets=saved.length?saved:GROUP_SUGGEST.map(w=>({with:w,detail:'',sug:true}));
     const cur=(S.f.with&&S.f.with.sel)||[],curD=(S.f.withDetail||'').trim();
