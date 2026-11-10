@@ -896,6 +896,8 @@ public class MainActivity extends Activity {
             if ("restore".equals(op)) { pool.execute(() -> driveRestoreRun(token)); return; }
             if ("inbox".equals(op)) { pool.execute(() -> driveInboxRun(token)); return; }
             if ("sharePub".equals(op)) { pool.execute(() -> driveSharePub(token, j)); return; }
+            if ("pick".equals(op)) { final String k = "folder".equals(j.optString("kind")) ? "folder" : "shared"; runOnUiThread(() -> openPicker(token, k)); return; }
+            if ("sharedOff".equals(op)) { pool.execute(() -> driveSharedOff(token)); return; }
             if ("trash".equals(op)) { upq.execute(() -> driveTrashRun(token, j)); return; }
             if ("inboxDone".equals(op)) { final String fid = j.optString("id", ""); pool.execute(() -> { try { if (!fid.isEmpty()) driveCall(token, "DELETE", "https://www.googleapis.com/drive/v3/files/" + fid, null, null); } catch (Exception ignored) {} }); return; }
         } catch (Exception ignored) {}
@@ -1005,6 +1007,160 @@ public class MainActivity extends Activity {
         }
     }
 
+    /* ---------- 앱 안에서 드라이브 파일 고르기 (0.9.23~): 구글 선택 창을 앱 화면 위에 띄운다.
+       구글 규칙상 앱은 사용자가 직접 고른 파일만 읽을 수 있어서, 공유받은 "공유 기록.json"은 이 창에서 한 번 골라야 한다 ---------- */
+    private static final String PICK_HOST = "hugissiat.com";
+    private View pickLayer;
+    private WebView pickWeb;
+    private String pickToken = "";
+
+    private void openPicker(String token, String kind) {
+        closePicker();
+        pickToken = token;
+        final float dp = getResources().getDisplayMetrics().density;
+        android.widget.LinearLayout box = new android.widget.LinearLayout(this);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
+        box.setBackgroundColor(0xFFFEFAF3);
+        box.setClickable(true);
+        FrameLayout bar = new FrameLayout(this);
+        android.widget.TextView title = new android.widget.TextView(this);
+        title.setText("공유받은 기록 연결");
+        title.setTextSize(16);
+        title.setTextColor(0xFF26302A);
+        title.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        title.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        title.setPadding((int) (18 * dp), 0, 0, 0);
+        android.widget.TextView close = new android.widget.TextView(this);
+        close.setText("닫기");
+        close.setTextSize(15);
+        close.setTextColor(0xFF5F6B62);
+        close.setGravity(android.view.Gravity.CENTER);
+        close.setPadding((int) (18 * dp), 0, (int) (18 * dp), 0);
+        close.setOnClickListener(v -> pickCancel());
+        bar.addView(title, new FrameLayout.LayoutParams(-1, -1));
+        bar.addView(close, new FrameLayout.LayoutParams(-2, -1, android.view.Gravity.END));
+        box.addView(bar, new android.widget.LinearLayout.LayoutParams(-1, (int) (52 * dp)));
+
+        WebView w = new WebView(this);
+        WebSettings ws = w.getSettings();
+        ws.setJavaScriptEnabled(true);
+        ws.setDomStorageEnabled(true);
+        ws.setAllowFileAccess(false);
+        ws.setAllowContentAccess(false);
+        ws.setSupportMultipleWindows(false);
+        try { android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(w, true); } catch (Exception ignored) {}
+        w.setWebViewClient(new WebViewClient() {
+            private boolean handle(Uri u) {
+                if (u == null || !"https".equals(u.getScheme()) || !PICK_HOST.equals(u.getHost())) return false;
+                String p = u.getPath() == null ? "" : u.getPath();
+                if (!p.startsWith("/pick-done")) return false;
+                pickDone(u);
+                return true;
+            }
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
+                if (!req.isForMainFrame()) return false; // 구글 선택 창(안쪽 틀)은 그대로 둔다
+                Uri u = req.getUrl();
+                if (handle(u)) return true;
+                String p = u.getPath() == null ? "" : u.getPath();
+                boolean pick = "https".equals(u.getScheme()) && PICK_HOST.equals(u.getHost()) && ("/pick".equals(p) || "/pick.html".equals(p));
+                return !pick; // 고르기 화면 말고는 이 창에서 열지 않는다
+            }
+            @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                try { handle(Uri.parse(url)); } catch (Exception ignored) {}
+            }
+        });
+        box.addView(w, new android.widget.LinearLayout.LayoutParams(-1, 0, 1f));
+        ((android.view.ViewGroup) web.getParent()).addView(box, new FrameLayout.LayoutParams(-1, -1));
+        pickLayer = box;
+        pickWeb = w;
+        w.loadUrl("https://" + PICK_HOST + "/pick?k=" + kind + "#t=" + Uri.encode(token));
+    }
+
+    private void closePicker() {
+        final View layer = pickLayer;
+        final WebView w = pickWeb;
+        pickLayer = null;
+        pickWeb = null;
+        pickToken = "";
+        if (layer == null) return;
+        try { ((android.view.ViewGroup) layer.getParent()).removeView(layer); } catch (Exception ignored) {}
+        if (w != null) new Handler(Looper.getMainLooper()).post(() -> { try { w.stopLoading(); w.destroy(); } catch (Exception ignored) {} });
+    }
+
+    private void pickCancel() {
+        if (pickLayer == null) return;
+        closePicker();
+        JSONObject o = new JSONObject();
+        try { o.put("op", "pick"); o.put("cancel", true); } catch (Exception ignored) {}
+        driveCb(true, o);
+    }
+
+    private void pickDone(Uri u) {
+        if (pickLayer == null) return;
+        final String token = pickToken;
+        final boolean ok = "1".equals(u.getQueryParameter("ok"));
+        final String id = u.getQueryParameter("id");
+        final boolean viaWeb = "1".equals(u.getQueryParameter("web"));
+        if (viaWeb) { // 선택 창이 안 뜨는 폰: 브라우저에서 고르게 한다
+            pickCancel();
+            try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://hugissiat.com/settings#shared"))); } catch (Exception ignored) {}
+            return;
+        }
+        if (!ok || id == null || !id.matches("[A-Za-z0-9_-]{10,}")) { pickCancel(); return; }
+        closePicker();
+        pool.execute(() -> driveSharedLink(token, id));
+    }
+
+    /** 후기씨앗/공유받은 기록.json: 내가 보고 있는 공유 기록 파일 목록 (웹 설정과 같은 파일) */
+    private void writeSharedCfg(String token, JSONArray sources) throws Exception {
+        String root = driveFolder(token, "후기씨앗", "root");
+        JSONObject c = new JSONObject();
+        c.put("v", 1);
+        c.put("sources", sources);
+        byte[] b = c.toString().getBytes(StandardCharsets.UTF_8);
+        String fid = driveFind(token, "공유받은 기록.json", root, false);
+        if (fid != null) driveCall(token, "PATCH", "https://www.googleapis.com/upload/drive/v3/files/" + fid + "?uploadType=media", "application/json; charset=UTF-8", b);
+        else driveCreate(token, root, "공유받은 기록.json", "application/json; charset=UTF-8", b);
+    }
+
+    /** 고른 "공유 기록.json"을 확인하고 연결한 뒤, 바로 읽어 와 기록 탭에 보여 준다 */
+    private void driveSharedLink(String token, String id) {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("op", "pick");
+            JSONObject d;
+            try { d = driveCall(token, "GET", "https://www.googleapis.com/drive/v3/files/" + id + "?alt=media&supportsAllDrives=true", null, null); }
+            catch (Exception e) { o.put("error", "파일을 읽지 못했어요. 다시 골라 주세요"); driveCb(false, o); return; }
+            if (d == null || d.optJSONArray("records") == null) { o.put("error", "후기씨앗 공유 기록 파일이 아니에요"); driveCb(false, o); return; }
+            String label = d.optString("label", "");
+            JSONObject src = new JSONObject();
+            src.put("id", id);
+            src.put("label", label);
+            src.put("at", System.currentTimeMillis());
+            writeSharedCfg(token, new JSONArray().put(src)); // 무료: 1명
+            o.put("label", label);
+            driveCb(true, o);
+            driveInboxRun(token);
+        } catch (Exception e) {
+            try { o.put("error", "연결하지 못했어요. 잠시 뒤 다시 해 주세요"); } catch (Exception ignored) {}
+            driveCb(false, o);
+        }
+    }
+
+    private void driveSharedOff(String token) {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("op", "sharedOff");
+            writeSharedCfg(token, new JSONArray());
+            driveCb(true, o);
+            driveInboxRun(token);
+        } catch (Exception e) {
+            driveCb(false, o);
+        }
+    }
+
     /** 내 기록 공유: 후기씨앗/공유 기록.json 갱신, email이 있으면 후기씨앗 폴더를 보기 권한으로 공유, unshare면 공유 해제 */
     private void driveSharePub(String token, JSONObject j) {
         JSONObject o = new JSONObject();
@@ -1029,7 +1185,7 @@ public class MainActivity extends Activity {
                     o.put("unshared", email);
                 } else {
                     JSONObject p = new JSONObject(); p.put("role", "reader"); p.put("type", "user"); p.put("emailAddress", email);
-                    String msg = "후기씨앗 기록을 공유했어요. hugissiat.com 설정 > 공유받은 기록에서 '공유 기록.json'을 고르면 앱에서 볼 수 있어요.";
+                    String msg = "후기씨앗 기록을 공유했어요. 후기씨앗 앱의 내 정보 > 기록 공유 > 공유받은 기록 연결에서 '공유 기록.json'을 한 번 고르면 기록 탭에서 볼 수 있어요.";
                     driveCall(token, "POST", "https://www.googleapis.com/drive/v3/files/" + root + "/permissions?sendNotificationEmail=true&emailMessage=" + URLEncoder.encode(msg, "UTF-8"), "application/json; charset=UTF-8", p.toString().getBytes(StandardCharsets.UTF_8));
                     o.put("shared", email);
                 }
@@ -1525,6 +1681,7 @@ public class MainActivity extends Activity {
     private long lastBack = 0;
 
     private void handleBack() {
+        if (pickLayer != null) { pickCancel(); return; }
         web.evaluateJavascript("(window.chdBack&&window.chdBack())?'1':'0'", v -> {
             if ("\"1\"".equals(v)) return;
             long now = System.currentTimeMillis();
@@ -2158,6 +2315,14 @@ public class MainActivity extends Activity {
         public void driveSave(String job) {
             if (!trusted || job == null) return;
             runOnUiThread(() -> driveAuth(job));
+        }
+
+        /** 앱 안에서 드라이브 파일 고르기. kind = shared(공유받은 "공유 기록.json") */
+        @JavascriptInterface
+        public void drivePick(String kind) {
+            if (!trusted) return;
+            final String k = "folder".equals(kind) ? "folder" : "shared";
+            runOnUiThread(() -> driveAuth("{\"op\":\"pick\",\"kind\":\"" + k + "\"}"));
         }
 
         /** 사진 이름을 '2026-11-06 가게이름 01.jpg'로 바꿔서 보낸다 */
