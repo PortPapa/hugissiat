@@ -468,6 +468,7 @@ i.v{background:var(--acc)}i.dn{background:#B9B3A8}i.du{background:transparent;bo
 .rp-money{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 4px}.rp-money div{border-radius:14px;background:var(--acc-soft,#eef3ea);padding:12px}.rp-money span{display:block;font-size:12px;color:var(--sub)}.rp-money b{display:block;font-size:19px;margin:2px 0;font-variant-numeric:tabular-nums;color:var(--acc-ink)}.rp-money small{font-size:11.5px;color:var(--sub)}
 .rp-top{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;margin-bottom:6px}
 .rp-top b{display:block;font-size:22px;font-variant-numeric:tabular-nums;color:var(--acc-ink)}.rp-top span{font-size:12px;color:var(--sub)}
+.sh-sum{background:var(--card);border:1px solid var(--line)}
 .blog-loc{display:block;font-size:12px;color:var(--sub);font-weight:500;margin-top:2px}
 .mo-sum{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:16px;background:var(--acc-soft,#eef3ea);padding:14px 16px;margin:2px 0 6px;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
 .mo-sum span{font-size:12.5px;color:var(--sub);display:block}.mo-sum b{font-size:20px;display:block;margin-top:2px}.mo-sum small{margin-left:auto;font-size:12.5px;color:var(--sub);white-space:nowrap}
@@ -1635,6 +1636,7 @@ function markDrive(rid,o,job){
 window.chdDrive=s=>{
   let o={};try{o=JSON.parse(s)}catch(e){}
   if(o.op==='inbox'){mergeWebInbox(o);return}
+  if(o.op==='sharePub'){if(o.unshared)return;if(!o.ok){localStorage.removeItem('chd-share-sig');toast(o.error||'공유하지 못했어요');return}if(o.shared)toast(o.shared+'에게 공유했어요. 상대가 hugissiat.com 설정에서 "공유 기록.json"을 고르면 돼요');try{if(TAB==='me')renderMe()}catch(e){}return}
   if(o.op==='trash'){toast(o.ok?'드라이브 폴더를 휴지통으로 옮겼어요 (30일 안에 되살릴 수 있어요)':'드라이브 폴더를 지우지 못했어요');return}
   const rid=o.rid!=null?String(o.rid):'',mine=!rid||rid===curRid();
   const q=rid?UPQ[rid]:null;
@@ -1652,8 +1654,58 @@ window.chdDrive=s=>{
 function verGte(v,w){const a=String(v||'0').split('.').map(Number),b=w.split('.').map(Number);for(let i=0;i<3;i++){if((a[i]||0)>(b[i]||0))return true;if((a[i]||0)<(b[i]||0))return false}return true}
 let INBOX_T=0;
 function pullWebInbox(){try{if(!(IS_APP&&ChdNative.driveLinked&&ChdNative.driveLinked()))return;if(!verGte(ChdNative.version&&ChdNative.version(),'0.9.17'))return;if(Date.now()-INBOX_T<60e3)return;INBOX_T=Date.now();ChdNative.driveSave(JSON.stringify({op:'inbox',silent:true}))}catch(e){}}
+/* ---------- 기록 공유 (0.9.22~): 내 기록을 한 사람에게 보기 전용으로 공유 / 공유받은 기록 보기. 1명까지 무료 ---------- */
+function shareOk(){try{return IS_APP&&verGte(ChdNative.version&&ChdNative.version(),'0.9.22')}catch(e){return false}}
+function shareSet(){return getSettings().share||{}}
+function sharePayload(){
+  const rs=getRecords().filter(r=>!String(r.id).startsWith('_')).map(r=>{const st=recState(r.id)||{},d=st.drive||{};let sum=[];try{sum=expSummary(st,r.id).map(x=>typeof x==='string'?x:(x.textContent||''))}catch(e){}
+    return {id:r.id,name:r.name,category:(r.place&&r.place.category)||'',product:!!(r.place&&r.place.product),platform:r.platform,blog:r.blog,visitDate:r.visitDate,due:r.due,value:r.value,fee:r.fee,sent:r.sent||r.done,posted:r.posted,postUrl:r.postUrl,updated:r.updated,folder:d.url||'',sum:sum.slice(0,8)}});
+  const ps=getPlans().map(p=>({id:p.id,name:p.place&&p.place.name,category:(p.place&&p.place.category)||'',product:!!(p.place&&p.place.product),when:p.when||null,noTime:!!p.noTime,due:p.due||'',platform:p.platform||'',value:+p.value||0,fee:+p.fee||0}));
+  return {v:1,label:shareSet().label||'',records:rs,plans:ps};
+}
+let SHARE_T=0;
+function pushShare(force,extra){try{const sh=shareSet();if(!shareOk()||!driveLinked()||!sh.on)return;if(!force&&Date.now()-SHARE_T<5*60e3)return;
+  const p=sharePayload(),sig=hashStr(JSON.stringify(p));if(!force&&sig===localStorage.getItem('chd-share-sig'))return;SHARE_T=Date.now();
+  p.at=Date.now();localStorage.setItem('chd-share-sig',sig);ChdNative.driveSave(JSON.stringify(Object.assign({op:'sharePub',json:JSON.stringify(p),silent:!force},extra||{})))}catch(e){}}
+function shareSheet(){const sh=shareSet();openAct(b=>{
+  b.append(el('h3','','내 기록 공유하기'),el('p','','배우자나 팀원이 내 기록을 볼 수 있게 해요. 상대는 보기만 하고 고칠 수 없어요.'));
+  const lb=document.createElement('input');lb.type='text';lb.placeholder='상대에게 보일 내 이름 (예: 아내)';lb.value=sh.label||'';
+  const em=document.createElement('input');em.type='email';em.placeholder='상대 구글 계정 이메일';em.value=sh.email||'';em.autocomplete='off';
+  b.append(el('div','e-label','보일 이름'),lb,el('div','e-label','공유할 사람'),em);
+  const go=el('button','e-btn primary',sh.on?'저장':'공유하기');go.type='button';
+  go.onclick=()=>{const e=em.value.trim(),l=lb.value.trim()||'공유한 사람';if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){toast('이메일을 확인해 주세요');return}
+    const old=sh.on&&sh.email&&sh.email.toLowerCase()!==e.toLowerCase()?sh.email:'';
+    if(old)ChdNative.driveSave(JSON.stringify({op:'sharePub',email:old,unshare:true}));
+    setSettings({share:{on:true,email:e,label:l}});closeAct();toast('공유하는 중이에요');pushShare(true,sh.on&&!old?{}:{email:e})};
+  b.append(go);
+  if(sh.on){const off=el('button','e-btn','공유 끄기');off.type='button';off.onclick=()=>{ChdNative.driveSave(JSON.stringify({op:'sharePub',email:sh.email,unshare:true}));setSettings({share:{on:false,email:'',label:sh.label||''}});closeAct();toast('공유를 껐어요');try{renderMe()}catch(e){}};b.append(off)}
+  b.append(el('div','e-tip','상대는 hugissiat.com 설정 → 공유받은 기록에서 "공유 기록.json"을 한 번 고르면 앱 기록 탭에서 볼 수 있어요. 공유는 1명까지 무료예요.'));
+})}
+function getShared(){try{return JSON.parse(localStorage.getItem('chd-shared')||'[]')||[]}catch(e){return []}}
+function sharedSheet(i){const sx=getShared()[i];if(!sx)return;const d=sx.data||{},nm=d.label||sx.label||'공유받은 기록';openAct(b=>{
+  b.append(el('h3','',nm+' 기록'),el('div','e-tip','보기 전용 · '+(d.at?new Date(d.at).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})+' 기준':'')));
+  if(sx.error){b.append(el('div','e-tip',sx.error==='gone'?'공유가 끊겼어요. 상대에게 다시 공유해 달라고 해 주세요.':'불러오지 못했어요. 잠시 뒤 다시 열어 주세요.'));return}
+  const now=Date.now(),up=(d.plans||[]).filter(p=>p.when&&new Date(p.when).getTime()>now-36e5).sort((a,b)=>new Date(a.when)-new Date(b.when));
+  if(up.length){b.append(el('div','sub-h','다가오는 일정 '+up.length));up.slice(0,5).forEach(p=>{const r=el('div','rec');const i2=el('div');const t=el('b','',p.name||'');if(p.platform)t.append(pBadge(p.platform));const w=new Date(p.when);i2.append(t,el('span','',(w.getMonth()+1)+'/'+w.getDate()+'('+WD[w.getDay()]+')'+(p.noTime?'':' '+String(w.getHours()).padStart(2,'0')+':'+String(w.getMinutes()).padStart(2,'0'))+(p.due?' · '+dday(p.due):'')));r.style.gridTemplateColumns='1fr';r.append(i2);b.append(r)})}
+  const rs=(d.records||[]).slice().sort((a,b)=>(b.visitDate||'').localeCompare(a.visitDate||'')||b.updated-a.updated);
+  const mk=ymd(new Date()).slice(0,7),mt=rs.filter(r=>(r.visitDate||'').startsWith(mk)).reduce((x,r)=>x+(+r.value||0)+(+r.fee||0),0);
+  b.append(el('div','sub-h','기록 '+rs.length+(mt?' · '+(new Date().getMonth()+1)+'월 받은 혜택 '+won(mt):'')));
+  rs.forEach(r=>{const row=el('div','rec');row.style.gridTemplateColumns='1fr';const i2=el('div');const t=el('b','',r.name||'');if(r.platform)t.append(pBadge(r.platform));t.append(el('span','st'+(r.sent?' done':''),r.posted?'발행':r.sent?'완성':'쓰는 중'));
+    i2.append(t,el('span','',[r.visitDate?recDate(r):'',r.category,(+r.value||+r.fee)?won((+r.value||0)+(+r.fee||0)):''].filter(Boolean).join(' · ')));row.append(i2);row.onclick=()=>sharedRec(i,r);b.append(row)});
+  if(!rs.length&&!up.length)b.append(el('div','e-tip','아직 기록이 없어요'));
+})}
+function sharedRec(i,r){openAct(b=>{const nm=el('div','ps-nm');nm.append(r.name||'');if(r.category)nm.append(el('span','ps-cat',r.category));b.append(nm);
+  const ct=campText(r,null);if(ct)b.append(el('div','ps-meta',(r.visitDate?recDate(r)+' 방문 · ':'')+ct));
+  if(r.sum&&r.sum.length){const bx=el('div','ps-box');bx.append(el('div','ps-bh','경험 요약'));const t=el('div','ps-sum');r.sum.forEach((l,k)=>{if(k)t.append(document.createElement('br'));t.append(l)});bx.append(t);b.append(bx)}
+  const ch=el('div','e-choices');
+  if(r.folder){const f=el('button','e-btn primary','드라이브에서 사진·후기 소스 보기');f.type='button';f.onclick=()=>{location.href=r.folder};ch.append(f)}
+  if(r.postUrl){const p=el('button','e-btn','올린 블로그 글 보기');p.type='button';p.onclick=()=>{location.href=r.postUrl};ch.append(p)}
+  const bk=el('button','e-btn','목록으로');bk.type='button';bk.onclick=()=>sharedSheet(i);ch.append(bk);b.append(ch)})}
 function mergeWebInbox(o){
   if(o&&o.ok&&o.cfg)applyBlogCfg(o.cfg);
+  if(o&&o.ok&&Array.isArray(o.shared)){try{localStorage.setItem('chd-shared',JSON.stringify(o.shared.map(x=>Object.assign({},x,{at:Date.now()}))));if(TAB==='records')renderRecords()}catch(e){}}
+  else if(o&&o.ok&&!o.shared){try{if(localStorage.getItem('chd-shared')){localStorage.removeItem('chd-shared');if(TAB==='records')renderRecords()}}catch(e){}}
+  pushShare();
   const items=o&&o.ok&&o.data&&Array.isArray(o.data.items)?o.data.items:[];
   if(!items.length)return;
   const pf=getPlatforms();let n=0;
@@ -2525,9 +2577,11 @@ function settleSheet(year,openM){
 function renderRecords(){
   const v=$('#viewRecords');v.innerHTML='';
   const rs=getRecords();
+  if(!rs.length&&getShared().length){getShared().forEach((sx,i)=>{const d=sx.data||{};const b=el('button','mo-sum sh-sum');b.type='button';const tx=el('div');tx.append(el('span','',(d.label||sx.label||'공유받은 기록')+' 기록 · 보기 전용'),el('b','',(d.records||[]).length+'건'));b.append(tx,el('small','','보기 ›'));b.onclick=()=>sharedSheet(i);v.append(b)})}
   if(!rs.length){const h=el('div','hello');h.innerHTML=sproutSvg(0);h.append(el('b','','아직 기록이 없어요'));const go=el('button','e-btn primary hello-go','캠페인 추가');go.type='button';go.onclick=()=>addFromLink();h.append(go);v.append(h);return}
   {const mk=ymd(new Date()).slice(0,7);const mr=rs.filter(r=>!String(r.id).startsWith('_')&&recMonth(r)===mk);const t=mr.reduce((x,r)=>x+recMoney(r),0);
     const sb=el('button','mo-sum');sb.type='button';const tx=el('div');tx.append(el('span','',(new Date().getMonth()+1)+'월 받은 혜택 · 기록 '+mr.length+'건'),el('b','',won(t)||'0원'));sb.append(tx,el('small','','월별 정산 ›'));sb.onclick=()=>settleSheet();v.append(sb)}
+  getShared().forEach((sx,i)=>{const d=sx.data||{};const b=el('button','mo-sum sh-sum');b.type='button';const tx=el('div');tx.append(el('span','',(d.label||sx.label||'공유받은 기록')+' 기록 · 보기 전용'),el('b','',sx.error?'다시 불러와야 해요':((d.records||[]).length+'건'+((d.plans||[]).length?' · 일정 '+d.plans.length:''))));b.append(tx,el('small','','보기 ›'));b.onclick=()=>sharedSheet(i);v.append(b)});
   const groups=[];rs.forEach(r=>{const k=recMonth(r)||'날짜 없음';let g=groups.find(x=>x.k===k);if(!g){g={k,list:[]};groups.push(g)}g.list.push(r)});
   groups.sort((a,b)=>(a.k==='날짜 없음')-(b.k==='날짜 없음')||b.k.localeCompare(a.k));
   groups.forEach(g=>{const t=g.list.reduce((x,r)=>x+recMoney(r),0);const h=el('div','mo-h');h.append(el('span','',/^\d{4}-\d{2}$/.test(g.k)?monthLabel(g.k)+' · '+g.list.length+'곳':g.k));if(t){h.append(el('em','',won(t)));h.style.cursor='pointer';h.onclick=()=>settleSheet(+g.k.slice(0,4),g.k)}v.append(h);
@@ -2713,7 +2767,7 @@ function renderMe(){
   const rpg=el('div','set-g');rpg.append(el('div','set-h','내 기록 리포트'),reportBox());
   v.append(pc,rpg,
     group('일정',[row('내 블로그',getBlogs().length?getBlogs().map(x=>x.name).join(', '):'하나만 써요',()=>blogSheet()),row('체험단 플랫폼',dots,()=>platformSheet()),row('다녀온 뒤 알림',st.remindH+'시간 뒤',()=>remindSheet())]),
-    canDrive()?group('저장',[row('구글 드라이브',dOn?'연결됨':'연결 안 됨',()=>driveSheet(),{cls:dOn?'on':''}),dOn?row('전체 동기화','바뀐 것·빠진 사진 맞추기',()=>syncAll()):null,dOn?row('백업·복원',lastBackup()?new Date(lastBackup()).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 백업':'백업 전',()=>backupSheet()):null]):'',
+    canDrive()?group('저장',[row('구글 드라이브',dOn?'연결됨':'연결 안 됨',()=>driveSheet(),{cls:dOn?'on':''}),dOn?row('전체 동기화','바뀐 것·빠진 사진 맞추기',()=>syncAll()):null,dOn&&shareOk()?row('기록 공유',shareSet().on?(shareSet().email||'')+'에게 공유 중':'꺼짐',()=>shareSheet()):null,dOn?row('백업·복원',lastBackup()?new Date(lastBackup()).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 백업':'백업 전',()=>backupSheet()):null]):'',
     group('정보',[row('사용법','',()=>document.body.classList.add('sheet')),row('의견 보내기','',()=>feedback()),row('디스코드 커뮤니티','사용법·문의',()=>openCommunity()),IS_APP?row('앱 평가하기','',()=>rateApp()):null,row('개인정보처리방침','',()=>privacySheet()),ver?row('버전',ver,null,{noChev:true,cls:'static'}):null]),
     group('',[row('모든 데이터 지우기','',()=>deleteAllSheet(),{cls:'danger'})])
   );

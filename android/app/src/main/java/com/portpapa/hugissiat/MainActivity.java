@@ -825,6 +825,7 @@ public class MainActivity extends Activity {
             if ("backup".equals(op)) { pool.execute(() -> driveBackupRun(token, j)); return; }
             if ("restore".equals(op)) { pool.execute(() -> driveRestoreRun(token)); return; }
             if ("inbox".equals(op)) { pool.execute(() -> driveInboxRun(token)); return; }
+            if ("sharePub".equals(op)) { pool.execute(() -> driveSharePub(token, j)); return; }
             if ("trash".equals(op)) { upq.execute(() -> driveTrashRun(token, j)); return; }
             if ("inboxDone".equals(op)) { final String fid = j.optString("id", ""); pool.execute(() -> { try { if (!fid.isEmpty()) driveCall(token, "DELETE", "https://www.googleapis.com/drive/v3/files/" + fid, null, null); } catch (Exception ignored) {} }); return; }
         } catch (Exception ignored) {}
@@ -906,6 +907,22 @@ public class MainActivity extends Activity {
             String root = driveFind(token, "후기씨앗", "root", true);
             String fid = root == null ? null : driveFind(token, "웹에서 추가.json", root, false);
             String cfg = root == null ? null : driveFind(token, "블로그 폴더.json", root, false);
+            // 공유받은 기록: 웹에서 고른 파일(공유받은 기록.json의 sources)을 읽어 온다
+            String sh = root == null ? null : driveFind(token, "공유받은 기록.json", root, false);
+            if (sh != null) {
+                try {
+                    JSONObject sc = driveCall(token, "GET", "https://www.googleapis.com/drive/v3/files/" + sh + "?alt=media", null, null);
+                    JSONArray src = sc.optJSONArray("sources"), out = new JSONArray();
+                    if (src != null) for (int i = 0; i < src.length() && i < 5; i++) {
+                        JSONObject e = src.optJSONObject(i); if (e == null) continue;
+                        JSONObject x = new JSONObject(); x.put("id", e.optString("id")); x.put("label", e.optString("label"));
+                        try { x.put("data", driveCall(token, "GET", "https://www.googleapis.com/drive/v3/files/" + e.optString("id") + "?alt=media", null, null)); }
+                        catch (Exception ex) { x.put("error", String.valueOf(ex.getMessage()).contains("404") ? "gone" : "fail"); }
+                        out.put(x);
+                    }
+                    o.put("shared", out);
+                } catch (Exception ignored) {}
+            }
             if (cfg != null) { try { o.put("cfg", driveCall(token, "GET", "https://www.googleapis.com/drive/v3/files/" + cfg + "?alt=media", null, null)); } catch (Exception ignored) {} }
             if (fid != null) {
                 JSONObject data = driveCall(token, "GET", "https://www.googleapis.com/drive/v3/files/" + fid + "?alt=media", null, null);
@@ -914,6 +931,42 @@ public class MainActivity extends Activity {
             }
             driveCb(true, o);
         } catch (Exception e) {
+            driveCb(false, o);
+        }
+    }
+
+    /** 내 기록 공유: 후기씨앗/공유 기록.json 갱신, email이 있으면 후기씨앗 폴더를 보기 권한으로 공유, unshare면 공유 해제 */
+    private void driveSharePub(String token, JSONObject j) {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("op", "sharePub");
+            String root = driveFolder(token, "후기씨앗", "root");
+            String data = j.optString("json", "");
+            if (!data.isEmpty()) {
+                byte[] b = data.getBytes(StandardCharsets.UTF_8);
+                String fid = driveFind(token, "공유 기록.json", root, false);
+                if (fid != null) driveCall(token, "PATCH", "https://www.googleapis.com/upload/drive/v3/files/" + fid + "?uploadType=media", "application/json; charset=UTF-8", b);
+                else fid = driveCreate(token, root, "공유 기록.json", "application/json; charset=UTF-8", b);
+                o.put("fileId", fid);
+            }
+            String email = j.optString("email", "").trim();
+            if (!email.isEmpty()) {
+                if (j.optBoolean("unshare", false)) {
+                    JSONObject ps = driveCall(token, "GET", "https://www.googleapis.com/drive/v3/files/" + root + "/permissions?fields=permissions(id,emailAddress,role)", null, null);
+                    JSONArray a = ps.optJSONArray("permissions");
+                    if (a != null) for (int i = 0; i < a.length(); i++) { JSONObject p = a.getJSONObject(i);
+                        if (email.equalsIgnoreCase(p.optString("emailAddress")) && !"owner".equals(p.optString("role"))) driveCall(token, "DELETE", "https://www.googleapis.com/drive/v3/files/" + root + "/permissions/" + p.optString("id"), null, null); }
+                    o.put("unshared", email);
+                } else {
+                    JSONObject p = new JSONObject(); p.put("role", "reader"); p.put("type", "user"); p.put("emailAddress", email);
+                    String msg = "후기씨앗 기록을 공유했어요. hugissiat.com 설정 > 공유받은 기록에서 '공유 기록.json'을 고르면 앱에서 볼 수 있어요.";
+                    driveCall(token, "POST", "https://www.googleapis.com/drive/v3/files/" + root + "/permissions?sendNotificationEmail=true&emailMessage=" + URLEncoder.encode(msg, "UTF-8"), "application/json; charset=UTF-8", p.toString().getBytes(StandardCharsets.UTF_8));
+                    o.put("shared", email);
+                }
+            }
+            driveCb(true, o);
+        } catch (Exception e) {
+            try { o.put("error", String.valueOf(e.getMessage()).contains("HTTP 400") ? "이메일을 확인해 주세요 (구글 계정이어야 해요)" : "공유하지 못했어요"); } catch (Exception ignored) {}
             driveCb(false, o);
         }
     }
