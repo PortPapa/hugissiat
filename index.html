@@ -362,6 +362,8 @@ body[data-tab=memo] #viewMemo,body[data-tab=plans] #viewPlans,body[data-tab=todo
 .rv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0 6px}
 .rv-ph{aspect-ratio:1;border:0;padding:0;border-radius:10px;overflow:hidden;background:var(--acc-soft)}
 .rv-ph img{width:100%;height:100%;object-fit:cover;display:block}
+.rv-ph.more{background:#2f3a2f;color:#fff;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.rv-more{display:flex;gap:16px;margin:0 2px 8px}.rv-more button{border:0;background:none;padding:6px 0;font:inherit;font-size:13px;color:var(--sub);text-decoration:underline;text-underline-offset:3px}
 .rv-ph.add{border:1.5px dashed var(--line);background:var(--card);color:var(--sub);font-size:22px}
 .rv-ph{position:relative}
 .thumbs .th .vb,.rv-ph .vb{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.62);color:#fff;font-size:10.5px;font-style:normal;font-weight:700;border-radius:6px;padding:1px 5px;pointer-events:none}
@@ -1905,7 +1907,7 @@ function infoBtn(text){const b=el('button','inf');b.type='button';b.setAttribute
   b.onclick=e=>{e.stopPropagation();e.preventDefault();const on=tip.hidden;tip.hidden=!on;b.classList.toggle('on',on);b.setAttribute('aria-expanded',String(on))};b._tip=tip;return b}
 function hInfo(title,text,cls){const h=cls?el('div',cls,title):el('h3','',title);const ib=infoBtn(text);h.classList.add('has-inf');h.append(ib);return [h,ib._tip]}
 function openAct(build){const b=$('#actBody');b.innerHTML='';b.className='';build(b);document.body.classList.add('act');$('#act').scrollTop=0}
-function closeAct(){document.body.classList.remove('act');PHOTO_SHEET=false;PSEL=null;$('#actBody').classList.remove('rv','psh');if(VOICE)voiceStop();if(S&&inFlow()&&S.mode==='easy'&&document.querySelector('#easy .e-q'))renderEasyKeep()}
+function closeAct(){document.body.classList.remove('act');PHOTO_SHEET=false;PSEL=null;RV_ALL=false;$('#actBody').classList.remove('rv','psh');if(VOICE)voiceStop();if(S&&inFlow()&&S.mode==='easy'&&document.querySelector('#easy .e-q'))renderEasyKeep()}
 /* 카드 안에 묻는 게 여러 개면 접어두고 하나씩 펼친다 (스크롤 없이) */
 const ACC={};
 function accSummary(items){
@@ -3441,13 +3443,18 @@ function mdToHtml(md){
 /* ---------- 완성한 기록 보기: 사진 + 내 경험 ---------- */
 function viewRecord(r){openRecord(r,true);setTimeout(openRecView,320)}
 function recBody(){const md=buildMD();const i=md.indexOf('## 내 경험');const j=md.indexOf('\n## 업체 정보');return i<0?md:md.slice(i,j<0?undefined:j)}
+var RV_ALL=false; // 한눈에 보기: 사진이 많으면 두 줄만 보여 주고 접어 둔다
 function openRecView(){openAct(b=>{
   b.classList.add('rv');
   const sub=[V('visitDate')?V('visitDate')+(S.f.visitTime?' '+S.f.visitTime:''):'',S.f.platform||''].filter(Boolean).join(' · ');
   b.append(el('h3','',V('biz')||(PLACE&&PLACE.name)||'기록'));if(sub)b.append(el('div','e-tip',sub));
   b.append(campLine(openRecView));
-  if(PHOTOS.length){const g=el('div','rv-grid');PHOTOS.forEach((p,i)=>{const t=el('button','rv-ph');t.type='button';t.dataset.n=p.name;const im=document.createElement('img');im.src=p.thumb;im.alt='';t.append(im);const ub=upBadge(p);if(ub)t.append(ub);if(p.video)t.append(el('i','vb','▶ 영상'));t.onclick=()=>lightbox(i);g.append(t)});
-    const ad=el('button','rv-ph add','+');ad.type='button';ad.onclick=()=>{closeAct();pickPhotos()};g.append(ad);b.append(g)}
+  if(PHOTOS.length){const lim=7,many=PHOTOS.length>lim+1,fold=many&&!RV_ALL;const g=el('div','rv-grid');(fold?PHOTOS.slice(0,lim):PHOTOS).forEach((p,i)=>{const t=el('button','rv-ph');t.type='button';t.dataset.n=p.name;const im=document.createElement('img');im.src=p.thumb;im.alt='';t.append(im);const ub=upBadge(p);if(ub)t.append(ub);if(p.video)t.append(el('i','vb','▶ 영상'));t.onclick=()=>lightbox(i);g.append(t)});
+    if(fold){const mo=el('button','rv-ph more','+'+(PHOTOS.length-lim));mo.type='button';mo.setAttribute('aria-label','사진 '+PHOTOS.length+'장 모두 보기');mo.onclick=()=>{RV_ALL=true;openRecView()};g.append(mo)}
+    else{const ad=el('button','rv-ph add','+');ad.type='button';ad.onclick=()=>{closeAct();pickPhotos()};g.append(ad)}
+    b.append(g);
+    if(many){const row=el('div','rv-more');const tg=el('button','',RV_ALL?'사진 접기':'사진 '+PHOTOS.length+'장 모두 보기');tg.type='button';tg.onclick=()=>{RV_ALL=!RV_ALL;openRecView()};row.append(tg);
+      if(fold){const ad=el('button','','+ 사진 추가');ad.type='button';ad.onclick=()=>{closeAct();pickPhotos()};row.append(ad)}b.append(row)}}
   else{const ad=el('button','e-btn','+ 사진 넣기');ad.type='button';ad.onclick=()=>{closeAct();pickPhotos()};b.append(ad)}
   const qm=PLACE?getQM(PLACE.id):[];
   const v=el('div','md-view');v.innerHTML=mdToHtml(recBody().replace(/^## 내 경험\n*/,''));b.append(v);
