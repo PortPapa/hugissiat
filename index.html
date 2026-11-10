@@ -184,7 +184,7 @@ body:not(.flow){padding-bottom:96px;background-image:var(--pat,none);background-
 .dk-pill{flex:1;min-width:0;height:54px;border-radius:27px;background:var(--card);border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;padding:0 9px;color:var(--sub);font-size:15px;white-space:nowrap;overflow:hidden}
 .dk-pill .ic{width:38px;height:38px;border-radius:50%;background:var(--acc);color:var(--on-acc);display:flex;align-items:center;justify-content:center;flex:none}
 .dk-pill .ic svg{width:20px;height:20px}
-body[data-tab=home] #viewHome{display:block}
+body[data-tab=home] #viewTodo{display:block}
 .view{animation:slidein .2s ease-out}
 .sec-h{display:flex;align-items:center;gap:4px;color:var(--sub);font-size:14px;font-weight:700;margin:18px 2px 10px;border:0;background:none;padding:0;font-family:inherit}
 .sec-h svg{width:18px;height:18px;transition:transform .2s}.sec-h.closed svg{transform:rotate(-90deg)}
@@ -579,9 +579,8 @@ body.flow>#easy,body.flow>.wrap{flex:1 0 auto;width:100%}
   <div class="top-main">
     <button class="av" id="tabMe" type="button" aria-label="내 정보"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 40 V22" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><path d="M24 28 C15 28 10 21 10 15 C18 15 24 21 24 28Z" fill="currentColor" opacity=".75"/><path d="M24 23 C25 14 32 8 39 8 C38 17 31 23 24 23Z" fill="currentColor"/></svg></button>
     <div class="pills">
-      <button type="button" data-tab="home" aria-label="홈"><svg class="l" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 19.057c-.063 1.1-.843 1.88-1.943 1.943h-5.09l-.436-.118l-.413-.413l-.118-.436V14.04c-.02-.497-.321-.939-.836-1.024c-.649-.106-1.139.406-1.164 1.024v5.993l-.118.436l-.413.413l-.436.118h-5.09l-.401-.046c-.9-.21-1.49-.995-1.542-1.897V9.442c.019-.331.053-.535.205-.839s.296-.454.548-.668l7.099-5.324c.749-.489 1.547-.489 2.296 0l7.099 5.324c.252.214.396.364.548.668c.152.303.186.508.205.839ZM15 19l3.994-.006V9.503L12 4.26L5.006 9.503v9.491L9 19v-5.04l.036-.445c.423-2.608 3.827-3.419 5.387-1.289c.376.513.552 1.103.577 1.734Z"/></svg><svg class="f" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.538 2.323c.274.077.428.168.662.327l7 5.25c.505.411.775.949.8 1.6V19c-.03.748-.403 1.426-1.081 1.777c-.291.151-.594.21-.919.223h-3.9c-.368-.019-.701-.173-.912-.485A1.16 1.16 0 0 1 14 19.9V15c-.045-1.105-.861-2-2-2s-1.955.895-2 2v4.9a1.16 1.16 0 0 1-.188.615c-.211.312-.544.466-.912.485H5a2.1 2.1 0 0 1-.919-.223C3.403 20.426 3.03 19.748 3 19V9.5a2.09 2.09 0 0 1 .8-1.6l7-5.25c.518-.352 1.123-.498 1.738-.327"/></svg><span class="t">홈</span></button>
+      <button type="button" data-tab="home" aria-label="할 일"><svg class="l" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.771 15.974c-.797-.186-1.033-1.244-.396-1.754A1.04 1.04 0 0 1 9 14h3c.46.026.865.305.974.771c.15.645-.344 1.193-.974 1.229H9Zm0-4c-1.017-.237-1.017-1.711 0-1.948L9 10h6c.46.026.865.305.974.771c.15.645-.344 1.193-.974 1.229H9ZM9.363 3c1.472-1.32 3.802-1.32 5.274 0H18c1.146.046 1.954.854 2 2v15c-.039.969-.692 1.814-1.676 1.974L18 22H6c-.535-.022-1.03-.202-1.414-.586S4.022 20.535 4 20V5c.046-1.146.854-1.954 2-2Zm6.507 2c.081.34.12.65.13 1c.025.851.141 1.935-1 2H9c-1.141-.065-1.025-1.149-1-2c.01-.35.049-.66.13-1H6v15h12V5ZM10 6h4c-.023-.285-.012-.36-.102-.632c-.553-1.666-2.869-1.845-3.675-.287c-.154.299-.196.589-.223.919"/></svg><svg class="f" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.583 3H18l.324.026C19.308 3.186 19.961 4.031 20 5v15c-.046 1.146-.854 1.954-2 2H6c-.641-.026-1.229-.293-1.614-.819C4.129 20.83 4.017 20.43 4 20V5c.039-.969.692-1.814 1.676-1.974L6 3h1.417c-.184.486-.335.953-.389 1.474c-.028.262-.046.581-.002.85C7.186 6.308 8.031 6.961 9 7h6c.535-.022 1.03-.202 1.414-.586c.924-.923.578-2.333.169-3.414M9 14c-1.039.06-1.407 1.425-.44 1.898A1 1 0 0 0 9 16h3c.46-.026.865-.305.974-.771c.15-.645-.344-1.193-.974-1.229Zm0-4c-1.039.06-1.407 1.425-.44 1.898A1 1 0 0 0 9 12h6c.46-.026.865-.305.974-.771c.15-.645-.344-1.193-.974-1.229Zm6-5H9c.014-.285.036-.556.117-.831C9.488 2.908 10.677 2 12 2a3 3 0 0 1 2.875 2.148c.083.283.106.56.125.852"/></svg><i class="tab-dot" id="todoDot"></i><span class="t">할 일</span></button>
       <button type="button" data-tab="plans" aria-label="갈 곳"><svg class="l" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.541 7.034a4 4 0 0 1 3.318 2.903c.757 2.757-1.57 5.411-4.4 5.029a4 4 0 0 1-3.318-2.903c-.757-2.757 1.57-5.411 4.4-5.029m-.814 1.987c-.43.058-.833.26-1.14.566c-1.345 1.345-.195 3.647 1.686 3.392c.43-.058.833-.26 1.14-.566c1.345-1.345.195-3.647-1.686-3.392m1.01-6.992c5.217.423 9.079 5.345 8.12 10.522c-.478 2.581-2.106 4.784-4.003 6.525a21.6 21.6 0 0 1-3.374 2.52c-.312.191-.641.421-1 .516l-.48.063l-.48-.063c-.359-.095-.688-.325-1-.516c-1.2-.73-2.339-1.57-3.374-2.52c-2.084-1.913-3.84-4.398-4.11-7.289c-.518-5.546 4.175-10.206 9.701-9.758M12 20.147c2.646-1.522 5.509-3.895 6.578-6.833C20.224 8.792 16.782 4.001 12 4.001s-8.224 4.791-6.578 9.313c1.069 2.938 3.932 5.311 6.578 6.833"/></svg><svg class="f" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.703 2.027c5.209.402 9.083 5.291 8.165 10.463c-.449 2.529-2.01 4.703-3.847 6.431a21.3 21.3 0 0 1-3.044 2.364c-.421.272-.872.602-1.348.772a1.88 1.88 0 0 1-1.258 0c-.476-.17-.927-.5-1.348-.772a21.3 21.3 0 0 1-3.044-2.364c-2.015-1.895-3.693-4.34-3.945-7.164c-.493-5.523 4.165-10.155 9.669-9.73m-1.11 6a3 3 0 0 0-1.714.852c-2.018 2.017-.295 5.475 2.528 5.094a3 3 0 0 0 1.714-.852c2.018-2.017.295-5.475-2.528-5.094"/></svg><span class="t">갈 곳</span></button>
-      <button type="button" data-tab="todo" aria-label="할 일"><svg class="l" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.771 15.974c-.797-.186-1.033-1.244-.396-1.754A1.04 1.04 0 0 1 9 14h3c.46.026.865.305.974.771c.15.645-.344 1.193-.974 1.229H9Zm0-4c-1.017-.237-1.017-1.711 0-1.948L9 10h6c.46.026.865.305.974.771c.15.645-.344 1.193-.974 1.229H9ZM9.363 3c1.472-1.32 3.802-1.32 5.274 0H18c1.146.046 1.954.854 2 2v15c-.039.969-.692 1.814-1.676 1.974L18 22H6c-.535-.022-1.03-.202-1.414-.586S4.022 20.535 4 20V5c.046-1.146.854-1.954 2-2Zm6.507 2c.081.34.12.65.13 1c.025.851.141 1.935-1 2H9c-1.141-.065-1.025-1.149-1-2c.01-.35.049-.66.13-1H6v15h12V5ZM10 6h4c-.023-.285-.012-.36-.102-.632c-.553-1.666-2.869-1.845-3.675-.287c-.154.299-.196.589-.223.919"/></svg><svg class="f" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.583 3H18l.324.026C19.308 3.186 19.961 4.031 20 5v15c-.046 1.146-.854 1.954-2 2H6c-.641-.026-1.229-.293-1.614-.819C4.129 20.83 4.017 20.43 4 20V5c.039-.969.692-1.814 1.676-1.974L6 3h1.417c-.184.486-.335.953-.389 1.474c-.028.262-.046.581-.002.85C7.186 6.308 8.031 6.961 9 7h6c.535-.022 1.03-.202 1.414-.586c.924-.923.578-2.333.169-3.414M9 14c-1.039.06-1.407 1.425-.44 1.898A1 1 0 0 0 9 16h3c.46-.026.865-.305.974-.771c.15-.645-.344-1.193-.974-1.229Zm0-4c-1.039.06-1.407 1.425-.44 1.898A1 1 0 0 0 9 12h6c.46-.026.865-.305.974-.771c.15-.645-.344-1.193-.974-1.229Zm6-5H9c.014-.285.036-.556.117-.831C9.488 2.908 10.677 2 12 2a3 3 0 0 1 2.875 2.148c.083.283.106.56.125.852"/></svg><i class="tab-dot" id="todoDot"></i><span class="t">할 일</span></button>
       <button type="button" data-tab="records" aria-label="기록"><svg class="l" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 19.04c-.067 1.67-1.29 2.893-2.96 2.96H5.943c-.593-.034-1.131-.275-1.508-.745c-.282-.352-.409-.753-.435-1.198V3.943c.034-.593.275-1.131.745-1.508c.352-.282.753-.409 1.198-.435H17.04c1.67.067 2.893 1.29 2.96 2.96ZM6.006 4.006v15.988L8 20V4ZM10 4v16h6.96c.23-.009.44-.057.628-.195c.28-.204.398-.509.412-.845V5.04c-.025-.622-.418-1.015-1.04-1.04Z"/></svg><svg class="f" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 22V2h7c1.708.057 2.943 1.292 3 3v14c-.031.933-.418 1.796-1.167 2.375c-.535.413-1.163.603-1.833.625Zm-2 0H6c-.641-.026-1.229-.293-1.614-.819C4.129 20.83 4.017 20.43 4 20V4c.022-.535.202-1.03.586-1.414S5.465 2.022 6 2h2Z"/></svg><span class="t">기록</span></button>
     </div>
   </div>
@@ -2473,9 +2472,9 @@ function sample(){
 /* ---------- 앱 셸: 아래 탭 + 위쪽 바 ---------- */
 let TAB='home';
 const ICO={more:"<svg class=\"\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"m12.475 16.564l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm0-6l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm0-6l.418.216c.985.72.742 2.274-.418 2.656L12 7.513l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656L12 4.487Z\"/></svg>"};
-const TABS=['home','plans','todo','records','me'];
+const TABS=['home','plans','records','me']; // 첫 탭(home)이 할 일 화면
 function setTab(t){document.querySelectorAll('.conf').forEach(x=>x.remove());if(!TABS.includes(t))t='home';TAB=t;document.body.dataset.tab=t;closeAct();renderView();updChrome();window.scrollTo(0,0)}
-function renderView(){updTodoDot();setTimeout(syncDue,300);setTimeout(tryNewVer,800);if(TAB==='todo')renderTodo();else if(TAB==='plans')renderPlans();else if(TAB==='records')renderRecords();else if(TAB==='me')renderMe();else renderHome()}
+function renderView(){updTodoDot();setTimeout(syncDue,300);setTimeout(tryNewVer,800);if(TAB==='plans')renderPlans();else if(TAB==='records')renderRecords();else if(TAB==='me')renderMe();else renderHome()}
 function inFlow(){return !!S&&(!!PLACE||S.mode==='full'||(S.step||0)>0)}
 function updChrome(){
   if(!S)return;const f=inFlow();document.body.classList.toggle('flow',f);
@@ -2654,6 +2653,8 @@ function todoRow(x){
 let TODO_END=false;
 function renderTodo(){
   const v=$('#viewTodo');v.innerHTML='';const all=todoItems();
+  {const inb=getQM('_inbox');if(inb.length){const c=el('button','inbox-card');c.type='button';c.append(el('b','','가게 없이 남긴 메모 '+inb.length+'개'),el('span','',inb[inb.length-1].text));c.append(el('span','ib-go','정리하기'));c.onclick=openInbox;v.append(c)}}
+  if(!getRecords().length&&!getPlans().length){const h=el('div','hello');h.innerHTML=sproutSvg(1);h.append(el('b','','첫 씨앗을 심어볼까요?'),el('div','','네이버 지도에서 가게를 공유하거나\n아래 + 로 캠페인을 추가해 주세요'));h.lastChild.style.whiteSpace='pre-line';v.append(h);return}
   const late=all.filter(x=>x.kind!=='end'&&x.due&&ddayNum(x.due)<0).length,soon=all.filter(x=>x.kind!=='end'&&x.due&&ddayNum(x.due)>=0&&ddayNum(x.due)<=3).length;
   const st=el('div','td-stat');
   [['마감 지남',late,'bad'],['3일 이내',soon,'warn'],['진행 중',all.filter(x=>x.kind!=='end').length,''],['끝',all.filter(x=>x.kind==='end').length,'ok']].forEach(([l,n,c])=>{const d=el('div','td-s '+c);d.append(el('b','',String(n)),el('span','',l));st.append(d)});
@@ -2853,7 +2854,7 @@ window.chdAction=a=>{
   else if(k==='tab'){setTab(id||'plans')}
   else if(k==='planmenu'){const p=getPlans().find(x=>String(x.id)===id);setTab('home');if(p)planMenu(p)}
   else if(k==='addplan'){setTab('plans');addPlanFlow()}
-  else if(k==='rec'){const r=getRecords().find(x=>String(x.id)===id);setTab('todo');if(r)placeSheet({rec:r})}
+  else if(k==='rec'){const r=getRecords().find(x=>String(x.id)===id);setTab('home');if(r)placeSheet({rec:r})}
   else if(k==='visit'){const p=getPlans().find(x=>String(x.id)===id);if(p){removePlan(p.id);applyPlace(p.place);visitFromPlan(p)}}
   else if(k==='add'){goHome();setTab('home');setTimeout(addFromLink,300)}
   else if(k==='start'){goHome();setTimeout(()=>window.chdFocus&&window.chdFocus(),300)}
@@ -2950,38 +2951,8 @@ async function refreshPlaces(){
   }catch(e){}}
   syncWidget();renderHome();toast(n?'가게 '+n+'곳 정보를 새로 받았어요':'새로 받을 가게가 없어요');
 }
-function renderHome(){updDock();
-  const v=$('#viewHome');v.innerHTML='';
-  const rs=getRecords(),ps=getPlans();
-  const inb=getQM('_inbox');
-  if(inb.length){const c=el('button','inbox-card');c.type='button';c.append(el('b','','가게 없이 남긴 메모 '+inb.length+'개'),el('span','',inb[inb.length-1].text));
-    const go=el('span','ib-go','정리하기');c.append(go);c.onclick=openInbox;v.append(c)}
-  const soon=ps.filter(p=>p.due&&(new Date(p.due+'T23:59')-Date.now())<3*864e5).sort((a,b)=>String(a.due).localeCompare(String(b.due)));
-  if(soon.length){const c=el('div','due-strip');c.append(el('b','','마감 임박'));soon.slice(0,4).forEach(p=>{const x=el('button','');x.type='button';x.append(p.place.name,el('span','due hot',dday(p.due)));x.onclick=()=>planMenu(p);c.append(x)});v.append(c)}
-  if(!rs.length&&!ps.length){
-    const h=el('div','hello');h.innerHTML=sproutSvg(1);h.append(el('b','','첫 씨앗을 심어볼까요?'),el('div','','네이버 지도에서 가게를 공유하거나\n아래에 링크를 붙여넣어 주세요'));
-    h.lastChild.style.whiteSpace='pre-line';v.append(h);return;
-  }
-  const drafts=rs.filter(r=>!r.sent&&!r.done);
-  if(rs.length){
-    v.append(secHead('recent','최근'));
-    if(HOME_OPEN.recent){const row=el('div','cards');
-      rs.slice(0,10).forEach(r=>{const c=el('button','card');c.type='button';const cv=el('div','cv');
-        const u=r.place&&r.place.photos&&r.place.photos[0];
-        if(u){const im=document.createElement('img');im.src=px(u,'f300_300');im.alt='';im.referrerPolicy='no-referrer';im.loading='lazy';im.onerror=()=>{cv.innerHTML=sproutSvg(stageOf(r))};cv.append(im)}else cv.innerHTML=sproutSvg(stageOf(r));
-        const nm=el('div','nm',r.name);nm.append(el('span','meta',recStatus(r)));
-        c.append(cv,nm);if(r.sent||r.done){tapOrDouble(c,()=>placeSheet({rec:r}),()=>toggleFav(r.id,c));if(getFav().has(String(r.id))){const f=el('span','fav-b');f.innerHTML=ICO_HEART;c.append(f)}}else c.onclick=()=>placeSheet({rec:r});row.append(c)});
-      v.append(row)}
-  }
-  if(ps.length){
-    v.append(secHead('plans','갈 곳'));
-    if(HOME_OPEN.plans){const fx=ps.filter(p=>p.when),tb=ps.filter(p=>!p.when);const top=(fx.length?fx:tb).slice(0,3);top.forEach(p=>v.append(planRow(p)));
-      const rest=ps.length-top.length;if(rest>0){const m=el('button','more-link','갈 곳 전체 보기 · '+ps.length+'곳');m.type='button';m.onclick=()=>setTab('plans');v.append(m)}}
-  }
-  const favs=getFav();const fr=rs.filter(r=>favs.has(String(r.id)));
-  if(fr.length){v.append(secHead('fav','다시 가고 싶은 곳'));if(HOME_OPEN.fav)fr.slice(0,5).forEach(r=>v.append(recRow(r)))}
-  if(rs.length>10){const m=el('button','more-link','기록 전체 보기 · '+rs.length+'곳');m.type='button';m.onclick=()=>setTab('records');v.append(m)}
-}
+/* 첫 탭(home) = 할 일 화면 (예전 홈 화면은 없앰) */
+function renderHome(){updDock();renderTodo()}
 function planRow(p){
   const row=el('div','li');
   const th=thumbEl(p.place,'th');
