@@ -641,6 +641,17 @@ body:not(.flow)::after{content:'';position:fixed;right:-34px;bottom:54px;width:2
 .gd-yr{display:flex;justify-content:space-between;gap:2px;background:var(--card);border-radius:18px;padding:10px 12px 8px;margin:0 0 18px;box-shadow:var(--sh);border:0;width:100%;font:inherit}
 .gd-yr div{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:10px;color:var(--sub)}.gd-yr svg{width:22px;height:22px;filter:grayscale(1);opacity:.4}.gd-yr .on svg,.gd-yr .cur svg{filter:none;opacity:1}.gd-yr .cur{color:var(--ink);font-weight:700}
 .pills button{position:relative}.tab-n{position:absolute;top:3px;left:calc(50% + 6px);min-width:17px;height:17px;padding:0 4px;border-radius:99px;background:#e2553f;color:#fff;font-size:10.5px;font-weight:800;font-style:normal;line-height:17px;text-align:center;box-shadow:0 0 0 2px var(--bg)}.tab-n[hidden]{display:none}.pills button.on .tab-n{display:none}
+/* ---------- 홈 맨 위: 가장 급한 일 + 단계별 숫자 ---------- */
+.td-top{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:20px;padding:16px;box-shadow:var(--sh);margin:6px 0 10px}
+.td-top .tx{flex:1;min-width:0}.td-top small{display:block;font-size:12px;font-weight:700;color:var(--sub);margin-bottom:2px}.td-top b{display:block;font-size:17px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.td-top .s{font-size:13px;color:var(--sub)}
+.td-top.bad{background:#fdecea}.td-top.bad small{color:#c5443c}.td-top.warn{background:#fff6e3}.td-top.warn small{color:#b96d08}
+.td-top .td-go{padding:11px 16px;font-size:14px}.td-top.bad .td-go.acc{background:#c5443c;border-color:#c5443c;color:#fff}
+.td-steps{display:flex;align-items:center;gap:5px;margin:0 0 8px}.td-steps i{color:#c9c2b3;font-style:normal;font-size:13px;flex:none}
+.td-steps button{flex:1;min-width:0;border:1.5px solid transparent;border-radius:14px;background:var(--card);box-shadow:var(--sh);padding:8px 2px 7px;font:inherit;color:var(--ink);display:flex;flex-direction:column;align-items:center;transition:transform .12s ease}
+.td-steps button:active{transform:scale(.96)}.td-steps button b{font-size:19px;line-height:1.2;font-variant-numeric:tabular-nums}.td-steps button span{font-size:11px;color:var(--sub);white-space:nowrap}
+.td-steps button.bad b{color:#c5443c}.td-steps button.warn b{color:#c2760c}.td-steps button:disabled{opacity:.45;box-shadow:none}.td-steps button.on{border-color:var(--acc);background:var(--acc-soft)}
+.td-all{display:block;margin:6px auto 0;border:0;background:none;font:inherit;font-size:13px;color:var(--sub);text-decoration:underline;text-underline-offset:3px;padding:8px}
+.due.soon{background:#fff2dc;color:#b96d08}
 </style>
 </head>
 <body>
@@ -2838,7 +2849,7 @@ function updTodoDot(){const d=document.getElementById('todoDot');if(!d)return;co
 function todoRow(x){
   const row=el('div','li td-row');row.append(thumbEl(x.place,'th'));const tx=el('div','tx');const nm=el('div','nm',x.name);
   {const pf=(x.plan&&x.plan.platform)||(x.rec&&x.rec.platform);if(pf)nm.append(pBadge(pf))}
-  if(x.due&&x.kind!=='end'){const n=ddayNum(x.due);nm.append(el('span','due'+(n<=2?' hot':''),dday(x.due)))}
+  if(x.due&&x.kind!=='end'){const n=ddayNum(x.due);nm.append(el('span','due'+(n<=1?' hot':n<=3?' soon':''),dday(x.due)))}
   const sub=el('div','sub');
   const pr=x.place&&x.place.product;
   if(x.kind==='visit'){const d=new Date(x.when);sub.append((d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+') '+(pr?'도착 예정':'방문'));if(lateVisit(x.plan))sub.append(el('span','due hot','마감 후 방문'))}
@@ -2856,18 +2867,37 @@ function todoRow(x){
   row.onclick=()=>x.plan?placeSheet({plan:x.plan}):placeSheet({rec:x.rec});
   return row;
 }
-let TODO_END=false;
+let TODO_END=false,TODO_F='';
 function renderTodo(){
   const v=$('#viewTodo');v.innerHTML='';const all=todoItems();
   if(!getRecords().length&&!getPlans().length){const h=el('div','hello');h.innerHTML=sproutSvg(1);h.append(el('b','','첫 씨앗을 심어볼까요?'),el('div','','네이버 지도에서 가게를 공유하거나\n아래 + 로 캠페인을 추가해 주세요'));h.lastChild.style.whiteSpace='pre-line';v.append(h);return}
-  const late=all.filter(x=>x.kind!=='end'&&x.due&&ddayNum(x.due)<0).length,soon=all.filter(x=>x.kind!=='end'&&x.due&&ddayNum(x.due)>=0&&ddayNum(x.due)<=3).length;
-  const st=el('div','td-stat');
-  [['마감 지남',late,'bad'],['3일 이내',soon,'warn'],['진행 중',all.filter(x=>x.kind!=='end').length,''],['끝',all.filter(x=>x.kind==='end').length,'ok']].forEach(([l,n,c])=>{const d=el('div','td-s '+c);const nb=el('b','',String(n));d.append(nb,el('span','',l));st.append(d);countUp(nb,n,String)});
-  v.append(st);
   const sortDue=(a,b)=>ddayNum(a.due)-ddayNum(b.due)||String(a.when||'').localeCompare(String(b.when||''));
-  const sec=(t,kind)=>{const xs=all.filter(x=>x.kind===kind).sort(sortDue);if(!xs.length)return;v.append(el('div','sub-h',t+' '+xs.length));xs.forEach(x=>v.append(todoRow(x)))};
-  const hp=all.some(x=>x.place&&x.place.product);sec('블로그 올리기','post');sec('기록 쓰기','write');sec(hp?'방문하기 · 받기':'방문하기','visit');sec(hp?'날짜 정하기 · 배송 대기':'날짜 정하기','date');
-  const ends=all.filter(x=>x.kind==='end');
+  const act=all.filter(x=>x.kind!=='end'),hp=all.some(x=>x.place&&x.place.product);
+  /* 맨 위: 가장 급한 일 하나. 마감 하루 전부터는 비상(빨강), 2~3일 전은 주의(노랑) */
+  {const ORD={post:0,write:1,visit:2,date:3};const withDue=act.filter(x=>x.due).sort(sortDue);
+    const top=withDue[0]||act.slice().sort((a,b)=>ORD[a.kind]-ORD[b.kind]||String(a.when||'').localeCompare(String(b.when||'')))[0];
+    if(top){const n=top.due?ddayNum(top.due):99,lv=n<=1?'bad':n<=3?'warn':'';
+      const more=withDue.filter(x=>x!==top&&ddayNum(x.due)<=(n<=1?1:3)).length;
+      const lab=!top.due?'다음 할 일':n<0?'마감 지남 · 지금 바로':n===0?'비상 · 오늘 마감':n===1?'비상 · 내일 마감':n<=3?'곧 마감 · '+dday(top.due):'다음 할 일 · '+dday(top.due);
+      const r=todoRow(top),c=el('div','td-top '+lv),tx=el('div','tx');
+      const nm=el('b','',top.name);const sub=r.querySelector('.sub');
+      tx.append(el('small','',lab+(lv&&more?' · 외 '+more+'건':'')),nm);if(sub){sub.className='s';tx.append(sub)}
+      c.append(tx);const go=r.querySelector('.td-go');if(go){go.classList.add('acc');c.append(go)}
+      c.onclick=r.onclick;v.append(c)}}
+  /* 단계별 숫자: 누르면 그 단계만 보고, 다시 누르면 전부 */
+  {const steps=[['date',hp?'날짜·배송':'날짜 정하기'],['visit',hp?'방문·받기':'방문하기'],['write','기록 쓰기'],['post','블로그 올리기']];
+    if(TODO_F&&!act.some(x=>x.kind===TODO_F))TODO_F='';
+    const bar=el('div','td-steps');
+    steps.forEach(([k,l],i)=>{const xs=act.filter(x=>x.kind===k),m=xs.filter(x=>x.due).reduce((a,x)=>Math.min(a,ddayNum(x.due)),99);
+      const b=el('button',(TODO_F===k?'on ':'')+(m<=1?'bad':m<=3?'warn':''));b.type='button';b.disabled=!xs.length;b.setAttribute('aria-pressed',String(TODO_F===k));
+      const nb=el('b','',String(xs.length));b.append(nb,el('span','',l));countUp(nb,xs.length,String);
+      b.onclick=()=>{TODO_F=TODO_F===k?'':k;renderTodo()};
+      if(i)bar.append(el('i','','›'));bar.append(b)});
+    if(act.length)v.append(bar)}
+  const sec=(t,kind)=>{if(TODO_F&&TODO_F!==kind)return;const xs=all.filter(x=>x.kind===kind).sort(sortDue);if(!xs.length)return;v.append(el('div','sub-h',t+' '+xs.length));xs.forEach(x=>v.append(todoRow(x)))};
+  sec('블로그 올리기','post');sec('기록 쓰기','write');sec(hp?'방문하기 · 받기':'방문하기','visit');sec(hp?'날짜 정하기 · 배송 대기':'날짜 정하기','date');
+  if(TODO_F){const a=el('button','td-all','전체 보기');a.type='button';a.onclick=()=>{TODO_F='';renderTodo()};v.append(a)}
+  const ends=TODO_F?[]:all.filter(x=>x.kind==='end');
   if(ends.length){const h=el('button','sec-h'+(TODO_END?'':' closed'),'끝 '+ends.length);h.insertAdjacentHTML('beforeend',ICO_DOWN);h.type='button';h.onclick=()=>{TODO_END=!TODO_END;renderTodo()};v.append(h);if(TODO_END)ends.forEach(x=>v.append(todoRow(x)))}
   if(all.length===0){const h=el('div','hello');h.innerHTML=sproutSvg(0);h.append(el('b','','할 일이 없어요'));v.append(h)}
 }
@@ -3168,7 +3198,7 @@ function planRow(p){
   const th=thumbEl(p.place,'th');
   const tx=el('div','tx');const nm=getQM(p.id).length;
   const nmEl=el('div','nm',p.place.name);
-  if(p.due){const dd=dday(p.due);nmEl.append(el('span','due'+(/오늘|지남|D-[12]$/.test(dd)?' hot':''),dd))}
+  if(p.due){const dd=dday(p.due);nmEl.append(el('span','due'+(/오늘|지남|D-1$/.test(dd)?' hot':/D-[23]$/.test(dd)?' soon':''),dd))}
   const sub=el('div','sub');
   let when='날짜 미정';if(p.when){const d=new Date(p.when);when=(d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+')'+(p.noTime?'':' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'))}
   sub.append(el('b','wd'+(p.when?'':' tbd'),when.trim()));
@@ -3253,7 +3283,7 @@ function placeSheet(o){
     b.append(acts);
     if(plan){const bx=el('div','ps-box');const hd=el('div','ps-bh');hd.append(place.product?'받는 날 · 마감':'내 일정');const ed=el('button','','수정');ed.type='button';hd.append(ed);bx.append(hd);
       const r=el('div','ps-row');let when='날짜 미정';if(plan.when){const d=new Date(plan.when);when=(d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+')'+(plan.noTime?'':' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'))}
-      r.append(when);if(lateVisit(plan))r.append(el('span','due hot','마감 후 방문'));if(plan.platform)r.append(pBadge(plan.platform));if(plan.due){const dd=dday(plan.due);r.append(el('span','due'+(/오늘|지남|D-[12]$/.test(dd)?' hot':''),dd))}
+      r.append(when);if(lateVisit(plan))r.append(el('span','due hot','마감 후 방문'));if(plan.platform)r.append(pBadge(plan.platform));if(plan.due){const dd=dday(plan.due);r.append(el('span','due'+(/오늘|지남|D-1$/.test(dd)?' hot':/D-[23]$/.test(dd)?' soon':''),dd))}
       bx.append(r);bx.onclick=()=>openPlanSheet(plan.place);b.append(bx)}
     if(rec){const f=(st&&st.f)||{},ct=campText(f,place.id);const bx=el('div','ps-box');const hd=el('div','ps-bh');hd.append('캠페인 정보');const ed=el('button','',ct?'수정':'추가');ed.type='button';hd.append(ed);bx.append(hd);
       const r=el('div','ps-row');if(ct){if(f.platform)r.append(pBadge(f.platform));r.append(el('span','',ct.replace(f.platform?f.platform+(ct===f.platform?'':' · '):'','')))}else r.append(el('span','','플랫폼 · 마감일 · 협찬 금액 · 가이드'));bx.append(r);
