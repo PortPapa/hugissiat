@@ -2590,7 +2590,11 @@ let TAB='home';
 const ICO={more:"<svg class=\"\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"m12.475 16.564l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm0-6l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm0-6l.418.216c.985.72.742 2.274-.418 2.656L12 7.513l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656L12 4.487Z\"/></svg>"};
 const TABS=['home','plans','records','memo','me']; // 첫 탭(home)이 할 일 화면
 function setTab(t){document.querySelectorAll('.conf').forEach(x=>x.remove());if(!TABS.includes(t))t='home';TAB=t;document.body.dataset.tab=t;closeAct();ANIM=true;try{renderView()}finally{ANIM=false}viewIn();updChrome();window.scrollTo(0,0)}
-function renderView(){updTodoDot();updAvatar();setTimeout(dockCoach,1500);setTimeout(syncDue,300);setTimeout(tryNewVer,800);if(TAB==='plans')renderPlans();else if(TAB==='records')renderRecords();else if(TAB==='memo')renderMemo();else if(TAB==='me')renderMe();else renderHome()}
+/* 가게 없이 남긴 메모가 있으면 앱을 켰을 때 한 번만 가볍게 알려 준다 (홈에 카드로 늘 떠 있지 않게) */
+let INBOX_TOLD=false;
+function tellInbox(){if(INBOX_TOLD||TAB!=='home')return;INBOX_TOLD=true;let n=0;try{n=getQM('_inbox').length}catch(e){}if(!n)return;
+  setTimeout(()=>{try{if(inFlow()||document.body.classList.contains('act')||TAB!=='home')return;undoToast('가게 없이 남긴 메모 '+n+'개',()=>{MEMO_F='inbox';setTab('memo')},'보기')}catch(e){}},1600)}
+function renderView(){updTodoDot();updAvatar();tellInbox();setTimeout(dockCoach,1500);setTimeout(syncDue,300);setTimeout(tryNewVer,800);if(TAB==='plans')renderPlans();else if(TAB==='records')renderRecords();else if(TAB==='memo')renderMemo();else if(TAB==='me')renderMe();else renderHome()}
 function inFlow(){return !!S&&(!!PLACE||S.mode==='full'||(S.step||0)>0)}
 function updChrome(){
   if(!S)return;const f=inFlow();document.body.classList.toggle('flow',f);
@@ -2856,7 +2860,6 @@ function todoRow(x){
 let TODO_END=false;
 function renderTodo(){
   const v=$('#viewTodo');v.innerHTML='';const all=todoItems();
-  {const inb=getQM('_inbox');if(inb.length){const c=el('button','inbox-card');c.type='button';c.append(el('b','','가게 없이 남긴 메모 '+inb.length+'개'),el('span','',inb[inb.length-1].text));c.append(el('span','ib-go','정리하기'));c.onclick=openInbox;v.append(c)}}
   if(!getRecords().length&&!getPlans().length){const h=el('div','hello');h.innerHTML=sproutSvg(1);h.append(el('b','','첫 씨앗을 심어볼까요?'),el('div','','네이버 지도에서 가게를 공유하거나\n아래 + 로 캠페인을 추가해 주세요'));h.lastChild.style.whiteSpace='pre-line';v.append(h);return}
   const late=all.filter(x=>x.kind!=='end'&&x.due&&ddayNum(x.due)<0).length,soon=all.filter(x=>x.kind!=='end'&&x.due&&ddayNum(x.due)>=0&&ddayNum(x.due)<=3).length;
   const st=el('div','td-stat');
@@ -3326,7 +3329,7 @@ function planMenuOld(p){openAct(b=>{
   rm.append(rb);b.append(rm);
 })}
 /* 되돌리기 토스트 (5초) */
-function undoToast(msg,fn){const t=$('#toast');t.innerHTML='';t.append(msg);const u=el('button','undo','되돌리기');u.type='button';
+function undoToast(msg,fn,label){const t=$('#toast');t.innerHTML='';t.append(msg);const u=el('button','undo',label||'되돌리기');u.type='button';
   u.onclick=()=>{t.classList.remove('show','act');clearTimeout(t._h);fn()};t.append(u);t.classList.add('show','act');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show','act'),5000)}
 
 /* ---------- 아래 떠 있는 바: 검색 · 링크 붙여넣기 · 추가 ---------- */
