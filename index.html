@@ -610,6 +610,9 @@ body.flow>#easy,body.flow>.wrap{flex:1 0 auto;width:100%}
 .cft{position:fixed;left:50%;top:42%;z-index:400;pointer-events:none}.cft i{position:absolute;width:8px;height:12px;border-radius:2px;opacity:0;animation:cft 1.15s cubic-bezier(.2,.7,.3,1) forwards}
 @keyframes cft{0%{transform:translate(0,0) rotate(0);opacity:1}75%{opacity:1}100%{transform:translate(var(--x),calc(var(--y) + 230px)) rotate(var(--r));opacity:0}}
 @media(prefers-reduced-motion:reduce){.view.vin>*,.cft i{animation:none}.e-btn,.td-go,.rec,.memo-row,.fchip,.set-row,.mo-sum,.pills button,#dock button{transition:none}}
+/* ---------- 배경: 모서리에 옅은 수채 번짐(분홍·노랑·초록) + 오른쪽 아래 새싹 그림. 쓰는 화면에서는 뺀다 ---------- */
+body:not(.flow)::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(70% 34% at 100% 0,rgba(239,169,192,.30),transparent 70%),radial-gradient(80% 36% at 0 100%,rgba(132,162,130,.30),transparent 70%),radial-gradient(50% 24% at 0 18%,rgba(255,230,163,.28),transparent 70%)}
+body:not(.flow)::after{content:'';position:fixed;right:-34px;bottom:54px;width:230px;height:230px;z-index:-1;pointer-events:none;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><g fill='none' stroke='%2384A282' stroke-width='5' stroke-linecap='round'><path d='M100 190 V90'/><path d='M100 120 C60 118 38 92 36 56 C74 58 98 82 100 120Z' fill='%23A9C2A4'/><path d='M100 96 C132 94 156 72 160 40 C128 42 104 62 100 96Z' fill='%23A9C2A4'/></g></svg>") no-repeat center/contain;opacity:.16;transform:rotate(-8deg)}
 </style>
 </head>
 <body>
