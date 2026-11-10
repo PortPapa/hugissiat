@@ -3457,7 +3457,7 @@ function openRecView(){openAct(b=>{
       if(fold){const ad=el('button','','+ 사진 추가');ad.type='button';ad.onclick=()=>{closeAct();pickPhotos()};row.append(ad)}b.append(row)}}
   else{const ad=el('button','e-btn','+ 사진 넣기');ad.type='button';ad.onclick=()=>{closeAct();pickPhotos()};b.append(ad)}
   const qm=PLACE?getQM(PLACE.id):[];
-  const v=el('div','md-view');v.innerHTML=mdToHtml(recBody().replace(/^## 내 경험\n*/,''));b.append(v);
+  const v=el('div','md-view');v.innerHTML=mdToHtml(recBody().replace(/^## 내 경험\n*/,'').replace(/(^|\n)### 사진\n(?:- .*\n?)*\n?/,'$1'));b.append(v);
   const row=el('div','done-row');
   const s=el('button','e-btn primary','보내기');s.type='button';s.onclick=()=>{closeAct();sendAll()};
   const c=el('button','e-btn','복사하기');c.type='button';c.onclick=()=>$('#btnCopy').click();
