@@ -365,6 +365,7 @@ body[data-tab=plans] #viewPlans,body[data-tab=todo] #viewTodo,body[data-tab=reco
 .rv-ph.add{border:1.5px dashed var(--line);background:var(--card);color:var(--sub);font-size:22px}
 .rv-ph{position:relative}
 .thumbs .th .vb,.rv-ph .vb{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.62);color:#fff;font-size:10.5px;font-style:normal;font-weight:700;border-radius:6px;padding:1px 5px;pointer-events:none}
+.lbx-dl{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);transform:translateX(-50%);border:0;border-radius:999px;background:rgba(255,255,255,.92);color:#161814;font:inherit;font-size:14px;font-weight:700;padding:11px 18px;z-index:2}
 .lbx-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:76px;height:76px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:30px;padding:0 0 0 6px;box-shadow:0 0 0 2px rgba(255,255,255,.7)}
 .lbx{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center}
 .lbx img{max-width:100%;max-height:100%;object-fit:contain}
@@ -2474,7 +2475,7 @@ let TAB='home';
 const ICO={more:"<svg class=\"\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"m12.475 16.564l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm0-6l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm0-6l.418.216c.985.72.742 2.274-.418 2.656L12 7.513l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656L12 4.487Z\"/></svg>"};
 const TABS=['home','plans','todo','records','me'];
 function setTab(t){document.querySelectorAll('.conf').forEach(x=>x.remove());if(!TABS.includes(t))t='home';TAB=t;document.body.dataset.tab=t;closeAct();renderView();updChrome();window.scrollTo(0,0)}
-function renderView(){updTodoDot();if(TAB==='todo')renderTodo();else if(TAB==='plans')renderPlans();else if(TAB==='records')renderRecords();else if(TAB==='me')renderMe();else renderHome()}
+function renderView(){updTodoDot();setTimeout(syncDue,300);setTimeout(tryNewVer,800);if(TAB==='todo')renderTodo();else if(TAB==='plans')renderPlans();else if(TAB==='records')renderRecords();else if(TAB==='me')renderMe();else renderHome()}
 function inFlow(){return !!S&&(!!PLACE||S.mode==='full'||(S.step||0)>0)}
 function updChrome(){
   if(!S)return;const f=inFlow();document.body.classList.toggle('flow',f);
@@ -2572,6 +2573,7 @@ function settleSheet(year,openM){
     const pf={};yr.forEach(r=>{if(recMoney(r)){const k=r.platform||'플랫폼 없음';pf[k]=(pf[k]||0)+recMoney(r)}});const pl=Object.entries(pf).sort((a,b)=>b[1]-a[1]);
     if(pl.length){b.append(el('div','rp-h','플랫폼별'));const pm=pl[0][1];pl.forEach(([k,n])=>{const r=el('div','rp-r');r.style.gridTemplateColumns='74px 1fr auto';const bar=el('div','rp-b');const i=el('i');i.style.width=Math.max(6,n/pm*100)+'%';i.style.background=pColor(k);bar.append(i);r.append(el('span','',k),bar,el('b','',won(n)));b.append(r)})}
     if(!yv&&!yf)b.append(el('div','e-tip','갈 곳이나 기록의 캠페인 정보에 협찬 금액·원고료를 적으면 여기에 모여요'));
+    else{const cx=el('button','e-btn',year+'년 엑셀로 받기 (CSV)');cx.type='button';cx.onclick=()=>exportSettle(year);b.append(cx)}
   });
 }
 function renderRecords(){
@@ -2766,8 +2768,8 @@ function renderMe(){
   const dOn=driveLinked();
   const rpg=el('div','set-g');rpg.append(el('div','set-h','내 기록 리포트'),reportBox());
   v.append(pc,rpg,
-    group('일정',[row('내 블로그',getBlogs().length?getBlogs().map(x=>x.name).join(', '):'하나만 써요',()=>blogSheet()),row('체험단 플랫폼',dots,()=>platformSheet()),row('다녀온 뒤 알림',st.remindH+'시간 뒤',()=>remindSheet())]),
-    canDrive()?group('저장',[row('구글 드라이브',dOn?'연결됨':'연결 안 됨',()=>driveSheet(),{cls:dOn?'on':''}),dOn?row('전체 동기화','바뀐 것·빠진 사진 맞추기',()=>syncAll()):null,dOn&&shareOk()?row('기록 공유',shareSet().on?(shareSet().email||'')+'에게 공유 중':'꺼짐',()=>shareSheet()):null,dOn?row('백업·복원',lastBackup()?new Date(lastBackup()).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 백업':'백업 전',()=>backupSheet()):null]):'',
+    group('일정',[row('내 블로그',getBlogs().length?getBlogs().map(x=>x.name).join(', '):'하나만 써요',()=>blogSheet()),row('체험단 플랫폼',dots,()=>platformSheet()),row('알림','다녀온 뒤 '+st.remindH+'시간 · 마감 '+(st.dueOff?'끔':'3일·1일 전'),()=>remindSheet())]),
+    canDrive()?group('저장',[row('구글 드라이브',dOn?'연결됨':'연결 안 됨',()=>driveSheet(),{cls:dOn?'on':''}),dOn?row('전체 동기화','바뀐 것·빠진 사진 맞추기',()=>syncAll()):null,dOn&&freeOk()?row('저장 공간 정리','드라이브에 올라간 사진 비우기',()=>storageSheet()):null,dOn&&shareOk()?row('기록 공유',shareSet().on?(shareSet().email||'')+'에게 공유 중':'꺼짐',()=>shareSheet()):null,dOn?row('백업·복원',lastBackup()?new Date(lastBackup()).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 백업':'백업 전',()=>backupSheet()):null]):'',
     group('정보',[row('사용법','',()=>document.body.classList.add('sheet')),row('의견 보내기','',()=>feedback()),row('디스코드 커뮤니티','사용법·문의',()=>openCommunity()),IS_APP?row('앱 평가하기','',()=>rateApp()):null,row('개인정보처리방침','',()=>privacySheet()),ver?row('버전',ver,null,{noChev:true,cls:'static'}):null]),
     group('',[row('모든 데이터 지우기','',()=>deleteAllSheet(),{cls:'danger'})])
   );
@@ -2801,6 +2803,8 @@ function platformSheet(){openAct(b=>{
 function remindSheet(){openAct(b=>{
   b.append(el('h3','','다녀온 뒤 알림'),el('div','e-tip','방문 시간이 지나고 얼마 뒤에 기록하라고 알려드릴까요?'));
   b.append(eChips(['1시간','2시간','3시간','5시간'],t=>getSettings().remindH+'시간'===t,t=>{setSettings({remindH:parseInt(t,10)});closeAct();renderMe();toast(t+' 뒤에 알려드려요')}));
+  b.append(el('h3','','후기 마감 알림'),el('div','e-tip','마감 3일 전과 전날 오전 9시에 알려드려요. 발행한 기록은 알리지 않아요.'));
+  b.append(eChips(['켜기','끄기'],t=>(getSettings().dueOff?'끄기':'켜기')===t,t=>{setSettings({dueOff:t==='끄기'});DUE_SIG='';syncDue();closeAct();renderMe();toast(t==='끄기'?'마감 알림을 껐어요':'마감 알림을 켰어요')}));
 })}
 function driveSheet(){openAct(b=>{
   const on=driveLinked();
@@ -2840,7 +2844,7 @@ function syncWidget(){
   }catch(e){}
 }
 /* 위젯·알림에서 들어온 동작 */
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncWidget();pullWebInbox();setTimeout(resumeUploads,1500)}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncWidget();pullWebInbox();setTimeout(resumeUploads,1500);setTimeout(syncDue,2000)}});
 setTimeout(pullWebInbox,2500);setTimeout(resumeUploads,6000);
 window.chdAction=a=>{
   a=String(a||'');const k=a.split(':')[0],id=a.slice(k.length+1);
@@ -3373,14 +3377,69 @@ function openRecView(){openAct(b=>{
   const lk=el('div','done-links');const e1=el('button','','수정하기');e1.type='button';e1.onclick=()=>{closeAct();goStep(0)};
   const e2=el('button','','전체 MD');e2.type='button';e2.onclick=()=>openMdView();lk.append(e1,el('span','','·'),e2);b.append(lk);
 })}
+function driveFileUrl(name){const id=S&&S.drive&&S.drive.files&&S.drive.files[name];return id?'https://drive.google.com/file/d/'+id+'/view':''}
+/* ---------- 후기 마감 알림: 마감 3일 전·전날 오전 9시, 발행한 건 빼고 ---------- */
+let DUE_SIG='';
+function syncDue(){try{if(!(IS_APP&&ChdNative.scheduleReminder&&ChdNative.cancelReminder))return;
+  const off=!!getSettings().dueOff,want={};
+  if(!off){const add=(id,name,due,pf,kind)=>{if(!due)return;const [y,m,d]=due.split('-').map(Number);if(!y)return;
+      [[3,name+' 후기 마감 3일 남았어요'],[1,name+' 후기 마감이 내일이에요']].forEach(([n,t])=>{const at=new Date(y,m-1,d-n,9,0,0).getTime();if(at>Date.now()+60e3)want['due'+n+'-'+id]={at,t,b:(pf?pf+' · ':'')+(kind==='plan'?'아직 방문 전이에요':kind==='write'?'기록이 아직 덜 됐어요':'아직 발행 전이에요')}})};
+    getPlans().forEach(p=>add(p.id,p.place&&p.place.name||'',p.due,p.platform,'plan'));
+    getRecords().forEach(r=>{if(String(r.id).startsWith('_')||r.posted)return;add(r.id,r.name,r.due,r.platform,(r.sent||r.done)?'post':'write')})}
+  const sig=JSON.stringify(want);if(sig===DUE_SIG)return;DUE_SIG=sig;
+  let old={};try{old=JSON.parse(localStorage.getItem('chd-due')||'{}')||{}}catch(e){}
+  Object.keys(old).forEach(k=>{if(!want[k]||want[k].at!==old[k])ChdNative.cancelReminder(k)});
+  Object.keys(want).forEach(k=>{if(old[k]!==want[k].at)ChdNative.scheduleReminder(k,String(want[k].at),want[k].t,want[k].b)});
+  const keep={};Object.keys(want).forEach(k=>keep[k]=want[k].at);localStorage.setItem('chd-due',JSON.stringify(keep));
+  getPlans().forEach(p=>{try{ChdNative.cancelReminder(String(p.id)+'-due')}catch(e){}}); // 예전 방식(전날 알림)은 새 알림으로 대신
+}catch(e){}}
+/* ---------- 정산 CSV (엑셀) ---------- */
+function settleCsv(year){const rs=moneyRecs().filter(r=>recMoney(r)&&recMonth(r).startsWith(year+'-')).sort((a,b)=>(a.visitDate||recMonth(a)).localeCompare(b.visitDate||recMonth(b)));
+  const q=v=>{v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  const rows=[['날짜','가게·제품','업종','체험단 플랫폼','블로그','협찬 금액','원고료','합계','발행']];
+  rs.forEach(r=>rows.push([r.visitDate||recMonth(r),r.name,(r.place&&r.place.category)||'',r.platform||'',r.blog||'',+r.value||0,+r.fee||0,recMoney(r),r.posted?'발행':'']));
+  const tv=rs.reduce((x,r)=>x+(+r.value||0),0),tf=rs.reduce((x,r)=>x+(+r.fee||0),0);rows.push(['합계','','','','',tv,tf,tv+tf,'']);
+  return '\uFEFF'+rows.map(r=>r.map(q).join(',')).join('\r\n')}
+function exportSettle(year){const csv=settleCsv(year),name='후기씨앗 정산 '+year+'.csv';
+  if(IS_APP&&ChdNative.saveFile){ChdNative.saveFile(name,csv);return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast('엑셀 파일을 받았어요')}
+/* ---------- 저장 공간 정리 (0.9.22~): 드라이브에 올라간 사진·영상의 앱 사본만 작은 미리보기로 ---------- */
+function freeOk(){try{return IS_APP&&!!ChdNative.freePhotos&&verGte(ChdNative.version&&ChdNative.version(),'0.9.22')}catch(e){return false}}
+const fmtB=n=>n>=1073741824?(n/1073741824).toFixed(1)+'GB':n>=1048576?Math.round(n/1048576)+'MB':Math.max(0,Math.round(n/1024))+'KB';
+function freeTargets(scope){const out=[];const now=Date.now();
+  getRecords().forEach(r=>{if(String(r.id).startsWith('_'))return;const st=recState(r.id)||{},d=st.drive||{};if(!d.at)return;
+    if(scope==='posted'&&!r.posted)return;
+    if(scope==='old'){const t=r.visitDate?new Date(r.visitDate).getTime():r.updated;if(!t||now-t<30*864e5)return}
+    const up=new Set((Array.isArray(st.upPh)?st.upPh:[]).filter(n=>d.files&&d.files[n]));if(!up.size)return;
+    let sz={};try{sz=JSON.parse(ChdNative.photoSizes(String(r.id))||'{}')}catch(e){}const fd=new Set(sz.freed||[]),files=sz.files||{};
+    const names=[...up].filter(n=>files[n]&&!fd.has(n));const bytes=names.reduce((x,n)=>x+files[n],0);if(names.length)out.push({id:r.id,name:r.name,names,bytes})});
+  return out}
+function storageSheet(scope){scope=scope||'posted';openAct(b=>{
+  b.append(el('h3','','저장 공간 정리'),el('p','','드라이브에 올라간(초록 체크) 사진·영상의 앱 사본만 작은 미리보기로 바꿔요. 갤러리 원본과 드라이브는 그대로예요.'));
+  let total=0;getRecords().forEach(r=>{try{total+=+(JSON.parse(ChdNative.photoSizes(String(r.id))||'{}').total||0)}catch(e){}});
+  b.append(el('div','e-tip','지금 앱 사진·영상 '+fmtB(total)));
+  const opts=[['posted','발행 끝난 기록'],['old','30일 지난 기록'],['all','드라이브에 올라간 전부']];
+  b.append(eChips(opts.map(o=>o[1]),t=>opts.find(o=>o[0]===scope)[1]===t,t=>storageSheet(opts.find(o=>o[1]===t)[0])));
+  const tg=freeTargets(scope),gain=tg.reduce((x,t)=>x+t.bytes,0),np=tg.reduce((x,t)=>x+t.names.length,0);
+  b.append(el('div','sub-h',tg.length?'기록 '+tg.length+'건 · 사진·영상 '+np+'개 · 약 '+fmtB(gain)+' 비워져요':'정리할 사진이 없어요'));
+  if(tg.length){const go=el('button','e-btn primary','정리하기');go.type='button';go.onclick=()=>{if(!confirm('앱 사본 '+np+'개를 작은 미리보기로 바꿀까요? 크게 볼 땐 드라이브에서 열어요.'))return;let sv=0;tg.forEach(t=>{try{sv+=+ChdNative.freePhotos(String(t.id),JSON.stringify(t.names))||0}catch(e){}});closeAct();toast(fmtB(sv)+' 비웠어요');try{loadPhotos()}catch(e){}};b.append(go)}
+  b.append(el('div','e-tip','정리한 사진은 크게 볼 때 "드라이브에서 원본 보기"로 열려요. 공유하기로 보낼 땐 작은 사진이 가요.'));
+})}
+/* ---------- 새 화면 버전: 한가할 때(홈, 열린 창 없음) 다시 그린다 ---------- */
+let NEWVER=false;
+window.chdNewVersion=()=>{NEWVER=true;tryNewVer()};
+function tryNewVer(){if(!NEWVER)return;if(document.body.classList.contains('act')||document.body.classList.contains('sheet')||inFlow()||Object.keys(UPQ).length||TAB!=='home')return;NEWVER=false;location.reload()}
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&NEWVER&&!Object.keys(UPQ).length)setTimeout(()=>{if(document.hidden&&NEWVER){NEWVER=false;location.reload()}},1500)});
 /* 사진 크게 보기: 좌우로 넘기기, 누르면 닫기 */
 function lightbox(i){
   const lb=el('div','lbx');const im=document.createElement('img');const cnt=el('div','lbx-n');
-  const pl=el('button','lbx-play','▶');pl.type='button';pl.setAttribute('aria-label','영상 재생');pl.style.display='none';pl.onclick=e=>{e.stopPropagation();const p=PHOTOS[i];if(p&&IS_APP&&ChdNative.openVideo)ChdNative.openVideo(p.name)};
+  const pl=el('button','lbx-play','▶');pl.type='button';pl.setAttribute('aria-label','영상 재생');pl.style.display='none';pl.onclick=e=>{e.stopPropagation();const p=PHOTOS[i];if(p&&p.freed){const u=driveFileUrl(p.name);if(u)location.href=u;return}if(p&&IS_APP&&ChdNative.openVideo)ChdNative.openVideo(p.name)};
+  const dl=el('button','lbx-dl','드라이브에서 원본 보기');dl.type='button';dl.style.display='none';dl.onclick=e=>{e.stopPropagation();const u=driveFileUrl(PHOTOS[i].name);if(u)location.href=u};
   let sc=1,tx=0,ty=0;const apply=(anim)=>{im.style.transition=anim?'transform .2s':'none';im.style.transform='translate('+tx+'px,'+ty+'px) scale('+sc+')'};
   const reset=()=>{sc=1;tx=0;ty=0;apply(true);lb.style.background=''};
   const show=k=>{i=(k+PHOTOS.length)%PHOTOS.length;const p=PHOTOS[i];im.src=p.thumb;cnt.textContent=(i+1)+' / '+PHOTOS.length+(p.video?' · 영상':'');pl.style.display=p.video?'':'none';reset();
-    if(IS_APP&&ChdNative.photoFull){setTimeout(()=>{try{const u=ChdNative.photoFull(p.name);if(u&&PHOTOS[i]===p)im.src=u}catch(e){}},10)}};
+    dl.style.display=p.freed&&driveFileUrl(p.name)?'':'none';
+    if(IS_APP&&ChdNative.photoFull){setTimeout(()=>{try{const u=ChdNative.photoFull(p.name);if(u&&u!=='freed'&&PHOTOS[i]===p)im.src=u}catch(e){}},10)}};
   const prev=el('button','lbx-a l','‹');prev.type='button';prev.onclick=e=>{e.stopPropagation();show(i-1)};
   const next=el('button','lbx-a r','›');next.type='button';next.onclick=e=>{e.stopPropagation();show(i+1)};
   const close=()=>{lb.remove();LBX=null};
@@ -3402,7 +3461,7 @@ function lightbox(i){
       if(!moved){const now=Date.now();if(now-last<280){if(sc===1){sc=2.5;const r=im.getBoundingClientRect();tx=(r.left+r.width/2-t0.x)*1.5;ty=(r.top+r.height/2-t0.y)*1.5;apply(true)}else reset();last=0;lb._dbl=true}else last=now}}
     t0=null},{passive:true});
   lb.onclick=e=>{if(e.target!==lb&&e.target!==im)return;setTimeout(()=>{if(lb._dbl){lb._dbl=false;return}if(sc===1&&Date.now()-last>=270)close()},300)};
-  lb.append(im,cnt,pl);if(PHOTOS.length>1)lb.append(prev,next);document.body.append(lb);LBX=lb;show(i);
+  lb.append(im,cnt,pl,dl);if(PHOTOS.length>1)lb.append(prev,next);document.body.append(lb);LBX=lb;show(i);
 }
 let LBX=null;
 function openMdView(){openAct(b=>{

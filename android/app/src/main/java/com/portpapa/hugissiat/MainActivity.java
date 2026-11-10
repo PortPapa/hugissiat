@@ -86,6 +86,56 @@ public class MainActivity extends Activity {
                 || ("portpapa.github.io".equals(h) && p.startsWith("/hugissiat"));
     }
 
+    /* ---------- 빠른 시작: 화면 파일 보관 ---------- */
+    private volatile boolean pageServedCache = false;
+    private volatile long pageFetchAt = 0;
+    private File pageFile() { return new File(getFilesDir(), "page/index.html"); }
+    private WebResourceResponse cachedPage(WebResourceRequest req) {
+        try {
+            if (!req.isForMainFrame() || !"GET".equals(req.getMethod())) return null;
+            Uri u = req.getUrl();
+            if (!"portpapa.github.io".equals(u.getHost())) return null;
+            String p = u.getPath() == null ? "" : u.getPath();
+            if (!("/hugissiat/".equals(p) || "/hugissiat".equals(p) || "/hugissiat/index.html".equals(p))) return null;
+            if (u.getQuery() != null && u.getQuery().contains("fresh")) { refreshPage(false); return null; }
+            File f = pageFile();
+            refreshPage(f.isFile());
+            if (!f.isFile() || f.length() < 10000) return null;
+            pageServedCache = true;
+            WebResourceResponse r = new WebResourceResponse("text/html", "utf-8", new FileInputStream(f));
+            java.util.HashMap<String, String> h = new java.util.HashMap<>(); h.put("Cache-Control", "no-store");
+            r.setResponseHeaders(h);
+            return r;
+        } catch (Throwable e) { return null; }
+    }
+    /** 최신 화면을 받아 보관한다. 지금 보관본을 띄웠는데 새 버전이 오면 화면에 알려 준다 (한가할 때 다시 그린다) */
+    private void refreshPage(boolean notify) {
+        long now = System.currentTimeMillis();
+        if (now - pageFetchAt < 60_000) return;
+        pageFetchAt = now;
+        pool.execute(() -> {
+            try {
+                HttpURLConnection c = (HttpURLConnection) new URL(REMOTE + "?t=" + now).openConnection();
+                c.setConnectTimeout(10000); c.setReadTimeout(20000); c.setUseCaches(false);
+                c.setRequestProperty("Cache-Control", "no-cache");
+                if (c.getResponseCode() != 200) return;
+                java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+                try (InputStream in = c.getInputStream()) { byte[] b = new byte[65536]; int n; while ((n = in.read(b)) > 0) bo.write(b, 0, n); }
+                byte[] body = bo.toByteArray();
+                String head = new String(body, 0, Math.min(body.length, 4000), StandardCharsets.UTF_8);
+                if (body.length < 10000 || !head.toLowerCase(java.util.Locale.ROOT).contains("<html")) return;
+                File f = pageFile(); f.getParentFile().mkdirs();
+                boolean same = false;
+                if (f.isFile() && f.length() == body.length) { byte[] old = java.nio.file.Files.readAllBytes(f.toPath()); same = Arrays.equals(old, body); }
+                if (same) return;
+                File tmp = new File(f.getParentFile(), "index.part");
+                try (OutputStream os = new FileOutputStream(tmp)) { os.write(body); }
+                if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f); }
+                if (notify && pageServedCache) runOnUiThread(() -> web.evaluateJavascript("window.chdNewVersion&&window.chdNewVersion()", null));
+            } catch (Throwable ignored) {}
+        });
+    }
+
     private void fallback() {
         if (fellBack) return;
         fellBack = true;
@@ -164,12 +214,15 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
-        // 열 때마다 최신 화면을 받는다 (GitHub Pages 10분 캐시 무시). 오프라인이면 앱 내장 화면으로
-        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        // 화면(index.html)은 폰에 보관해 둔 것으로 바로 띄우고 새 버전은 뒤에서 받는다 (cachedPage).
+        // 글꼴·그림 같은 나머지 파일은 보통 캐시를 쓴다
+        s.setCacheMode(WebSettings.LOAD_DEFAULT);
 
         web.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
+                WebResourceResponse pg = cachedPage(req);
+                if (pg != null) return pg;
                 return loader.shouldInterceptRequest(req.getUrl());
             }
 
@@ -697,7 +750,7 @@ public class MainActivity extends Activity {
                 synchronized (thumbLock) {
                     if (!tf.isFile()) {
                         dir.mkdirs();
-                        String du = isVideo(src) ? videoData(src, 320, 72) : imageData(src, 320, 72);
+                        String du = (isVideo(src) && !isFreed(src)) ? videoData(src, 320, 72) : imageData(src, 320, 72);
                         int c = du.indexOf(',');
                         if (c < 0) return null;
                         File tmp = new File(dir, tf.getName() + ".part");
@@ -748,14 +801,31 @@ public class MainActivity extends Activity {
         } catch (Throwable ignored) {}
     }
 
+    /* ---------- 저장 공간 정리: 드라이브에 올라간 사진은 작은 미리보기만 남긴다 (.freed = 이름\t크기) ---------- */
+    private java.util.HashMap<String, Long> freedOf(File dir) {
+        java.util.HashMap<String, Long> m = new java.util.HashMap<>();
+        try { File f = new File(dir, ".freed"); if (!f.isFile()) return m;
+            for (String ln : new String(java.nio.file.Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8).split("\n")) { String[] p = ln.split("\t"); if (p.length == 2) try { m.put(p[0], Long.parseLong(p[1].trim())); } catch (Exception ignored) {} }
+        } catch (Exception ignored) {}
+        return m;
+    }
+    private void saveFreed(File dir, java.util.HashMap<String, Long> m) {
+        try { StringBuilder b = new StringBuilder(); for (java.util.Map.Entry<String, Long> e : m.entrySet()) b.append(e.getKey()).append('\t').append(e.getValue()).append('\n');
+            File f = new File(dir, ".freed"); if (m.isEmpty()) { f.delete(); return; }
+            try (OutputStream os = new FileOutputStream(f)) { os.write(b.toString().getBytes(StandardCharsets.UTF_8)); } } catch (Exception ignored) {}
+    }
+    private boolean isFreed(File f) { Long n = freedOf(f.getParentFile()).get(f.getName()); return n != null && n == f.length(); }
+
     private String photosJson() {
         JSONArray a = new JSONArray();
+        final java.util.HashMap<String, Long> fr = freedOf(photoDir());
         for (File f : photoFiles()) {
             try {
                 JSONObject o = new JSONObject();
                 o.put("name", f.getName());
                 o.put("thumb", thumbUrl(photoKey, f));
                 if (isVideo(f)) o.put("video", true);
+                if (fr.containsKey(f.getName()) && fr.get(f.getName()) == f.length()) o.put("freed", true);
                 a.put(o);
             } catch (Exception ignored) {}
         }
@@ -1304,6 +1374,7 @@ public class MainActivity extends Activity {
                         if (!kid.isEmpty() && byId.containsKey(kid)) { id = kid; if (!want.equals(byId.get(kid))) driveRename(token, kid, want); }
                         else if (list.containsKey(want)) id = list.get(want);
                         else if (list.containsKey(orig)) id = list.get(orig);
+                        if (id == null && isFreed(f)) { upDone(ridF, f.getName()); fin.incrementAndGet(); return; } // 정리한 사진: 드라이브에 원본이 없으면 작은 미리보기를 올리지 않는다
                         if (id == null && vid) {
                             // 영상: 줄이지 않고 파일에서 바로 흘려 올린다 (통째로 메모리에 올리면 앱이 죽는다)
                             String ext = f.getName().replaceAll("^.*\\.", "").toLowerCase(java.util.Locale.ROOT);
@@ -1907,6 +1978,7 @@ public class MainActivity extends Activity {
             try {
                 JSONArray a = new JSONArray(json);
                 File d = photoDir();
+                java.util.HashMap<String, Long> fr0 = freedOf(d), fr1 = new java.util.HashMap<>();
                 ArrayList<File> tmp = new ArrayList<>();
                 for (int i = 0; i < a.length(); i++) {
                     String n = a.getString(i);
@@ -1920,8 +1992,12 @@ public class MainActivity extends Activity {
                     File t = tmp.get(i);
                     String n = t.getName();
                     String ext = n.substring(n.lastIndexOf('.') + 1);
-                    t.renameTo(new File(d, String.format(java.util.Locale.ROOT, "%02d.%s", i + 1, ext)));
+                    String nn = String.format(java.util.Locale.ROOT, "%02d.%s", i + 1, ext);
+                    String on = n.replaceFirst("^\\.r\\d+_", "");
+                    if (fr0.containsKey(on)) fr1.put(nn, fr0.get(on));
+                    t.renameTo(new File(d, nn));
                 }
+                saveFreed(d, fr1);
             } catch (Exception ignored) {}
             return photosJson();
         }
@@ -1930,6 +2006,7 @@ public class MainActivity extends Activity {
         public String photoFull(String name) {
             if (!trusted || name == null || name.contains("/") || name.contains("..")) return "";
             File f = new File(photoDir(), name);
+            if (f.exists() && isFreed(f)) return "freed";
             return f.exists() ? (isVideo(f) ? videoData(f, 1280, 85) : photoUrl(photoKey, f)) : "";
         }
 
@@ -2192,6 +2269,45 @@ public class MainActivity extends Activity {
             });
         }
 
+        /** 기록별 사진 용량: {"total":바이트,"files":{"01.jpg":바이트},"freed":["03.jpg"]} */
+        @JavascriptInterface
+        public String photoSizes(String key) {
+            JSONObject o = new JSONObject();
+            try { long t = 0; JSONObject fsz = new JSONObject(); JSONArray fd = new JSONArray(); File d = photoDirOf(key); java.util.HashMap<String, Long> fr = freedOf(d);
+                for (File f : photoFilesOf(key)) { t += f.length(); fsz.put(f.getName(), f.length()); Long n = fr.get(f.getName()); if (n != null && n == f.length()) fd.put(f.getName()); }
+                o.put("total", t); o.put("files", fsz); o.put("freed", fd);
+            } catch (Exception ignored) {}
+            return o.toString();
+        }
+
+        /** 저장 공간 정리: 고른 사진(드라이브에 올라간 것)을 640px 미리보기로 바꿔 둔다. 비운 바이트 수를 돌려준다 */
+        @JavascriptInterface
+        public long freePhotos(String key, String namesJson) {
+            if (!trusted || key == null) return 0;
+            long saved = 0;
+            try {
+                File d = photoDirOf(key); java.util.HashMap<String, Long> fr = freedOf(d);
+                JSONArray a = new JSONArray(namesJson);
+                for (int i = 0; i < a.length(); i++) {
+                    String n = a.getString(i); if (n.contains("/") || n.contains("..")) continue;
+                    File f = new File(d, n); if (!f.isFile()) continue;
+                    Long was = fr.get(n); if (was != null && was == f.length()) continue;
+                    String du = isVideo(f) ? videoData(f, 640, 75) : imageData(f, 640, 75);
+                    int c = du.indexOf(','); if (c < 0) continue;
+                    byte[] small = Base64.decode(du.substring(c + 1), Base64.DEFAULT);
+                    if (small.length == 0 || small.length >= f.length()) continue;
+                    long before = f.length();
+                    File tmp = new File(d, "." + n + ".part");
+                    try (OutputStream os = new FileOutputStream(tmp)) { os.write(small); }
+                    if (!tmp.renameTo(f)) { tmp.delete(); continue; }
+                    fr.put(n, f.length()); saved += before - f.length();
+                }
+                saveFreed(d, fr);
+                if (safeKey(key).equals(photoKey)) pushPhotos();
+            } catch (Throwable ignored) {}
+            return saved;
+        }
+
         @JavascriptInterface
         public void saveFile(final String name, final String text) {
             if (!trusted) return;
@@ -2201,7 +2317,7 @@ public class MainActivity extends Activity {
                     ContentResolver cr = getContentResolver();
                     ContentValues v = new ContentValues();
                     v.put(MediaStore.Downloads.DISPLAY_NAME, name);
-                    v.put(MediaStore.Downloads.MIME_TYPE, "text/markdown");
+                    v.put(MediaStore.Downloads.MIME_TYPE, name.toLowerCase(java.util.Locale.ROOT).endsWith(".csv") ? "text/csv" : "text/markdown");
                     v.put(MediaStore.Downloads.RELATIVE_PATH, "Download/");
                     Uri uri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
                     if (uri == null) throw new Exception();
