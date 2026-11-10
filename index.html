@@ -558,6 +558,10 @@ body.flow>#easy,body.flow>.wrap{flex:1 0 auto;width:100%}
 .mic{align-self:flex-start;margin-top:8px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 14px;font-size:13.5px}
 .mic.rec{border-color:var(--no);color:var(--no);background:var(--no-soft)}
 .e-tip{font-size:12.5px;color:var(--sub);margin-top:6px}
+.has-inf{display:flex;align-items:center;gap:4px}#act h3.has-inf{margin-bottom:10px}
+.inf{position:relative;flex:none;width:28px;height:28px;border:0;background:none;color:var(--sub);padding:4px;border-radius:50%;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.inf::after{content:'';position:absolute;inset:-8px}.inf svg{width:20px;height:20px;display:block}.inf.on{color:var(--acc-ink);background:var(--acc-soft)}
+.inf-tip{font-size:13px;line-height:1.6;color:var(--ink);background:var(--acc-soft,#eef3ea);border-radius:12px;padding:10px 13px;margin:-4px 0 12px;animation:slidein .18s ease-out}.inf-tip div+div{margin-top:6px}
 #easy details{margin:10px 0 20px}
 #easy details summary{cursor:pointer;color:var(--sub);font-size:13.5px}
 #easy details pre{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.6;background:#1d1c1a;color:#ebe6dc;border-radius:12px;padding:14px;margin-top:8px}
@@ -738,21 +742,21 @@ function getBlogs(){const a=getSettings().blogs;return Array.isArray(a)?a.filter
 function defBlog(){const bs=getBlogs();if(!bs.length)return '';const l=getSettings().lastBlog;return bs.some(b=>b.name===l)?l:bs[0].name}
 function pickChips(list,cur,on){const box=el('div','chips');list.forEach(t=>{const b=el('button','chip'+(cur()===t?' on':''),t);b.type='button';b.onclick=()=>{on(cur()===t?'':t);box.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x.textContent===cur()))};box.append(b)});return box}
 function blogSheet(){openAct(b=>{
-  b.append(el('h3','','내 블로그'),el('p','','블로그를 여러 개 쓰면 기록마다 블로그를 고르고, 드라이브에 블로그별 폴더로 나눠 저장해요.'),el('div','e-tip','후기씨앗 / 블로그 이름 / 2026년 11월 / 05 가게'));
+  b.append(...hInfo('내 블로그',['블로그를 여러 개 쓰면 기록마다 블로그를 고르고, 드라이브에 블로그별 폴더로 나눠 저장해요.','후기씨앗 / 블로그 이름 / 2026년 11월 / 05 가게',sharedOk()?'블로그 이름을 누르면 저장 위치를 바꿀 수 있어요. 배우자나 팀이 공유해 준 폴더에도 저장돼요.':'']));
   const list=el('div','blog-list');const draw=()=>{list.innerHTML='';getBlogs().forEach((x,i)=>{const r=el('div','blog-row');const nm=el('span','',x.name);if(sharedOk()){const loc=el('small','blog-loc',x.folder&&x.folder.id?'공유 폴더 · '+(x.folder.name||''):'내 드라이브');nm.append(loc);nm.style.cursor='pointer';nm.onclick=()=>blogLocSheet(x.name)}r.append(nm);const d=el('button','',' 삭제');d.type='button';d.onclick=()=>{const a=getBlogs();a.splice(i,1);setSettings({blogs:a});draw();renderMe()};r.append(d);list.append(r)});if(!getBlogs().length)list.append(el('div','e-tip','아직 없어요. 블로그를 하나만 쓰면 비워 둬도 돼요.'))};draw();
   const inp=document.createElement('input');inp.type='text';inp.placeholder='블로그 이름 (예: 맛집 블로그)';inp.autocomplete='off';
   const add=el('button','e-btn primary','추가');add.type='button';add.onclick=()=>{const n=inp.value.trim().replace(/[\\/]/g,' ');if(!n)return;const a=getBlogs();if(a.some(x=>x.name===n)){toast('이미 있어요');return}a.push({name:n});setSettings({blogs:a});inp.value='';draw();renderMe()};
   inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();add.click()}};
   b.append(list,inp,add);
-  if(sharedOk())b.append(el('div','e-tip','블로그 이름을 누르면 저장 위치를 바꿀 수 있어요. 배우자나 팀이 공유해 준 폴더에도 저장돼요.'));
+
 })}
 function blogLocSheet(name){const f=blogFolder(name);openAct(b=>{
-  b.append(el('h3','',name+' 저장 위치'),el('div','e-tip drive-path',f?(f.name||'공유 폴더')+' / 2026.11.05 가게':'후기씨앗 / '+name+' / 2026년 11월 / 05 가게'));
+  b.append(...hInfo(name+' 저장 위치','공유받은 폴더는 편집자 권한이 있어야 저장돼요. 이미 저장한 기록은 다시 저장하거나 전체 동기화하면 새 위치로 옮겨져요.'),el('div','e-tip drive-path',f?(f.name||'공유 폴더')+' / 2026.11.05 가게':'후기씨앗 / '+name+' / 2026년 11월 / 05 가게'));
   const ch=el('div','e-choices');
   const g=el('button','e-btn primary',f?'다른 공유 폴더 고르기':'공유받은 폴더 고르기');g.type='button';
   g.onclick=()=>{closeAct();toast('브라우저에서 폴더를 고르고 앱으로 돌아오면 바로 반영돼요');INBOX_T=0;setTimeout(()=>{location.href='https://hugissiat.com/settings?blog='+encodeURIComponent(name)+'#folders'},500)};ch.append(g);
   if(f){const m=el('button','e-btn','내 드라이브로 되돌리기');m.type='button';m.onclick=()=>{const a=getBlogs(),x=a.find(y=>y.name===name);if(x){x.folder=null;x.folderAt=Date.now();setSettings({blogs:a})}closeAct();toast('내 드라이브에 저장할게요');try{renderMe()}catch(e){}};ch.append(m)}
-  b.append(ch,el('div','e-tip','공유받은 폴더는 편집자 권한이 있어야 저장돼요. 이미 저장한 기록은 다시 저장하거나 전체 동기화하면 새 위치로 옮겨져요.'));
+  b.append(ch);
 })}
 /* ---------- 캠페인 가이드: 텍스트 + PDF·캡처 (드라이브 저장 때 '가이드' 폴더로) ---------- */
 const safeK=k=>String(k).replace(/[^0-9A-Za-z_-]/g,'')||'_';
@@ -760,7 +764,7 @@ function guideText(id){try{return localStorage.getItem('chd-guide-'+id)||''}catc
 function guideList(id){try{return IS_APP&&ChdNative.guideFiles?JSON.parse(ChdNative.guideFiles(String(id))||'[]'):[]}catch(e){return []}}
 function guideCount(id){return guideList(id).length+(guideText(id).trim()?1:0)}
 function guideSheet(id,title,after){openAct(b=>{
-  b.append(el('h3','','캠페인 가이드'),el('p','',(title?title+' · ':'')+'드라이브에 저장할 때 이 캠페인 폴더 안 "가이드" 폴더에 같이 들어가요.'));
+  b.append(...hInfo('캠페인 가이드','드라이브에 저장할 때 이 캠페인 폴더 안 "가이드" 폴더에 같이 들어가요.'));if(title)b.append(el('p','',title));
   const ta=document.createElement('textarea');ta.rows=6;ta.className='g-text';ta.placeholder='가이드 텍스트 붙여 넣기 (필수 키워드, 대가 표기 문구, 사진 조건 등)';ta.value=guideText(id);
   ta.oninput=()=>{try{if(ta.value.trim())localStorage.setItem('chd-guide-'+id,ta.value);else localStorage.removeItem('chd-guide-'+id)}catch(e){}};b.append(ta);
   if(IS_APP&&ChdNative.pickGuide){
@@ -1673,7 +1677,7 @@ function pushShare(force,extra){try{const sh=shareSet();if(!shareOk()||!driveLin
   const p=sharePayload(),sig=hashStr(JSON.stringify(p));if(!force&&sig===localStorage.getItem('chd-share-sig'))return;SHARE_T=Date.now();
   p.at=Date.now();localStorage.setItem('chd-share-sig',sig);ChdNative.driveSave(JSON.stringify(Object.assign({op:'sharePub',json:JSON.stringify(p),silent:!force},extra||{})))}catch(e){}}
 function shareSheet(){const sh=shareSet();openAct(b=>{
-  b.append(el('h3','','내 기록 공유하기'),el('p','','배우자나 팀원이 내 기록을 볼 수 있게 해요. 상대는 보기만 하고 고칠 수 없어요.'));
+  b.append(...hInfo('내 기록 공유하기',['배우자나 팀원이 내 기록을 볼 수 있게 해요. 상대는 보기만 하고 고칠 수 없어요.','상대는 hugissiat.com 설정 → 공유받은 기록에서 "공유 기록.json"을 한 번 고르면 앱 기록 탭에서 볼 수 있어요.','공유는 1명까지 무료예요.']));
   const lb=document.createElement('input');lb.type='text';lb.placeholder='상대에게 보일 내 이름 (예: 아내)';lb.value=sh.label||'';
   const em=document.createElement('input');em.type='email';em.placeholder='상대 구글 계정 이메일';em.value=sh.email||'';em.autocomplete='off';
   b.append(el('div','e-label','보일 이름'),lb,el('div','e-label','공유할 사람'),em);
@@ -1684,7 +1688,7 @@ function shareSheet(){const sh=shareSet();openAct(b=>{
     setSettings({share:{on:true,email:e,label:l}});closeAct();toast('공유하는 중이에요');pushShare(true,sh.on&&!old?{}:{email:e})};
   b.append(go);
   if(sh.on){const off=el('button','e-btn','공유 끄기');off.type='button';off.onclick=()=>{ChdNative.driveSave(JSON.stringify({op:'sharePub',email:sh.email,unshare:true}));setSettings({share:{on:false,email:'',label:sh.label||''}});closeAct();toast('공유를 껐어요');try{renderMe()}catch(e){}};b.append(off)}
-  b.append(el('div','e-tip','상대는 hugissiat.com 설정 → 공유받은 기록에서 "공유 기록.json"을 한 번 고르면 앱 기록 탭에서 볼 수 있어요. 공유는 1명까지 무료예요.'));
+
 })}
 function getShared(){try{return JSON.parse(localStorage.getItem('chd-shared')||'[]')||[]}catch(e){return []}}
 function sharedSheet(i){const sx=getShared()[i];if(!sx)return;const d=sx.data||{},nm=d.label||sx.label||'공유받은 기록';openAct(b=>{
@@ -1839,6 +1843,12 @@ $('#sheetClose').onclick=$('#sheetBg').onclick=()=>document.body.classList.remov
   a.addEventListener('touchmove',e=>{if(y0===null)return;dy=Math.max(0,e.touches[0].clientY-y0);a.style.transform='translateY('+dy+'px)'},{passive:true});
   a.addEventListener('touchend',()=>{if(y0===null)return;a.style.transition='';a.style.transform='';if(dy>90)closeAct();y0=null},{passive:true});
 })();
+/* Info Button(토글팁): 제목 옆 ⓘ를 누르면 설명이 펼쳐진다. 설명 문구를 화면에 늘어놓지 않으려고 쓴다 */
+function infoBtn(text){const b=el('button','inf');b.type='button';b.setAttribute('aria-label','설명 보기');b.setAttribute('aria-expanded','false');
+  b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7.6" r="1.2" fill="currentColor"/></svg>';
+  const tip=el('div','inf-tip');tip.hidden=true;tip.setAttribute('role','note');(Array.isArray(text)?text:[text]).filter(Boolean).forEach(t=>tip.append(el('div','',t)));
+  b.onclick=e=>{e.stopPropagation();e.preventDefault();const on=tip.hidden;tip.hidden=!on;b.classList.toggle('on',on);b.setAttribute('aria-expanded',String(on))};b._tip=tip;return b}
+function hInfo(title,text,cls){const h=cls?el('div',cls,title):el('h3','',title);const ib=infoBtn(text);h.classList.add('has-inf');h.append(ib);return [h,ib._tip]}
 function openAct(build){const b=$('#actBody');b.innerHTML='';b.className='';build(b);document.body.classList.add('act');$('#act').scrollTop=0}
 function closeAct(){document.body.classList.remove('act');PHOTO_SHEET=false;PSEL=null;$('#actBody').classList.remove('rv','psh');if(VOICE)voiceStop();if(S&&inFlow()&&S.mode==='easy'&&document.querySelector('#easy .e-q'))renderEasyKeep()}
 /* 카드 안에 묻는 게 여러 개면 접어두고 하나씩 펼친다 (스크롤 없이) */
@@ -2537,7 +2547,7 @@ function getRecords(){
 }
 function deleteRecord(id){
   {const st=recState(id)||{},d=st.drive||{},fid=d.folder||folderFromUrl(d.url);
-    if(fid&&bgUp()&&driveLinked())setTimeout(()=>openAct(b=>{b.append(el('h3','','드라이브 폴더도 지울까요?'),el('p','','앱에서는 지웠어요. 드라이브에 저장된 이 기록 폴더(MD·사진·가이드)는 어떻게 할까요? 휴지통으로 옮기면 30일 안에 드라이브에서 되살릴 수 있어요.'));
+    if(fid&&bgUp()&&driveLinked())setTimeout(()=>openAct(b=>{b.append(...hInfo('드라이브 폴더도 지울까요?',['앱에서는 지웠어요. 드라이브에 저장된 이 기록 폴더(MD·사진·가이드)는 그대로 있어요.','휴지통으로 옮기면 30일 안에 드라이브에서 되살릴 수 있어요.']));
       const k=el('button','e-btn primary','드라이브엔 남겨두기');k.type='button';k.onclick=()=>closeAct();
       const t=el('button','e-btn','드라이브에서도 휴지통으로');t.type='button';t.onclick=()=>{closeAct();ChdNative.driveSave(JSON.stringify({op:'trash',folderId:fid,rid:String(id)}))};
       b.append(k,t)}),450)}
@@ -2781,7 +2791,7 @@ function renderMe(){
   );
 }
 function profileSheet(){openAct(b=>{
-  b.append(el('h3','','자주 가는 조합'),el('div','e-tip','누구랑 갔는지만 저장해 두면 다음부터 한 번에 골라요.'));
+  b.append(...hInfo('자주 가는 조합','누구랑 갔는지만 저장해 두면 다음부터 한 번에 골라요.'));
   const list=el('div','set-box');const gs=getGroups();
   gs.forEach(g=>{const r=el('button','set-row');r.type='button';const l=el('span','set-l g2');l.append(el('b','',g.name||groupName(g.with)));if(g.detail)l.append(el('small','',g.detail));
     r.append(l,el('span','set-v','수정'));r.onclick=()=>groupEditor(g,profileSheet);list.append(r)});
@@ -2807,14 +2817,14 @@ function platformSheet(){openAct(b=>{
   b.append(list);
 })}
 function remindSheet(){openAct(b=>{
-  b.append(el('h3','','다녀온 뒤 알림'),el('div','e-tip','방문 시간이 지나고 얼마 뒤에 기록하라고 알려드릴까요?'));
+  b.append(...hInfo('다녀온 뒤 알림','방문 시간이 지나고 얼마 뒤에 기록하라고 알려드려요.'));
   b.append(eChips(['1시간','2시간','3시간','5시간'],t=>getSettings().remindH+'시간'===t,t=>{setSettings({remindH:parseInt(t,10)});closeAct();renderMe();toast(t+' 뒤에 알려드려요')}));
-  {const h=el('h3','','후기 마감 알림');h.style.marginTop='26px';b.append(h)}b.append(el('div','e-tip','마감 3일 전과 전날 오전 9시에 알려드려요. 발행한 기록은 알리지 않아요.'));
+  {const hs=hInfo('후기 마감 알림','마감 3일 전과 전날 오전 9시에 알려드려요. 발행한 기록은 알리지 않아요.');hs[0].style.marginTop='26px';b.append(...hs)}
   b.append(eChips(['켜기','끄기'],t=>(getSettings().dueOff?'끄기':'켜기')===t,t=>{setSettings({dueOff:t==='끄기'});DUE_SIG='';syncDue();closeAct();renderMe();toast(t==='끄기'?'마감 알림을 껐어요':'마감 알림을 켰어요')}));
 })}
 function driveSheet(){openAct(b=>{
   const on=driveLinked();
-  b.append(el('h3','','구글 드라이브'),el('div','e-tip',on?(getBlogs().length?'후기씨앗 / 블로그 / 년 월 / 일 가게이름':'후기씨앗 / 년 월 / 일 가게이름')+' 폴더에 MD·사진·가이드가 저장돼요':'연결하면 가게별 폴더에 MD와 사진을 저장할 수 있어요'));
+  if(on)b.append(...hInfo('구글 드라이브',(getBlogs().length?'후기씨앗 / 블로그 / 년 월 / 일 가게이름':'후기씨앗 / 년 월 / 일 가게이름')+' 폴더에 MD·사진·가이드가 저장돼요'));else b.append(el('h3','','구글 드라이브'),el('div','e-tip','연결하면 가게별 폴더에 MD와 사진을 저장할 수 있어요'));
   const db=el('button','e-btn'+(on?'':' primary'),on?'연결 해제':'구글 드라이브 연결');db.type='button';
   db.onclick=()=>{closeAct();if(on){ChdNative.driveUnlink();toast('연결을 해제했어요');renderMe()}else ChdNative.driveConnect()};
   b.append(db);
@@ -3408,7 +3418,7 @@ function freeTargets(scope){const out=[];const now=Date.now();
     const names=[...up].filter(n=>files[n]&&!fd.has(n));const bytes=names.reduce((x,n)=>x+files[n],0);if(names.length)out.push({id:r.id,name:r.name,names,bytes})});
   return out}
 function storageSheet(scope){scope=scope||'posted';openAct(b=>{
-  b.append(el('h3','','저장 공간 정리'),el('p','','드라이브에 올라간(초록 체크) 사진·영상의 앱 사본만 작은 미리보기로 바꿔요. 갤러리 원본과 드라이브는 그대로예요.'));
+  b.append(...hInfo('저장 공간 정리',['드라이브에 올라간(초록 체크) 사진·영상의 앱 사본만 작은 미리보기로 바꿔요.','정리한 사진은 크게 볼 때 "드라이브에서 원본 보기"로 열려요. 공유하기로 보낼 땐 작은 사진이 가요.']),el('p','','갤러리 원본과 드라이브는 그대로예요.'));
   let total=0;getRecords().forEach(r=>{try{total+=+(JSON.parse(ChdNative.photoSizes(String(r.id))||'{}').total||0)}catch(e){}});
   b.append(el('div','e-tip','지금 앱 사진·영상 '+fmtB(total)));
   const opts=[['posted','발행 끝난 기록'],['old','30일 지난 기록'],['all','드라이브에 올라간 전부']];
@@ -3416,7 +3426,7 @@ function storageSheet(scope){scope=scope||'posted';openAct(b=>{
   const tg=freeTargets(scope),gain=tg.reduce((x,t)=>x+t.bytes,0),np=tg.reduce((x,t)=>x+t.names.length,0);
   b.append(el('div','sub-h',tg.length?'기록 '+tg.length+'건 · 사진·영상 '+np+'개 · 약 '+fmtB(gain)+' 비워져요':'정리할 사진이 없어요'));
   if(tg.length){const go=el('button','e-btn primary','정리하기');go.type='button';go.onclick=()=>{if(!confirm('앱 사본 '+np+'개를 작은 미리보기로 바꿀까요? 크게 볼 땐 드라이브에서 열어요.'))return;let sv=0;tg.forEach(t=>{try{sv+=+ChdNative.freePhotos(String(t.id),JSON.stringify(t.names))||0}catch(e){}});closeAct();toast(fmtB(sv)+' 비웠어요');try{loadPhotos()}catch(e){}};b.append(go)}
-  b.append(el('div','e-tip','정리한 사진은 크게 볼 때 "드라이브에서 원본 보기"로 열려요. 공유하기로 보낼 땐 작은 사진이 가요.'));
+
 })}
 /* ---------- 새 화면 버전: 한가할 때(홈, 열린 창 없음) 다시 그린다 ---------- */
 let NEWVER=false;
@@ -3481,8 +3491,8 @@ window.chdBackup=s=>{let o={};try{o=JSON.parse(s)}catch(e){}
 /* 앱을 내려놓을 때(백그라운드) 하루 한 번 조용히 자동 백업 */
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&driveLinked()&&Date.now()-lastBackup()>12*3600e3)runBackup(true)});
 function backupSheet(){openAct(b=>{
-  const lb=lastBackup();b.append(el('h3','','백업·복원'),el('div','e-tip',lb?'마지막 백업: '+new Date(lb).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'아직 백업한 적 없어요'));
-  b.append(el('div','e-tip','구글 드라이브 "후기씨앗 백업" 폴더에 기록과 사진을 저장해요. 하루 한 번 자동으로도 백업돼요.'));
+  const lb=lastBackup();b.append(...hInfo('백업·복원','구글 드라이브 "후기씨앗 백업" 폴더에 기록과 사진을 저장해요. 하루 한 번 자동으로도 백업돼요.'),el('div','e-tip',lb?'마지막 백업: '+new Date(lb).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'아직 백업한 적 없어요'));
+  
   const ch=el('div','e-choices');
   const bk=el('button','e-btn primary','지금 백업');bk.type='button';bk.onclick=()=>{closeAct();runBackup(false)};
   const rs=el('button','e-btn','드라이브에서 복원');rs.type='button';rs.onclick=()=>openAct(bb=>{bb.append(el('h3','','복원할까요?'),el('div','e-tip','지금 폰에 있는 기록이 백업 내용으로 바뀌어요. 사진은 없는 것만 받아와요.'));
