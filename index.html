@@ -697,15 +697,15 @@ body:not(.flow)::after{content:'';position:fixed;right:-34px;bottom:54px;width:2
 <div id="sheet" role="dialog" aria-label="사용법">
   <div class="grab"></div>
   <h3>후기씨앗 사용법</h3>
-  <p>AI로 후기를 쓸 때 넣을 “내 실제 경험” 소스를 질문 몇 개로 만들어요.</p>
+  <p>블로그 글에 넣을 “내 실제 경험”을 질문 몇 개로 정리해요.</p>
   <ol>
-    <li>네이버 지도에서 가게를 열고 <b>공유 → 후기씨앗</b> (또는 링크 복사 후 앱 열기)</li>
-    <li>가게 정보가 들어오면 질문에 탭으로 답하기. 모르는 건 건너뛰기</li>
-    <li>마지막에 생각나는 것 한 줄, 후기에 쓸 사진 고르기 (선택)</li>
-    <li><b>보내기</b>로 카톡·메일·구글 드라이브·AI 앱에 소스(MD)와 사진을 한 번에 보내기</li>
-    <li>AI에게 “이 소스로 블로그 후기 써줘”라고 하면 끝</li>
+    <li>네이버 지도에서 가게를 열고 <b>공유 → 후기씨앗</b> (또는 아래 <b>+</b>에 링크 붙여넣기)</li>
+    <li>현장에서는 아래 <b>메모 바</b>를 누르고 말로 메모하기. 메모 탭에 모여요</li>
+    <li>다녀온 뒤 질문에 탭으로 답하고 사진 고르기. 모르는 건 건너뛰기</li>
+    <li><b>보내기</b>나 <b>드라이브에 저장</b>으로 기록(MD)과 사진을 한 번에 내보내기</li>
+    <li>블로그에 올린 뒤 홈에서 <b>올렸어요</b>를 누르면 내 정원의 새싹이 자라요</li>
   </ol>
-  <p>입력한 내용은 이 폰에만 저장돼요. 서버로 보내지 않아요.</p>
+  <p>기록은 이 폰과 내 구글 드라이브에만 저장돼요.</p>
   <button class="e-btn primary" id="sheetClose" type="button">확인</button>
 </div>
 
@@ -3748,7 +3748,7 @@ window.chdIncomingPhotos=n=>{if(!n)return;if(window._incN===n&&Date.now()-(windo
 /* ---------- 첫 실행 안내 ---------- */
 function onboarding(){if(localStorage.getItem('chd-onboard'))return;
   const pages=[['링크 하나면 시작','네이버 지도에서 가게를, 스마트스토어·쿠팡에서 제품을 공유하면 정보가 알아서 들어와요.',1],
-    ['현장에선 꾹 눌러 말하기','아래 "지금 메모"를 꾹 누르고 말하면 바로 저장돼요. 사진은 + 사진으로 갤러리에서 골라요.',2],
+    ['현장에선 말로 메모','아래 메모 바를 누르고 말하면 바로 글자로 저장돼요. 메모 탭에서 모아 보고 고칠 수 있어요.',2],
     ['다녀오면 질문에 톡톡','별점과 선택지로 답하면 내 경험이 정리돼요. 완성하면 드라이브에 저장하거나 보내면 끝.',3]];
   let i=0;const ov=el('div','onb');const art=el('div','onb-art');const h=el('h2');const p=el('p');const dots=el('div','onb-dots');const nx=el('button','e-btn primary','다음');nx.type='button';const sk=el('button','onb-skip','건너뛰기');sk.type='button';
   pages.forEach(()=>dots.append(el('i')));
