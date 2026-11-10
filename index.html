@@ -2809,7 +2809,7 @@ function platformSheet(){openAct(b=>{
 function remindSheet(){openAct(b=>{
   b.append(el('h3','','다녀온 뒤 알림'),el('div','e-tip','방문 시간이 지나고 얼마 뒤에 기록하라고 알려드릴까요?'));
   b.append(eChips(['1시간','2시간','3시간','5시간'],t=>getSettings().remindH+'시간'===t,t=>{setSettings({remindH:parseInt(t,10)});closeAct();renderMe();toast(t+' 뒤에 알려드려요')}));
-  b.append(el('h3','','후기 마감 알림'),el('div','e-tip','마감 3일 전과 전날 오전 9시에 알려드려요. 발행한 기록은 알리지 않아요.'));
+  {const h=el('h3','','후기 마감 알림');h.style.marginTop='26px';b.append(h)}b.append(el('div','e-tip','마감 3일 전과 전날 오전 9시에 알려드려요. 발행한 기록은 알리지 않아요.'));
   b.append(eChips(['켜기','끄기'],t=>(getSettings().dueOff?'끄기':'켜기')===t,t=>{setSettings({dueOff:t==='끄기'});DUE_SIG='';syncDue();closeAct();renderMe();toast(t==='끄기'?'마감 알림을 껐어요':'마감 알림을 켰어요')}));
 })}
 function driveSheet(){openAct(b=>{
