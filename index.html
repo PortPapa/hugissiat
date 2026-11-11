@@ -3053,9 +3053,9 @@ function parseBanner(raw){raw=String(raw||'').trim();if(!raw)return {img:'',link
   return {img:fix(img),link:fix(link)}}
 function platformBanner(name){const p=getPlatforms().find(x=>x.name===name)||{};const raw=String(p.banner||'').trim();return {...parseBanner(raw),raw}}
 function platformOne(name){const p=getPlatforms().find(x=>x.name===name);if(!p){platformSheet();return}openAct(b=>{
-  b.append(...hInfo(p.name,['플랫폼에서 받은 배너 이미지 주소나 배너 코드를 붙여 넣어 두세요.','이 플랫폼 캠페인을 드라이브에 저장하면 기록 파일 맨 위에 배너가 같이 들어가요. 블로그 글 맨 위에 넣는 용도예요.','배너 주소가 바뀌면 여기만 고치면 돼요.']));
-  b.append(el('div','e-label','배너'));
-  const ta=document.createElement('textarea');ta.rows=3;ta.className='g-text';ta.placeholder='배너 이미지 주소 또는 배너 코드 붙여 넣기';ta.value=p.banner||'';ta.autocapitalize='off';ta.spellcheck=false;
+  b.append(...hInfo(p.name,['플랫폼이 글에 넣으라고 주는 협찬 표시 배너예요 (예: REVU #협찬). 배너 이미지 주소나 배너 코드를 붙여 넣어 두세요.','이 플랫폼 캠페인을 드라이브에 저장하면 기록 파일 맨 위에 배너가 같이 들어가요. 블로그 글 맨 위에 넣는 용도예요.','배너 주소가 바뀌면 여기만 고치면 돼요.']));
+  b.append(el('div','e-label','협찬 배너'));
+  const ta=document.createElement('textarea');ta.rows=3;ta.className='g-text';ta.placeholder='플랫폼에서 받은 배너 주소 또는 코드 붙여 넣기';ta.value=p.banner||'';ta.autocapitalize='off';ta.spellcheck=false;
   const pv=el('div','pb-pv'),st=el('div','e-tip pb-st');
   const draw=()=>{const x=parseBanner(ta.value);pv.innerHTML='';
     st.textContent=!ta.value.trim()?'':x.img?'저장됐어요'+(x.link?' · 누르면 열릴 주소도 같이 저장했어요':''):'저장됐어요 · 이미지 주소는 못 찾아서 코드 그대로 넣어요';
