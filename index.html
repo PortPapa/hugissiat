@@ -659,6 +659,8 @@ body:not(.flow)::after{content:'';position:fixed;right:-34px;bottom:54px;width:2
 @keyframes flsway{from{transform:rotate(-5deg)}to{transform:rotate(5deg)}}
 @keyframes flhead{from{transform:rotate(8deg) scale(1)}50%{transform:rotate(0deg) scale(1.06)}to{transform:rotate(-8deg) scale(1)}}
 @media (prefers-reduced-motion:reduce){.fl-sway,.fl-head{animation:none!important}}
+.fchip.fheart{gap:4px;padding-left:10px}.fchip.fheart svg{width:15px;height:15px;display:block;color:#E26D8A;flex:none}.fchip.fheart.on svg{color:#fff}
+.rec-fav{display:inline-block;width:13px;height:13px;margin-left:5px;vertical-align:-1.5px;color:#E26D8A}.rec-fav svg{width:100%;height:100%;display:block}
 </style>
 </head>
 <body>
@@ -2725,7 +2727,7 @@ function renderRecords(){
   const pfs=[...new Set(rs.map(r=>r.platform).filter(Boolean))];if(REC_F.pf&&!pfs.includes(REC_F.pf))REC_F.pf='';
   {const fb=el('div','fbar');fb.setAttribute('role','toolbar');fb.setAttribute('aria-label','기록 걸러 보기');
     [['all','전체'],['draft','쓰는 중'],['done','완성'],['posted','발행'],['fav','♥']].forEach(([k,l])=>{const n=k==='all'?0:k==='fav'?rs.filter(r=>favs.has(String(r.id))).length:rs.filter(r=>stOf(r)===k).length;
-      const c=el('button','fchip'+(REC_F.st===k?' on':''),l+(k==='all'?'':' '+n));c.type='button';c.setAttribute('aria-pressed',String(REC_F.st===k));if(k==='fav')c.setAttribute('aria-label','다시 가고 싶은 곳 '+n);c.onclick=()=>{REC_F.st=k;renderRecords()};fb.append(c)});
+      const c=el('button','fchip'+(REC_F.st===k?' on':''),k==='fav'?'':l+(k==='all'?'':' '+n));c.type='button';c.setAttribute('aria-pressed',String(REC_F.st===k));if(k==='fav'){c.classList.add('fheart');c.setAttribute('aria-label','다시 가고 싶은 곳 '+n);try{c.innerHTML=ICO_HEART}catch(e){c.textContent='♥'}c.append(el('span','',String(n)))}c.onclick=()=>{REC_F.st=k;renderRecords()};fb.append(c)});
     if(pfs.length>1){fb.append(el('i','fsep'));pfs.forEach(p=>{const c=el('button','fchip'+(REC_F.pf===p?' on':''));c.type='button';c.setAttribute('aria-pressed',String(REC_F.pf===p));const dot=el('i');dot.style.background=pColor(p);c.append(dot,p);c.onclick=()=>{REC_F.pf=REC_F.pf===p?'':p;renderRecords()};fb.append(c)})}
     v.append(fb)}
   const list=rs.filter(r=>(REC_F.st==='all'||(REC_F.st==='fav'?favs.has(String(r.id)):stOf(r)===REC_F.st))&&(!REC_F.pf||r.platform===REC_F.pf));
@@ -2735,7 +2737,7 @@ function renderRecords(){
   groups.forEach(g=>{const t=g.list.reduce((x,r)=>x+recMoney(r),0);const h=el('div','mo-h');h.append(el('span','',/^\d{4}-\d{2}$/.test(g.k)?monthLabel(g.k)+' · '+g.list.length+'곳':g.k));if(t){h.append(el('em','',won(t)));h.style.cursor='pointer';h.onclick=()=>settleSheet(+g.k.slice(0,4),g.k)}v.append(h);
   g.list.forEach(r=>{
     const row=el('div','rec');const i=el('div');row.append(thumbEl(r.place,'th'));
-    const t=el('b','',r.name);if(r.platform)t.append(pBadge(r.platform));t.append(el('span','st'+(r.sent||r.done?' done':''),recStatus(r)));
+    const t=el('b','',r.name);if(r.platform)t.append(pBadge(r.platform));t.append(el('span','st'+(r.sent||r.done?' done':''),recStatus(r)));if(favs.has(String(r.id))){const hv=el('span','rec-fav');hv.setAttribute('aria-label','다시 가고 싶은 곳');try{hv.innerHTML=ICO_HEART}catch(e){}t.append(hv)}
     const nm=getQM(r.id).length;
     i.append(t,el('span','',[recDate(r),r.place&&r.place.category,nm?'메모 '+nm:''].filter(Boolean).join(' · ')));
     const more=el('button','ib');more.type='button';more.innerHTML=ICO.more;more.setAttribute('aria-label','메뉴');
