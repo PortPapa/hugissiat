@@ -661,6 +661,8 @@ body:not(.flow)::after{content:'';position:fixed;right:-34px;bottom:54px;width:2
 @media (prefers-reduced-motion:reduce){.fl-sway,.fl-head{animation:none!important}}
 .fchip.fheart{gap:4px;padding-left:10px}.fchip.fheart svg{width:15px;height:15px;display:block;color:#E26D8A;flex:none}.fchip.fheart.on svg{color:#fff}
 .rec-fav{display:inline-block;width:13px;height:13px;margin-left:5px;vertical-align:-1.5px;color:#E26D8A}.rec-fav svg{width:100%;height:100%;display:block}
+.pb-pv img{display:block;max-width:100%;max-height:120px;border-radius:10px;margin:8px 0 0;border:1px solid var(--line)}.pb-st{margin:6px 2px 10px;min-height:1em}
+.e-btn.pr-btn{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;margin-top:10px}.e-btn.pr-btn span{font-weight:700}.e-btn.pr-btn small{font-size:12.5px;color:var(--sub);font-weight:400;line-height:1.4;word-break:keep-all}
 </style>
 </head>
 <body>
@@ -1492,10 +1494,11 @@ function buildMD(){
   const prod=S.cat==='product';const out=['---'];
   // 체험단 정보: 기록에 없으면 갈 곳에 적어 둔 걸로 채운다 (나중에 플랫폼별로 찾기 쉽게)
   const cpf=S.f.platform||(plan&&plan.platform)||'',cbl=S.f.blog||(plan&&plan.blog)||'',cdu=S.f.due||(plan&&plan.due)||'';
+  const bn=cpf?platformBanner(cpf):{img:'',link:'',raw:''},bnRows=[['플랫폼 배너',bn.img],['배너 링크',bn.img?bn.link:''],['플랫폼 배너 코드',!bn.img&&bn.raw?bn.raw.replace(/\s+/g,' '):'']];
   if(prod){const P=PLACE||{};const ud=V('visitDate')?useDay(Date.now()):0;
-    [['제품명',biz],['브랜드',P.brand||''],['분류',P.catPath||''],['가격',P.sale&&P.price&&P.sale<P.price?won(P.sale)+' (정가 '+won(P.price)+')':won(P.sale||P.price)],['받은 날',V('visitDate')],['사용 기간',ud>0?ud+'일째':''],['체험단 플랫폼',cpf],['블로그',cbl],['후기 마감일',cdu],['상품 링크',P.placeUrl||'']]
+    [['제품명',biz],['브랜드',P.brand||''],['분류',P.catPath||''],['가격',P.sale&&P.price&&P.sale<P.price?won(P.sale)+' (정가 '+won(P.price)+')':won(P.sale||P.price)],['받은 날',V('visitDate')],['사용 기간',ud>0?ud+'일째':''],['체험단 플랫폼',cpf],...bnRows,['블로그',cbl],['후기 마감일',cdu],['상품 링크',P.placeUrl||'']]
       .forEach(([a,b])=>{if(b)out.push(a+': '+yamlQ(b))})}
-  else [['업체명',biz],['업종',(PLACE&&PLACE.category)||C.label],['지역',V('region')],['방문일시',[V('visitDate'),S.f.visitTime||''].filter(Boolean).join(' ')],['체험단 플랫폼',cpf],['블로그',cbl],['후기 마감일',cdu],['플레이스ID',PLACE?PLACE.id:'']]
+  else [['업체명',biz],['업종',(PLACE&&PLACE.category)||C.label],['지역',V('region')],['방문일시',[V('visitDate'),S.f.visitTime||''].filter(Boolean).join(' ')],['체험단 플랫폼',cpf],...bnRows,['블로그',cbl],['후기 마감일',cdu],['플레이스ID',PLACE?PLACE.id:'']]
     .forEach(([a,b])=>{if(b)out.push(`${a}: ${yamlQ(b)}`)});
   out.push('---','',`# ${biz||'(업체명)'}`,'');
   out.push('## 내 경험','');
@@ -2076,7 +2079,7 @@ function platformEditor(onDone,init){openAct(b=>{
   PCOLORS.forEach(c=>{const x=el('button','sw'+(st.color===c?' on':''));x.type='button';x.style.background=c;x.onclick=()=>{st.color=c;sw.querySelectorAll('.sw').forEach(y=>y.classList.toggle('on',y===x))};sw.append(x)});
   const save=el('button','e-btn primary','저장');save.type='button';
   save.onclick=()=>{const n=st.name.trim();if(!n){inp.focus();return}
-    const a=getPlatforms().filter(p=>p.name!==(init&&init.name)&&p.name!==n);a.push({name:n,color:st.color});setPlatforms(a);
+    const a=getPlatforms().filter(p=>p.name!==(init&&init.name)&&p.name!==n);const old=getPlatforms().find(p=>p.name===(init&&init.name))||{};a.push({...old,name:n,color:st.color});setPlatforms(a);
     if(init&&init.name!==n)setPlans(getPlans().map(p=>p.platform===init.name?{...p,platform:n}:p));
     closeAct();onDone&&onDone(n)};
   b.append(inp,el('div','e-label','색'),sw,save);setTimeout(()=>inp.focus(),250);
@@ -2502,7 +2505,8 @@ function easyCards(){
     b.append(campLine(()=>{try{renderEasyKeep()}catch(e){}}));
     if(canDrive()){const dv=el('button','e-btn drive');dv.type='button';dv.id='btnDrive';
       const uq=UPQ[curRid()];dv.append(svgIcon(),el('span','lbl',uq?'올리는 중 '+(uq.p||0)+'%':S.drive?'드라이브에 다시 저장':'드라이브에 저장'));if(uq)dv.style.setProperty('--p',(uq.p||0)+'%');dv.onclick=saveDrive;b.append(dv);
-      b.append(el('div','e-tip drive-path',drivePath().join(' / ')))}
+      b.append(el('div','e-tip drive-path',drivePath().join(' / ')));
+      if(S.drive&&S.drive.at&&PLACE)b.append(promptBtn(PLACE.id))}
     const lk=el('div','done-links');
     const e1=el('button','','자세히 수정하기');e1.type='button';e1.onclick=()=>setMode('full');
     const e3=el('button','','한눈에 보기');e3.type='button';e3.onclick=()=>openRecView();
@@ -2753,6 +2757,7 @@ function recordMenu(r){openAct(b=>{
   B('이어서 쓰기',(r.sent||r.done)?'':'primary',()=>openRecord(r,false));
   B('보내기','',()=>openRecord(r,true));
   B('캠페인 정보','',()=>campSheet(()=>renderView(),r.id,r.name));
+  {const d0=(recState(r.id)||{}).drive;if(d0&&d0.at)B('글쓰기 문장 복사','',()=>copyPrompt(r.id))}
   if(r.place)B('사진 추가','',()=>{openRecord(r,true);setTimeout(pickPhotos,400)});
   if(r.place)B('현장 메모','',()=>openQuickMemo(r.place));
   B('삭제','',async()=>{if(await askConfirm(r.name+' 기록을 지울까요?','삭제',true,'질문 답, 현장 메모, 사진이 모두 지워져요.')){deleteRecord(r.id);renderView();toast('지웠어요')}});
@@ -3039,15 +3044,36 @@ function profileSheet(){openAct(b=>{
   const dn=el('button','e-btn primary','완료');dn.type='button';dn.onclick=()=>{keep();closeAct()};b.append(dn);
 })}
 
+/* 플랫폼 배너: 플랫폼에서 받은 이미지 주소나 배너 코드(<a><img></a>)를 그대로 붙여 넣는다. 주소가 바뀌면 여기만 고친다 */
+function parseBanner(raw){raw=String(raw||'').trim();if(!raw)return {img:'',link:''};
+  const fix=u=>{u=String(u||'').replace(/&amp;/g,'&').trim();if(u.startsWith('//'))u='https:'+u;return safeUrl(u)};
+  const im=raw.match(/<img[^>]*?\ssrc\s*=\s*["']?([^"'\s>]+)/i),a=raw.match(/<a[^>]*?\shref\s*=\s*["']?([^"'\s>]+)/i);
+  let img=im?im[1]:'',link=a?a[1]:'';
+  if(!img&&!/</.test(raw)){const us=raw.match(/(?:https?:)?\/\/[^\s"'<>]+/g)||[];const pic=us.find(u=>/\.(png|jpe?g|gif|webp)(\?|$)/i.test(u));img=pic||us[0]||'';link=us.find(u=>u!==img)||''}
+  return {img:fix(img),link:fix(link)}}
+function platformBanner(name){const p=getPlatforms().find(x=>x.name===name)||{};const raw=String(p.banner||'').trim();return {...parseBanner(raw),raw}}
+function platformOne(name){const p=getPlatforms().find(x=>x.name===name);if(!p){platformSheet();return}openAct(b=>{
+  b.append(...hInfo(p.name,['플랫폼에서 받은 배너 이미지 주소나 배너 코드를 붙여 넣어 두세요.','이 플랫폼 캠페인을 드라이브에 저장하면 기록 파일 맨 위에 배너가 같이 들어가요. 블로그 글 맨 위에 넣는 용도예요.','배너 주소가 바뀌면 여기만 고치면 돼요.']));
+  b.append(el('div','e-label','배너'));
+  const ta=document.createElement('textarea');ta.rows=3;ta.className='g-text';ta.placeholder='배너 이미지 주소 또는 배너 코드 붙여 넣기';ta.value=p.banner||'';ta.autocapitalize='off';ta.spellcheck=false;
+  const pv=el('div','pb-pv'),st=el('div','e-tip pb-st');
+  const draw=()=>{const x=parseBanner(ta.value);pv.innerHTML='';
+    st.textContent=!ta.value.trim()?'':x.img?'저장됐어요'+(x.link?' · 누르면 열릴 주소도 같이 저장했어요':''):'저장됐어요 · 이미지 주소는 못 찾아서 코드 그대로 넣어요';
+    if(x.img){const im=document.createElement('img');im.alt='';im.onerror=()=>{pv.innerHTML='';st.textContent='저장됐어요 · 이미지를 불러오지 못했어요. 주소를 확인해 주세요'};im.src=x.img;pv.append(im)}};
+  ta.oninput=()=>{setPlatforms(getPlatforms().map(q=>q.name===name?{...q,banner:ta.value.trim()}:q));draw()};
+  draw();b.append(ta,pv,st);
+  const row=el('div','done-row');
+  const e1=el('button','e-btn','수정');e1.type='button';e1.onclick=()=>platformEditor(n=>{renderMe();platformOne(n||name)},getPlatforms().find(x=>x.name===name));
+  const e2=el('button','e-btn','삭제');e2.type='button';e2.onclick=async()=>{if(!(await askConfirm(p.name+' 플랫폼을 지울까요?','삭제',true,'이미 적어 둔 캠페인의 플랫폼 이름은 그대로 남아요.')))return;setPlatforms(getPlatforms().filter(q=>q.name!==name));renderMe();platformSheet()};
+  row.append(e1,e2);b.append(row);
+  const bk=el('button','more-link','‹ 플랫폼 목록');bk.type='button';bk.onclick=()=>platformSheet();b.append(bk);
+})}
 function platformSheet(){openAct(b=>{
   b.append(el('h3','','체험단 플랫폼'));
   const list=el('div','set-box');
   getPlatforms().forEach(p=>{const r=el('button','set-row');r.type='button';const d=el('i','pdot');d.style.background=p.color;
-    const l=el('span','set-l');l.append(d,p.name);r.append(l,el('span','set-v','수정'));
-    r.onclick=()=>openAct(bb=>{bb.append(el('h3','',p.name));const ch=el('div','e-choices');
-      const e1=el('button','e-btn','수정');e1.type='button';e1.onclick=()=>platformEditor(()=>{renderMe();platformSheet()},p);
-      const e2=el('button','e-btn','삭제');e2.type='button';e2.onclick=()=>{setPlatforms(getPlatforms().filter(q=>q.name!==p.name));renderMe();platformSheet()};
-      ch.append(e1,e2);bb.append(ch)});
+    const l=el('span','set-l');l.append(d,p.name);r.append(l,el('span','set-v',String(p.banner||'').trim()?'배너 있음':'배너 넣기'));
+    r.onclick=()=>platformOne(p.name);
     list.append(r)});
   const ad=el('button','set-row add');ad.type='button';ad.append(el('span','set-l','+ 플랫폼 추가'));ad.onclick=()=>platformEditor(()=>{renderMe();platformSheet()});list.append(ad);
   b.append(list);
@@ -3609,6 +3635,17 @@ function mdToHtml(md){
 }
 /* ---------- 완성한 기록 보기: 사진 + 내 경험 ---------- */
 function viewRecord(r){openRecord(r,true);setTimeout(openRecView,320)}
+/* Aside 글쓰기 스킬에 붙여 넣을 문장. 스킬은 드라이브에서 기록을 찾으니 드라이브에 저장한 기록에만 버튼을 보여 준다 */
+function writerPrompt(id){const st=recState(id)||{},f=st.f||{},pl=placeById(id)||{};const nm=String(f.biz||pl.name||'').trim();if(!nm)return '';
+  const prod=!!pl.product||st.cat==='product';let d='';if(f.visitDate&&!prod){const a=f.visitDate.split('-').map(Number);if(a[1]&&a[2])d=a[1]+'월 '+a[2]+'일 '}
+  const bl=getBlogs().length>1&&f.blog?f.blog+'에 ':'';
+  let t='후기씨앗으로 '+d+nm+(prod?' 써 본 글 ':' 다녀온 글 ')+bl+'써줘';
+  try{if(!guideCount(id))t+='. 가이드는 아래에 붙일게'}catch(e){}
+  return t}
+function copyPrompt(id){const t=writerPrompt(id);if(!t)return;
+  try{if(IS_APP&&ChdNative.copyText)ChdNative.copyText(t);else navigator.clipboard&&navigator.clipboard.writeText(t)}catch(e){}
+  undoToast('글쓰기 문장을 복사했어요',()=>{try{if(IS_APP&&ChdNative.shareText)ChdNative.shareText(t);else if(navigator.share)navigator.share({text:t}).catch(()=>{})}catch(e){}},'보내기')}
+function promptBtn(id){const b=el('button','e-btn pr-btn');b.type='button';b.append(el('span','','글쓰기 문장 복사'),el('small','','“'+writerPrompt(id)+'”'));b.onclick=()=>copyPrompt(id);return b}
 function recBody(){const md=buildMD();const i=md.indexOf('## 내 경험');const j=md.indexOf('\n## 업체 정보');return i<0?md:md.slice(i,j<0?undefined:j)}
 function openRecView(){openAct(b=>{
   b.classList.add('rv');
@@ -3625,7 +3662,7 @@ function openRecView(){openAct(b=>{
   const s=el('button','e-btn primary','보내기');s.type='button';s.onclick=()=>{closeAct();sendAll()};
   const c=el('button','e-btn','복사하기');c.type='button';c.onclick=()=>$('#btnCopy').click();
   row.append(s,c);b.append(row);
-  if(canDrive()){const dv=el('button','e-btn drive');dv.type='button';dv.append(svgIcon(),el('span','lbl',S.drive?'드라이브에 다시 저장':'드라이브에 저장'));dv.onclick=()=>{closeAct();saveDrive()};b.append(dv)}
+  if(canDrive()){const dv=el('button','e-btn drive');dv.type='button';dv.append(svgIcon(),el('span','lbl',S.drive?'드라이브에 다시 저장':'드라이브에 저장'));dv.onclick=()=>{closeAct();saveDrive()};b.append(dv);if(S.drive&&S.drive.at&&PLACE)b.append(promptBtn(PLACE.id))}
   const lk=el('div','done-links');const e1=el('button','','수정하기');e1.type='button';e1.onclick=()=>{closeAct();goStep(0)};
   const e2=el('button','','전체 MD');e2.type='button';e2.onclick=()=>openMdView();lk.append(e1,el('span','','·'),e2);b.append(lk);
 })}
