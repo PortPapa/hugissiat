@@ -654,10 +654,10 @@ body:not(.flow)::after{content:'';position:fixed;right:-34px;bottom:54px;width:2
 .due.soon{background:#fff2dc;color:#b96d08}
 /* ---------- 꽃이 살랑살랑: 왼쪽 위 아이콘, 내 정원 큰 꽃, 꽃 모음의 이번 달 ---------- */
 #tabMe svg,.gd-av svg,.fl-av svg{overflow:visible}
-#tabMe .fl-sway,.gd-av .fl-sway,.fl-c.cur .fl-sway{animation:flsway 4.6s ease-in-out infinite alternate}
-#tabMe .fl-head,.gd-av .fl-head,.fl-c.cur .fl-head{animation:flhead 4.6s ease-in-out infinite alternate}
-@keyframes flsway{from{transform:rotate(-3.4deg)}to{transform:rotate(3.4deg)}}
-@keyframes flhead{from{transform:rotate(6deg) scale(1)}50%{transform:rotate(0deg) scale(1.05)}to{transform:rotate(-6deg) scale(1)}}
+#tabMe .fl-sway,.gd-av .fl-sway,.fl-c.cur .fl-sway{animation:flsway 1.3s ease-in-out infinite alternate}
+#tabMe .fl-head,.gd-av .fl-head,.fl-c.cur .fl-head{animation:flhead 1.3s ease-in-out -.45s infinite alternate}
+@keyframes flsway{from{transform:rotate(-5deg)}to{transform:rotate(5deg)}}
+@keyframes flhead{from{transform:rotate(8deg) scale(1)}50%{transform:rotate(0deg) scale(1.06)}to{transform:rotate(-8deg) scale(1)}}
 @media (prefers-reduced-motion:reduce){.fl-sway,.fl-head{animation:none!important}}
 </style>
 </head>
