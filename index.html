@@ -2757,7 +2757,7 @@ function recordMenu(r){openAct(b=>{
   B('이어서 쓰기',(r.sent||r.done)?'':'primary',()=>openRecord(r,false));
   B('보내기','',()=>openRecord(r,true));
   B('캠페인 정보','',()=>campSheet(()=>renderView(),r.id,r.name));
-  {const d0=(recState(r.id)||{}).drive;if(d0&&d0.at)B('글쓰기 문장 복사','',()=>copyPrompt(r.id))}
+  {const d0=(recState(r.id)||{}).drive;if(d0&&d0.at)B('프롬프트 복사','',()=>copyPrompt(r.id))}
   if(r.place)B('사진 추가','',()=>{openRecord(r,true);setTimeout(pickPhotos,400)});
   if(r.place)B('현장 메모','',()=>openQuickMemo(r.place));
   B('삭제','',async()=>{if(await askConfirm(r.name+' 기록을 지울까요?','삭제',true,'질문 답, 현장 메모, 사진이 모두 지워져요.')){deleteRecord(r.id);renderView();toast('지웠어요')}});
@@ -3644,8 +3644,8 @@ function writerPrompt(id){const st=recState(id)||{},f=st.f||{},pl=placeById(id)|
   return t}
 function copyPrompt(id){const t=writerPrompt(id);if(!t)return;
   try{if(IS_APP&&ChdNative.copyText)ChdNative.copyText(t);else navigator.clipboard&&navigator.clipboard.writeText(t)}catch(e){}
-  undoToast('글쓰기 문장을 복사했어요',()=>{try{if(IS_APP&&ChdNative.shareText)ChdNative.shareText(t);else if(navigator.share)navigator.share({text:t}).catch(()=>{})}catch(e){}},'보내기')}
-function promptBtn(id){const b=el('button','e-btn pr-btn');b.type='button';b.append(el('span','','글쓰기 문장 복사'),el('small','','“'+writerPrompt(id)+'”'));b.onclick=()=>copyPrompt(id);return b}
+  undoToast('프롬프트를 복사했어요',()=>{try{if(IS_APP&&ChdNative.shareText)ChdNative.shareText(t);else if(navigator.share)navigator.share({text:t}).catch(()=>{})}catch(e){}},'보내기')}
+function promptBtn(id){const b=el('button','e-btn pr-btn');b.type='button';b.append(el('span','','프롬프트 복사'),el('small','','“'+writerPrompt(id)+'”'));b.onclick=()=>copyPrompt(id);return b}
 function recBody(){const md=buildMD();const i=md.indexOf('## 내 경험');const j=md.indexOf('\n## 업체 정보');return i<0?md:md.slice(i,j<0?undefined:j)}
 function openRecView(){openAct(b=>{
   b.classList.add('rv');
