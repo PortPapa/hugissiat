@@ -676,6 +676,28 @@ body:not(.flow)::after{content:'';position:fixed;right:-34px;bottom:54px;width:2
 .gt>i{width:12px;height:3px;border-radius:2px;background:var(--line);flex:none}.gt>i.on{background:var(--sage)}
 .gt-msg{font-size:14px;font-weight:700;color:var(--ink);text-align:center;margin:2px 0 4px;word-break:keep-all}
 @media (prefers-reduced-motion:reduce){.gt-s.next{animation:none}}
+/* ---------- 끝난 기록 카드 ---------- */
+.rc .ps-nm{margin-top:2px}
+.rc-meta{font-size:14px;color:var(--ink);margin:4px 2px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:6px}.rc-meta .won{font-weight:800}
+.rc-st{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 12px}
+.rc-st button{border:0;border-radius:14px;background:var(--card);box-shadow:var(--sh);padding:9px 8px 8px;font:inherit;text-align:left;color:var(--ink);min-width:0}.rc-st button:disabled{opacity:1}
+.rc-st b{display:flex;align-items:center;gap:5px;font-size:13px}.rc-st b i{width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-style:normal;font-weight:800;color:#fff;background:var(--line);flex:none}
+.rc-st .ok b i{background:#3f8f5e}.rc-st .wait b i{background:#e9a23b}.rc-st .wait{background:#fff7e8}
+.rc-st span{display:block;font-size:11.5px;color:var(--sub);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-main{display:flex;gap:8px;align-items:stretch}.rc-main .e-btn{margin:0;flex:1;display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;font-weight:700;min-height:54px}
+.rc-main .e-btn{padding:14px 10px;white-space:nowrap}.rc-main .rc-open{flex:0 0 40%;gap:6px}.rc-main .rc-open svg{width:18px;height:18px;flex:none}
+.rc-pt{text-align:center;margin:8px 4px 0;font-size:12.5px;word-break:keep-all}
+.rc-h{display:flex;justify-content:space-between;align-items:baseline;margin:20px 2px 6px}.rc-h b{font-size:15px}.rc-h button{border:0;background:none;color:var(--sub);font:inherit;font-size:13px;text-decoration:underline;text-underline-offset:3px;padding:0}
+.rc-exp{background:var(--card);border-radius:16px;box-shadow:var(--sh);padding:12px 14px;font-size:14px;line-height:1.6;position:relative;max-height:220px;overflow:hidden}
+.rc-exp:not(.open)::after{content:'';position:absolute;left:0;right:0;bottom:0;height:52px;background:linear-gradient(rgba(255,255,255,0),var(--card))}.rc-exp.open{max-height:none}
+.rc-exp h3,.rc-exp h4{font-size:13px;color:var(--sub);margin:10px 0 2px}.rc-exp>:first-child{margin-top:0}.rc-exp ul{margin:2px 0;padding-left:18px}.rc-exp p{margin:2px 0}
+.rc-memo{background:var(--card);border-radius:16px;box-shadow:var(--sh);padding:2px 14px}
+.rc-memo div{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}.rc-memo div:first-child{border-top:0}.rc-memo span{flex:none;font-size:12px;color:var(--sub);padding-top:2px;min-width:74px}.rc-memo div p{margin:0!important;line-height:1.5}
+.rc-ph{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -2px;padding:0 2px 2px}.rc-ph button{position:relative;flex:0 0 22%;aspect-ratio:1;border:0;padding:0;border-radius:10px;overflow:hidden;background:var(--acc-soft)}.rc-ph img{width:100%;height:100%;object-fit:cover;display:block}
+.rc-ph button.up::after{content:'✓';position:absolute;right:4px;bottom:4px;width:18px;height:18px;border-radius:50%;background:#3f8f5e;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.rc-ph .vb{position:absolute;left:4px;top:4px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-style:normal;border-radius:6px;padding:1px 5px}
+.rc-camp{margin-top:16px}
+.rc-links{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;margin:20px 0 6px;font-size:13px}.rc-links button{border:0;background:none;font:inherit;color:var(--sub);text-decoration:underline;text-underline-offset:3px;padding:4px 0}.rc-links button.del{color:#c5443c}
 </style>
 </head>
 <body>
@@ -3321,12 +3343,65 @@ function openMap(place){
   const u=place.lat?('nmap://place?lat='+place.lat+'&lng='+place.lng+'&name='+encodeURIComponent(place.name)+'&appname=com.portpapa.hugissiat'):('nmap://search?query='+encodeURIComponent(q)+'&appname=com.portpapa.hugissiat');
   if(IS_APP)location.href=u;else window.open('https://map.naver.com/p/search/'+encodeURIComponent(q),'_blank');
 }
+/* 끝난 기록 카드: 얼마였나 · 드라이브에 올라갔나 · 기록이 제대로 됐나 · 그때 뭐라고 했나를 한 화면에 */
+function recCard(b,rec,place,st){
+  st=st||{};const f=st.f||{},id=String(rec.id),d0=st.drive||{},saved=!!d0.at;
+  b.classList.add('rc');
+  let J=null;try{J=jobFor(id,true)}catch(e){}
+  const synced=!!(J&&J.synced),up=PHOTOS.filter(p=>(st.upPh||[]).includes(p.name)).length,qm=getQM(id);
+  const md=(J&&J.job&&J.job.md)||'';
+  const nm=el('div','ps-nm');nm.append(place.name);if(place.category)nm.append(el('span','ps-cat',place.category));
+  const fv=el('button','ps-fav'+(getFav().has(id)?' on':''));fv.innerHTML=ICO_HEART;fv.type='button';fv.setAttribute('aria-label','다시 가고 싶은 곳');fv.onclick=()=>{toggleFav(id,fv);fv.classList.toggle('on')};nm.append(fv);b.append(nm);
+  {const mt=el('div','rc-meta');const vd=f.visitDate?recDate({visitDate:f.visitDate})+(place.product?' 받음':' 방문'):'';if(vd)mt.append(el('span','',vd));if(f.platform)mt.append(pBadge(f.platform));
+    const mo=[+f.value?'협찬 '+won(+f.value):'',+f.fee?'원고료 '+won(+f.fee):''].filter(Boolean).join(' + ');if(mo)mt.append(el('span','won',mo));if(mt.childNodes.length)b.append(mt)}
+  /* 상태 세 칸 */
+  const sg=el('div','rc-st');const S3=(cls,t,sub,fn)=>{const x=el('button',cls);x.type='button';const h=el('b');h.append(el('i','',cls==='ok'?'✓':cls==='wait'?'!':''),t);x.append(h,el('span','',sub));if(fn)x.onclick=fn;else x.disabled=true;sg.append(x)};
+  S3('ok','기록',['사진 '+PHOTOS.length,qm.length?'메모 '+qm.length:''].filter(Boolean).join(' · '),null);
+  if(canDrive()){const dd=saved?new Date(d0.at):null,dl=dd?(dd.getMonth()+1)+'/'+dd.getDate():'';
+    if(!saved)S3('wait','드라이브','아직 안 올렸어요',()=>{closeAct();openRecord(rec,true);setTimeout(saveDrive,380)});
+    else if(!synced)S3('wait','드라이브','바뀐 내용 있어요',()=>{closeAct();openRecord(rec,true);setTimeout(saveDrive,380)});
+    else S3('ok','드라이브',dl+' 올림'+(PHOTOS.length?' · '+up+'/'+PHOTOS.length:''),null)}
+  {const pd=rec.posted&&st.postedAt?new Date(st.postedAt):null;S3(rec.posted?'ok':'','블로그',rec.posted?(pd?(pd.getMonth()+1)+'/'+pd.getDate()+' 발행':'발행함'):'아직이에요',()=>postSheet(rec))}
+  b.append(sg);
+  /* 큰 버튼: 올렸으면 프롬프트 복사 + 드라이브 폴더, 안 올렸으면 드라이브에 저장 */
+  const mn=el('div','rc-main');
+  if(!canDrive()){const s1=el('button','e-btn primary','보내기');s1.type='button';s1.onclick=()=>{closeAct();openRecord(rec,true);setTimeout(()=>sendAll(),380)};
+    const s2=el('button','e-btn','복사하기');s2.type='button';s2.onclick=()=>{closeAct();openRecord(rec,true);setTimeout(()=>$('#btnCopy').click(),380)};mn.append(s1,s2);b.append(mn)}
+  else if(saved&&synced){const pb=el('button','e-btn primary');pb.type='button';pb.textContent='프롬프트 복사';pb.onclick=()=>copyPrompt(id);mn.append(pb);
+    if(d0.url){const op=el('button','e-btn rc-open');op.type='button';op.append(svgIcon(),'드라이브 폴더');op.onclick=()=>{location.href=d0.url};mn.append(op)}
+    b.append(mn,el('div','e-tip rc-pt','“'+writerPrompt(id)+'”'))}
+  else{const dv=el('button','e-btn drive primary');dv.type='button';dv.append(svgIcon(),el('span','lbl',saved?'바뀐 내용 드라이브에 저장':driveLinked()?'드라이브에 저장':'드라이브 연결하고 저장'));dv.onclick=()=>{closeAct();openRecord(rec,true);setTimeout(saveDrive,380)};mn.append(dv);b.append(mn)}
+  /* 내 경험 */
+  {let ex=md;const i=ex.indexOf('## 내 경험'),j=ex.indexOf('\n## 업체 정보');if(i>=0)ex=ex.slice(i,j<0?undefined:j);
+    ex=ex.replace(/^## 내 경험\n*/,'').replace(/(^|\n)### 사진\n(?:- .*\n?)*\n?/,'$1').replace(/(^|\n)### (현장 메모|사용 일지)\n(?:- .*\n?)*\n?/,'$1').trim();
+    if(ex){const h=el('div','rc-h');h.append(el('b','','내 경험'));const box=el('div','rc-exp');box.innerHTML=mdToHtml(ex);
+      const tg=el('button','','전체 보기');tg.type='button';tg.onclick=()=>{const on=box.classList.toggle('open');tg.textContent=on?'접기':'전체 보기'};h.append(tg);b.append(h,box);
+      setTimeout(()=>{if(box.scrollHeight<=box.clientHeight+4){tg.remove();box.classList.add('open')}},60)}}
+  /* 현장 메모 */
+  if(qm.length){const h=el('div','rc-h');h.append(el('b','',(place.product?'사용 일지 ':'현장 메모 ')+qm.length));b.append(h);
+    const mm=el('div','rc-memo');qm.forEach(m=>{const r=el('div');r.append(el('span','',hhmm(m.t)),el('p','',m.text));mm.append(r)});b.append(mm)}
+  /* 사진 한 줄 */
+  if(PHOTOS.length){const h=el('div','rc-h');h.append(el('b','','사진 '+PHOTOS.length+'장'+(saved&&up?' · 드라이브 '+up+'장':'')));b.append(h);
+    const pr=el('div','rc-ph');PHOTOS.forEach((p,i)=>{const d=el('button',(st.upPh||[]).includes(p.name)?'up':'');d.type='button';const im=document.createElement('img');im.src=p.thumb;im.alt='';im.loading='lazy';d.append(im);if(p.video)d.append(el('i','vb','▶'));d.onclick=()=>lightbox(i);pr.append(d)});b.append(pr)}
+  /* 캠페인 정보 */
+  {const ct=campText(f,id);const bx=el('div','ps-box rc-camp');const hd=el('div','ps-bh');hd.append('캠페인 정보');const ed=el('button','',ct?'수정':'추가');ed.type='button';hd.append(ed);bx.append(hd);
+    const r=el('div','ps-row');if(ct){if(f.platform)r.append(pBadge(f.platform));r.append(el('span','',ct.replace(f.platform?f.platform+(ct===f.platform?'':' · '):'','')))}else r.append(el('span','','플랫폼 · 마감일 · 협찬 금액 · 가이드'));bx.append(r);
+    bx.onclick=()=>campSheet(()=>{renderView();const nr=getRecords().find(x=>String(x.id)===id);if(nr)placeSheet({rec:nr})},rec.id,place.name);b.append(bx)}
+  /* 작은 글씨 줄 */
+  const lk=el('div','rc-links');const L=(t,fn,cls)=>{const x=el('button',cls||'',t);x.type='button';x.onclick=fn;lk.append(x)};
+  L('수정하기',()=>{closeAct();openRecord(rec,false);setTimeout(()=>goStep(0),300)});
+  if(canDrive())L('다른 방법으로 보내기',()=>{closeAct();openRecord(rec,true);setTimeout(otherSend,420)});
+  const ad=place.product?'':(place.roadAddress||place.address);if(ad)L('주소 복사',()=>{if(IS_APP&&ChdNative.copyText)ChdNative.copyText(ad);else navigator.clipboard&&navigator.clipboard.writeText(ad);toast('주소를 복사했어요')});
+  L('기록 삭제',async()=>{if(!(await askConfirm(place.name+' 기록을 지울까요?','삭제',true,'질문 답, 현장 메모, 사진이 모두 지워져요.')))return;closeAct();localStorage.removeItem('chd-qm-'+id);deleteRecord(id);renderView();toast('지웠어요')},'del');
+  b.append(lk);
+}
 function placeSheet(o){
   const plan=o.plan||null,rec=o.rec||null;const place=(plan&&plan.place)||(rec&&rec.place);if(!place)return;
   const st=rec?recState(rec.id):recState(place.id);const done=rec&&(rec.sent||rec.done);
   if(!inFlow()){usePhotoKey(place.id);loadPhotos()}
   openAct(b=>{
     b.classList.add('psh');
+    if(done){recCard(b,rec,place,st);return}
     const ph=(place.photos||[]).slice(0,3);
     if(ph.length){const h=el('div','ps-hero n'+ph.length);ph.forEach(u=>{const im=document.createElement('img');im.src=px(u,'f300_300');im.alt='';im.referrerPolicy='no-referrer';im.onerror=()=>im.remove();h.append(im)});b.append(h)}
     const nm=el('div','ps-nm');nm.append(place.name);if(place.category)nm.append(el('span','ps-cat',place.category));
@@ -3667,9 +3742,7 @@ function viewRecord(r){openRecord(r,true);setTimeout(openRecView,320)}
 function writerPrompt(id){const st=recState(id)||{},f=st.f||{},pl=placeById(id)||{};const nm=String(f.biz||pl.name||'').trim();if(!nm)return '';
   const prod=!!pl.product||st.cat==='product';let d='';if(f.visitDate&&!prod){const a=f.visitDate.split('-').map(Number);if(a[1]&&a[2])d=a[1]+'월 '+a[2]+'일 '}
   const bl=getBlogs().length>1&&f.blog?f.blog+'에 ':'';
-  let t='후기씨앗으로 '+d+nm+(prod?' 써 본 글 ':' 다녀온 글 ')+bl+'써줘';
-  try{if(!guideCount(id))t+='. 가이드는 아래에 붙일게'}catch(e){}
-  return t}
+  return '후기씨앗으로 '+d+nm+(prod?' 써 본 글 ':' 다녀온 글 ')+bl+'써줘'}
 function copyPrompt(id){const t=writerPrompt(id);if(!t)return;
   try{if(IS_APP&&ChdNative.copyText)ChdNative.copyText(t);else navigator.clipboard&&navigator.clipboard.writeText(t)}catch(e){}
   undoToast('프롬프트를 복사했어요',()=>{try{if(IS_APP&&ChdNative.shareText)ChdNative.shareText(t);else if(navigator.share)navigator.share({text:t}).catch(()=>{})}catch(e){}},'보내기')}
