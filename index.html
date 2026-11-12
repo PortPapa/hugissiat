@@ -698,6 +698,15 @@ body:not(.flow)::after{content:'';position:fixed;right:-34px;bottom:54px;width:2
 .rc-ph .vb{position:absolute;left:4px;top:4px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-style:normal;border-radius:6px;padding:1px 5px}
 .rc-camp{margin-top:16px}
 .rc-links{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;margin:20px 0 6px;font-size:13px}.rc-links button{border:0;background:none;font:inherit;color:var(--sub);text-decoration:underline;text-underline-offset:3px;padding:4px 0}.rc-links button.del{color:#c5443c}
+/* 평가 표 */
+.rtab{display:grid;gap:7px;margin:4px 0 8px}.rtab-r{display:grid;grid-template-columns:72px auto 1fr;align-items:center;column-gap:8px}
+.rtab-k{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rtab-v{font-size:13px;font-weight:800;color:#C9921F}
+.rtab-n{grid-column:2 / -1;font-size:12.5px;color:var(--sub);line-height:1.4;margin-top:1px}
+.rs{display:inline-flex;gap:1px}.rs .st{position:relative;width:19px;height:19px;display:inline-block}
+.rs .st::before,.rs .st i::before{content:'★';position:absolute;left:0;top:0;width:19px;font-size:19px;line-height:19px;text-align:center}
+.rs .st::before{color:#E3DED3}.rs .st i{position:absolute;left:0;top:0;height:100%;width:0;overflow:hidden}.rs .st i::before{color:#F5B83D}
+.md-view .rtab,.rc-exp .rtab{margin-bottom:10px}
+.pt-tags{margin:8px 0 4px}.pt-pv{background:var(--acc-soft);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5;color:var(--ink);word-break:keep-all}.pt-warn{color:#c5443c;min-height:0;margin:6px 2px 0}
 </style>
 </head>
 <body>
@@ -1089,7 +1098,7 @@ function sections(){
     {id:'context',title:'누구랑, 왜',desc:'방문 이유와 동행, 그날의 상황. 나만 가진 이야기예요.',fields:[
       D('visitDate',visit?'방문일':'받은 날'),
       R('when',visit?'방문 시간대':'주로 쓴 때',visit?['평일 점심','평일 저녁','주말 점심','주말 저녁','오전','늦은 밤']:['평일 위주','주말 위주','매일']),
-      M('with',visit?'같이 간 사람':'같이 쓴 사람',['혼자','남편/아내','연인','아이','부모님','친구','직장 동료','반려견']),
+      M('with',visit?'같이 간 사람':'같이 쓴 사람',['혼자','남편','아내','연인','아이','부모님','친구','직장 동료','반려견']),
       T('withDetail','동행 디테일','예: 남편, 7살·5살 아들 둘 / 칠순 엄마 / 회사 동기 3명'),
       M('reason',visit?'방문 이유':'써보게 된 이유',visit?['체험단 선정','기념일','부모님 효도','여행 중','등산·나들이 후','집·회사 근처','평소 궁금했던 곳','재방문','데이트']:['체험단 선정','평소 필요했던 제품','기존 제품 교체','선물용','후기 보고 궁금']),
       A('reasonStory','이유에 얽힌 내 이야기','예: 감악산 출렁다리 다녀오는 길에 배가 고파서'),
@@ -2041,7 +2050,9 @@ $('#actBg').onclick=closeAct;
 
 /* ---------- 내 프로필 ---------- */
 function getProfile(){try{return JSON.parse(localStorage.getItem('chd-profile')||'{}')||{}}catch(e){return {}}}
-const WITH_OPTS=['혼자','남편/아내','연인','아이','부모님','친구','친구 아이','직장 동료','반려견'];
+const WITH_OPTS=['혼자','남편','아내','연인','아이','부모님','친구','친구 아이','직장 동료','반려견'];
+/* 예전에 고른 값(예: 남편/아내)도 지울 수 있게 칩 목록에 붙여 준다 */
+const withOpts=cur=>WITH_OPTS.concat((cur||[]).filter(x=>x&&!WITH_OPTS.includes(x)));
 const ME_TAGS_UNUSED=['엄마','아빠','아이 하나','아이 둘','아이 셋','직장인','프리랜서','자영업','20대','30대','40대','50대','맛집 탐방 좋아함','매운 거 못 먹음','술 좋아함','술 안 마심','다이어트 중','반려견 키움'];
 function setProfile(p){try{localStorage.setItem('chd-profile',JSON.stringify(p))}catch(e){}}
 function profileMe(p){return [...(p.meTags||[]),(p.meText||'').trim()].filter(Boolean).join(', ')||(p.me||'')}
@@ -2052,12 +2063,12 @@ function getGroups(){const p=getProfile();
   if(!p.groups&&p.with&&p.with.length){p.groups=[{id:'g'+Date.now(),with:p.with,detail:p.withDetail||''}];delete p.with;delete p.withDetail;setProfile(p)}
   return p.groups||[]}
 function setGroups(gs){const p=getProfile();p.groups=gs;delete p.with;delete p.withDetail;setProfile(p)}
-const GROUP_SUGGEST=[['혼자'],['아이'],['남편/아내','아이'],['친구'],['친구','아이'],['친구','친구 아이','아이']];
+const GROUP_SUGGEST=[['혼자'],['아이'],['남편','아이'],['아내','아이'],['친구'],['친구','아이'],['친구','친구 아이','아이']];
 const sameSet=(a,b)=>a.length===b.length&&a.every(x=>b.includes(x));
 function groupEditor(g,after){openAct(b=>{
   const st={with:[...(g&&g.with||[])],detail:g&&g.detail||'',name:g&&g.name||''};
   b.append(el('h3','',g?'조합 수정':'조합 추가'),el('div','e-label','누구랑'),
-    eChips(WITH_OPTS,t=>st.with.includes(t),t=>{const i=st.with.indexOf(t);i>=0?st.with.splice(i,1):st.with.push(t);nm.placeholder=groupName(st.with)||'이름 (선택)'}));
+    eChips(withOpts(st.with),t=>st.with.includes(t),t=>{const i=st.with.indexOf(t);i>=0?st.with.splice(i,1):st.with.push(t);nm.placeholder=groupName(st.with)||'이름 (선택)'}));
   const dt=document.createElement('input');dt.type='text';dt.value=st.detail;dt.placeholder='예: 7살 아들, 친구 딸 5살';dt.oninput=()=>st.detail=dt.value;
   const nm=document.createElement('input');nm.type='text';nm.value=st.name;nm.placeholder=groupName(st.with)||'이름 (선택)';nm.oninput=()=>st.name=nm.value;
   b.append(el('div','e-label','자세히'),dt,el('div','e-label','이름'),nm);
@@ -2401,7 +2412,7 @@ function easyCards(){
     const tg=el('button','raw-tg'+(open?' open':''),open?'직접 고르기':'+ 다른 사람과 갔어요');tg.type='button';
     tg.onclick=()=>{WITH_RAW=!open;renderEasyKeep()};b.append(tg);
     if(open){const raw=el('div','raw-box');
-      raw.append(mChips('with',WITH_OPTS));
+      raw.append(mChips('with',withOpts(cur)));
       raw.append(el('div','e-sub2','자세히'),eText(()=>S.f.withDetail,x=>S.f.withDetail=x,'예: 남편, 7살·5살 아들 둘'));
       if(cur.length&&!saved.some(g=>sameSet(cur,g.with)&&(g.detail||'')===curD)){
         const sv=el('button','mic','+ 자주 가는 조합으로 저장');sv.type='button';
@@ -2497,7 +2508,7 @@ function easyCards(){
   const w=sel('with').filter(x=>x!=='기타');
   if(!(w.length===1&&w[0]==='혼자'))cards.push({id:'react',src:'같이 간 사람',q:'같이 간 사람 반응은 어땠어요?',body:b=>{
     const food=S.cat==='food',kid=w.some(x=>/아이/.test(x)),has=x=>w.includes(x);
-    const ro=['또 오자고 함',kid?(food?'아이가 잘 먹음':'아이가 좋아함'):'',has('부모님')?'부모님이 만족하심':'',has('남편/아내')?'남편/아내가 만족함':'',has('연인')?'연인이 좋아함':'',has('친구')?'친구가 좋아함':'',has('직장 동료')?'동료들이 만족함':'',has('반려견')?'반려견도 편해함':'',food?'말없이 먹기만 함':'','사진 찍기 바빴음',food?'포장해 감':'',food?'추가 주문함':''].filter(Boolean);
+    const ro=['또 오자고 함',kid?(food?'아이가 잘 먹음':'아이가 좋아함'):'',has('부모님')?'부모님이 만족하심':'',has('남편')?'남편이 만족함':'',has('아내')?'아내가 만족함':'',has('남편/아내')?'남편/아내가 만족함':'',has('연인')?'연인이 좋아함':'',has('친구')?'친구가 좋아함':'',has('직장 동료')?'동료들이 만족함':'',has('반려견')?'반려견도 편해함':'',food?'말없이 먹기만 함':'','사진 찍기 바빴음',food?'포장해 감':'',food?'추가 주문함':''].filter(Boolean);
     b.append(mChips('react',[...ro,...mv('react').sel.filter(x=>!ro.includes(x))]));
     b.append(el('div','e-label','기억나는 장면'),eText(()=>S.f.reactStory,x=>S.f.reactStory=x,'예: 아들이 메밀전을 두 번이나 직접 부쳤어요',true));
   }});
@@ -2636,7 +2647,7 @@ function sample(){
     keywords:'춘천 닭갈비 맛집\n퇴계동 맛집',mustPhotos:m(['외관','주차장','메인 메뉴/결과물','손·인물 컷']),
     missions:m(['네이버 클립 (15초 이상 세로 영상)']),deadline:'2026-10-23',
     disclosure:r('업체로부터 제품·서비스를 제공받아 솔직하게 작성한 후기입니다'),
-    visitDate:'2026-10-16',when:r('평일 저녁'),with:m(['남편/아내','아이']),withDetail:'남편, 7살·5살 아들 둘',
+    visitDate:'2026-10-16',when:r('평일 저녁'),with:m(['남편','아이']),withDetail:'남편, 7살·5살 아들 둘',
     reason:m(['체험단 선정','여행 중']),reasonStory:'춘천 1박 여행 첫날, 비가 와서 레일바이크 취소',weather:r('비'),
     parking:r('전용 주차장 넉넉'),crowd:r('적당함'),crowdStory:'6시엔 여유, 7시쯤 대기 생김',
     staff:m(['직접 구워줌/조리해줌']),staffStory:'아이 있으면 간장 먼저 굽고 매운 건 나중에 올리라고 알려주심',
@@ -3075,7 +3086,7 @@ function renderMe(){
   const dOn=driveLinked();
   const rpg=el('div','set-g');rpg.append(el('div','set-h','내 기록'),reportBox());
   v.append(hero,yr,rpg,
-    group('글쓰기 설정',[row('내 블로그',getBlogs().length?getBlogs().map(x=>x.name).join(', '):'하나만 써요',()=>blogSheet()),row('체험단 플랫폼',dots,()=>platformSheet()),row('자주 가는 조합',gsN.length?gsN.slice(0,2).map(g=>g.name||groupName(g.with)).join(', ')+(gsN.length>2?' 외 '+(gsN.length-2):''):'저장해 두기',()=>profileSheet()),row('알림','다녀온 뒤 '+st.remindH+'시간 · 마감 '+(st.dueOff?'끔':'3일·1일 전'),()=>remindSheet())]),
+    group('글쓰기 설정',[row('내 블로그',getBlogs().length?getBlogs().map(x=>x.name).join(', '):'하나만 써요',()=>blogSheet()),row('체험단 플랫폼',dots,()=>platformSheet()),row('프롬프트',getSettings().promptTpl?'내 문구':'기본 문구',()=>promptSheet()),row('자주 가는 조합',gsN.length?gsN.slice(0,2).map(g=>g.name||groupName(g.with)).join(', ')+(gsN.length>2?' 외 '+(gsN.length-2):''):'저장해 두기',()=>profileSheet()),row('알림','다녀온 뒤 '+st.remindH+'시간 · 마감 '+(st.dueOff?'끔':'3일·1일 전'),()=>remindSheet())]),
     canDrive()?group('저장·공유',[row('구글 드라이브',dOn?'연결됨':'연결 안 됨',()=>driveSheet(),{cls:dOn?'on':''}),dOn?row('전체 동기화','바뀐 것·빠진 사진 맞추기',()=>syncAll()):null,dOn&&freeOk()?row('저장 공간 정리','드라이브에 올라간 사진 비우기',()=>storageSheet()):null,shareOk()?row('기록 공유',shareState(),()=>shareSheet()):null,dOn?row('백업·복원',lastBackup()?new Date(lastBackup()).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 백업':'백업 전',()=>backupSheet()):null]):'',
     group('정보',[row('사용법','',()=>document.body.classList.add('sheet')),row('의견 보내기','',()=>feedback()),row('디스코드 커뮤니티','사용법·문의',()=>openCommunity()),IS_APP?row('앱 평가하기','',()=>rateApp()):null,row('개인정보처리방침','',()=>privacySheet()),ver?row('버전',ver,null,{noChev:true,cls:'static'}):null]),
     group('',[row('모든 데이터 지우기','',()=>deleteAllSheet(),{cls:'danger'})])
@@ -3343,6 +3354,15 @@ function openMap(place){
   const u=place.lat?('nmap://place?lat='+place.lat+'&lng='+place.lng+'&name='+encodeURIComponent(place.name)+'&appname=com.portpapa.hugissiat'):('nmap://search?query='+encodeURIComponent(q)+'&appname=com.portpapa.hugissiat');
   if(IS_APP)location.href=u;else window.open('https://map.naver.com/p/search/'+encodeURIComponent(q),'_blank');
 }
+/* 평가를 표로: 항목 이름 · 별 다섯 개(반 별까지 색칠) · 점수가 한 줄에 같은 위치로 정렬된다 */
+function rateTable(rate){const rows=Object.entries(rate||{}).map(([k,r])=>[k,r,r&&(r.p||(r.s?r.s*2:0))]).filter(x=>x[2]);if(!rows.length)return null;
+  const t=el('div','rtab');rows.forEach(([k,r,p])=>{const row=el('div','rtab-r');const sv=el('span','rs');
+    for(let i=0;i<5;i++){const s1=el('span','st');const f=el('i');f.style.width=Math.max(0,Math.min(2,p-i*2))*50+'%';s1.append(f);sv.append(s1)}
+    sv.setAttribute('aria-label',k+' '+(p/2)+'점');
+    row.append(el('b','rtab-k',k),sv,el('span','rtab-v',String(p/2)));
+    const note=[...(r.c||[]),(r.t||'').trim()].filter(Boolean).join(', ');if(note)row.append(el('div','rtab-n',note));
+    t.append(row)});return t}
+const stripRate=md=>md.replace(/(^|\n)### 평가\n(?:- .*\n?)*\n?/,'$1');
 /* 끝난 기록 카드: 얼마였나 · 드라이브에 올라갔나 · 기록이 제대로 됐나 · 그때 뭐라고 했나를 한 화면에 */
 function recCard(b,rec,place,st){
   st=st||{};const f=st.f||{},id=String(rec.id),d0=st.drive||{},saved=!!d0.at;
@@ -3373,8 +3393,9 @@ function recCard(b,rec,place,st){
   else{const dv=el('button','e-btn drive primary');dv.type='button';dv.append(svgIcon(),el('span','lbl',saved?'바뀐 내용 드라이브에 저장':driveLinked()?'드라이브에 저장':'드라이브 연결하고 저장'));dv.onclick=()=>{closeAct();openRecord(rec,true);setTimeout(saveDrive,380)};mn.append(dv);b.append(mn)}
   /* 내 경험 */
   {let ex=md;const i=ex.indexOf('## 내 경험'),j=ex.indexOf('\n## 업체 정보');if(i>=0)ex=ex.slice(i,j<0?undefined:j);
-    ex=ex.replace(/^## 내 경험\n*/,'').replace(/(^|\n)### 사진\n(?:- .*\n?)*\n?/,'$1').replace(/(^|\n)### (현장 메모|사용 일지)\n(?:- .*\n?)*\n?/,'$1').trim();
-    if(ex){const h=el('div','rc-h');h.append(el('b','','내 경험'));const box=el('div','rc-exp');box.innerHTML=mdToHtml(ex);
+    ex=stripRate(ex.replace(/^## 내 경험\n*/,'')).replace(/(^|\n)### 사진\n(?:- .*\n?)*\n?/,'$1').replace(/(^|\n)### (현장 메모|사용 일지)\n(?:- .*\n?)*\n?/,'$1').trim();
+    const rtb=rateTable(st.rate);
+    if(ex||rtb){const h=el('div','rc-h');h.append(el('b','','내 경험'));const box=el('div','rc-exp');if(rtb){box.append(el('h4','','평가'),rtb)}if(ex)box.insertAdjacentHTML('beforeend',mdToHtml(ex));
       const tg=el('button','','전체 보기');tg.type='button';tg.onclick=()=>{const on=box.classList.toggle('open');tg.textContent=on?'접기':'전체 보기'};h.append(tg);b.append(h,box);
       setTimeout(()=>{if(box.scrollHeight<=box.clientHeight+4){tg.remove();box.classList.add('open')}},60)}}
   /* 현장 메모 */
@@ -3739,10 +3760,26 @@ function mdToHtml(md){
 /* ---------- 완성한 기록 보기: 사진 + 내 경험 ---------- */
 function viewRecord(r){openRecord(r,true);setTimeout(openRecView,320)}
 /* Aside 글쓰기 스킬에 붙여 넣을 문장. 스킬은 드라이브에서 기록을 찾으니 드라이브에 저장한 기록에만 버튼을 보여 준다 */
-function writerPrompt(id){const st=recState(id)||{},f=st.f||{},pl=placeById(id)||{};const nm=String(f.biz||pl.name||'').trim();if(!nm)return '';
-  const prod=!!pl.product||st.cat==='product';let d='';if(f.visitDate&&!prod){const a=f.visitDate.split('-').map(Number);if(a[1]&&a[2])d=a[1]+'월 '+a[2]+'일 '}
-  const bl=getBlogs().length>1&&f.blog?f.blog+'에 ':'';
-  return '후기씨앗으로 '+d+nm+(prod?' 써 본 글 ':' 다녀온 글 ')+bl+'써줘'}
+/* 프롬프트 문구는 내 정원 > 글쓰기 설정 > 프롬프트에서 바꿀 수 있다. {날짜} {이름} {다녀온} {블로그} 자리에 기록 내용이 들어간다 */
+const PROMPT_DEF='후기씨앗으로 {날짜} {이름} {다녀온} 글 {블로그} 써줘';
+function promptTpl(){const t=String(getSettings().promptTpl||'').trim();return t||PROMPT_DEF}
+function fillPrompt(tpl,v){return tpl.replace(/\{날짜\}/g,v.d).replace(/\{이름\}/g,v.nm).replace(/\{다녀온\}/g,v.went).replace(/\{블로그\}/g,v.bl).replace(/[ \t]{2,}/g,' ').replace(/ ([.,!?])/g,'$1').trim()}
+function promptVars(id){const st=recState(id)||{},f=st.f||{},pl=placeById(id)||{};const nm=String(f.biz||pl.name||'').trim();if(!nm)return null;
+  const prod=!!pl.product||st.cat==='product';let d='';if(f.visitDate&&!prod){const a=f.visitDate.split('-').map(Number);if(a[1]&&a[2])d=a[1]+'월 '+a[2]+'일'}
+  return {nm,d,went:prod?'써 본':'다녀온',bl:getBlogs().length>1&&f.blog?f.blog+'에':''}}
+function writerPrompt(id){const v=promptVars(id);return v?fillPrompt(promptTpl(),v):''}
+function promptSheet(){openAct(b=>{
+  b.append(...hInfo('프롬프트 문구',['기록 카드와 완성 화면의 "프롬프트 복사"로 복사되는 문장이에요.','{날짜} {이름} {다녀온} {블로그} 자리에 기록 내용이 들어가요. {다녀온}은 제품이면 "써 본"으로 바뀌고, {블로그}는 블로그가 둘 이상일 때만 들어가요.','Aside 글쓰기 스킬은 "후기씨앗"이라는 말을 보고 움직여요. 문장에 "후기씨앗"은 남겨 두세요.']));
+  const ta=document.createElement('textarea');ta.rows=3;ta.className='g-text';ta.value=promptTpl();
+  const tags=el('div','chips pt-tags');['{날짜}','{이름}','{다녀온}','{블로그}'].forEach(t=>{const c=el('button','chip',t);c.type='button';c.onclick=()=>{const a=ta.selectionStart??ta.value.length,e=ta.selectionEnd??a;ta.value=ta.value.slice(0,a)+t+ta.value.slice(e);ta.focus();ta.selectionStart=ta.selectionEnd=a+t.length;ta.oninput()};tags.append(c)});
+  const pv=el('div','pt-pv'),warn=el('div','e-tip pt-warn');
+  const sample=getRecords().filter(r=>!String(r.id).startsWith('_')&&(r.sent||r.done)).sort((x,y)=>(y.updated||0)-(x.updated||0))[0];
+  const sv=(sample&&promptVars(sample.id))||{nm:'루미 네일',d:'11월 10일',went:'다녀온',bl:''};
+  ta.oninput=()=>{const v=ta.value.trim();setSettings({promptTpl:v&&v!==PROMPT_DEF?v:''});pv.textContent='“'+fillPrompt(v||PROMPT_DEF,sv)+'”';warn.textContent=/후기씨앗/.test(v||PROMPT_DEF)?'':'"후기씨앗"이 빠지면 스킬이 안 움직일 수 있어요'};
+  ta.oninput();
+  const rs=el('button','more-link','기본 문구로 되돌리기');rs.type='button';rs.onclick=()=>{ta.value=PROMPT_DEF;ta.oninput();toast('기본 문구로 되돌렸어요')};
+  b.append(ta,tags,el('div','e-label','미리 보기'+(sample?' · '+sv.nm:'')),pv,warn,rs);
+})}
 function copyPrompt(id){const t=writerPrompt(id);if(!t)return;
   try{if(IS_APP&&ChdNative.copyText)ChdNative.copyText(t);else navigator.clipboard&&navigator.clipboard.writeText(t)}catch(e){}
   undoToast('프롬프트를 복사했어요',()=>{try{if(IS_APP&&ChdNative.shareText)ChdNative.shareText(t);else if(navigator.share)navigator.share({text:t}).catch(()=>{})}catch(e){}},'보내기')}
@@ -3764,7 +3801,7 @@ function openRecView(){openAct(b=>{
     if(PHOTOS.length>4)b.append(el('div','rv-cnt','사진 '+PHOTOS.length+'장 · 옆으로 밀어 보기'))}
   else{const ad=el('button','e-btn','+ 사진 넣기');ad.type='button';ad.onclick=()=>{closeAct();pickPhotos()};b.append(ad)}
   const qm=PLACE?getQM(PLACE.id):[];
-  const v=el('div','md-view');v.innerHTML=mdToHtml(recBody().replace(/^## 내 경험\n*/,'').replace(/(^|\n)### 사진\n(?:- .*\n?)*\n?/,'$1'));b.append(v);
+  const v=el('div','md-view');{const rtb=rateTable(S.rate);if(rtb)v.append(el('h4','','평가'),rtb);v.insertAdjacentHTML('beforeend',mdToHtml(stripRate(recBody().replace(/^## 내 경험\n*/,'').replace(/(^|\n)### 사진\n(?:- .*\n?)*\n?/,'$1'))))}b.append(v);
   const row=el('div','done-row');
   const s=el('button','e-btn primary','보내기');s.type='button';s.onclick=()=>{closeAct();sendAll()};
   const c=el('button','e-btn','복사하기');c.type='button';c.onclick=()=>$('#btnCopy').click();
