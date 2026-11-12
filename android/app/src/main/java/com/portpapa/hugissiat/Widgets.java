@@ -14,6 +14,8 @@ import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.view.View;
 import android.os.Bundle;
+import android.graphics.BitmapFactory;
+import android.util.Base64;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -75,6 +77,8 @@ public final class Widgets {
     static RemoteViews nextPlan(Context c) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_plans);
         JSONObject d = data(c);
+        JSONObject raw0 = d.optJSONObject("raw");
+        if (raw0 != null) { try { d = new JSONObject(d.toString()); d.put("fixed", fixedRaw(raw0)); d.put("tbd", tbdRaw(raw0)); } catch (Exception e) {} }
         JSONArray tb = d.optJSONArray("tbd");
         Calendar now = Calendar.getInstance();
         v.setImageViewBitmap(R.id.w_title, text(c, now.get(Calendar.YEAR) + "년 " + (now.get(Calendar.MONTH) + 1) + "월", 0xFF2E3A2D, true));
@@ -136,6 +140,7 @@ public final class Widgets {
             if (o == null || !o.optString("d").startsWith(prefix)) continue;
             int day = Integer.parseInt(o.optString("d").substring(8, 10));
             String k = o.optString("k", "v");
+            if ("v".equals(k) && day < today) k = "done"; // 지난 방문은 그날그날 회색으로
             int type = "due".equals(k) ? 2 : "done".equals(k) ? 1 : 0;
             marks.computeIfAbsent(day, x -> new ArrayList<>()).add(new int[]{type, color(o.optString("c"), acc)});
         }
@@ -214,10 +219,16 @@ public final class Widgets {
     static boolean tall(AppWidgetManager m, int id) {
         try { Bundle o = m.getAppWidgetOptions(id); return o.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT) >= 230; } catch (Exception e) { return false; }
     }
-    static boolean hot(String s) { return s.contains("D-1") || s.contains("D-2") || s.contains("오늘") || s.contains("지남"); }
+    static boolean hot(String s) { return s.contains("D-1") || s.contains("오늘") || s.contains("지남"); }
 
     /* ---------- ① 오늘 ---------- */
     static RemoteViews today(Context c) {
+        JSONObject raw = data(c).optJSONObject("raw");
+        if (raw != null) { try { return todayRaw(c, raw); } catch (Exception e) {} }
+        return todayOld(c);
+    }
+
+    static RemoteViews todayOld(Context c) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_today);
         JSONObject d = data(c);
         JSONArray td = d.optJSONArray("today");
@@ -270,6 +281,12 @@ public final class Widgets {
 
     /* ---------- ② 할 일 ---------- */
     static RemoteViews todo(Context c) {
+        JSONObject raw = data(c).optJSONObject("raw");
+        if (raw != null) { try { return todoRaw(c, raw); } catch (Exception e) {} }
+        return todoOld(c);
+    }
+
+    static RemoteViews todoOld(Context c) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_card);
         JSONObject d = data(c);
         v.setImageViewBitmap(R.id.w_img, todoImg(c, d));
@@ -317,7 +334,9 @@ public final class Widgets {
     /* ---------- ③ 일정: 기본은 이번 주, 세로로 늘리면 이번 달 달력 ---------- */
     static RemoteViews week(Context c) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_card);
-        v.setImageViewBitmap(R.id.w_img, weekImg(c, data(c)));
+        JSONObject d = data(c), raw = d.optJSONObject("raw");
+        if (raw != null) { try { d = new JSONObject(d.toString()); d.put("week", weekRaw(raw)); d.put("wom", womNow()); } catch (Exception e) {} }
+        v.setImageViewBitmap(R.id.w_img, weekImg(c, d));
         v.setOnClickPendingIntent(R.id.w_img, open(c, "tab:plans", 51));
         v.setOnClickPendingIntent(R.id.w_root, open(c, "tab:plans", 52));
         return v;
@@ -366,6 +385,217 @@ public final class Widgets {
         if (wk.length() > 4) { Paint m = pt(c, false, 24, SUB); String tx = "+" + (wk.length() - 4); textV(cv, m, tx, W - 4 - m.measureText(tx), 318); }
         return bm;
     }
+
+    /* ================= 0.9.24: 날짜는 위젯이 그릴 때마다 오늘 기준으로 계산 ================= */
+    static final int RED_BG = 0xFFFDECEA, WARN = 0xFFB96D08, WARN_BG = 0xFFFFF6E3;
+
+    static long dayStart(long ms) { Calendar k = Calendar.getInstance(); k.setTimeInMillis(ms); k.set(Calendar.HOUR_OF_DAY, 0); k.set(Calendar.MINUTE, 0); k.set(Calendar.SECOND, 0); k.set(Calendar.MILLISECOND, 0); return k.getTimeInMillis(); }
+    static long dueMs(String due) {
+        try { String[] a = due.split("-"); Calendar k = Calendar.getInstance(); k.set(Integer.parseInt(a[0]), Integer.parseInt(a[1]) - 1, Integer.parseInt(a[2]), 0, 0, 0); k.set(Calendar.MILLISECOND, 0); return k.getTimeInMillis(); }
+        catch (Exception e) { return -1; }
+    }
+    /** 마감까지 남은 날 (오늘 0, 내일 1, 지났으면 음수). 마감이 없으면 999 */
+    static int dday(String due) { if (due == null || due.isEmpty()) return 999; long m = dueMs(due); if (m < 0) return 999; return Math.round((m - dayStart(System.currentTimeMillis())) / 86400000f); }
+    static String ddTxt(int n) { return n == 999 ? "" : n < 0 ? "마감 지남" : n == 0 ? "마감 오늘" : "마감 D-" + n; }
+    static String hm(long ms) { Calendar k = Calendar.getInstance(); k.setTimeInMillis(ms); return String.format(Locale.ROOT, "%02d:%02d", k.get(Calendar.HOUR_OF_DAY), k.get(Calendar.MINUTE)); }
+    static String md(long ms) { Calendar k = Calendar.getInstance(); k.setTimeInMillis(ms); return (k.get(Calendar.MONTH) + 1) + "/" + k.get(Calendar.DAY_OF_MONTH) + "(" + WD[k.get(Calendar.DAY_OF_WEEK) - 1] + ")"; }
+    static int womNow() { Calendar k = Calendar.getInstance(); Calendar f = (Calendar) k.clone(); f.set(Calendar.DAY_OF_MONTH, 1); return (k.get(Calendar.DAY_OF_MONTH) + f.get(Calendar.DAY_OF_WEEK) - 1 + 6) / 7; }
+
+    /** 할 일 하나: 갈 곳(visit/date) 또는 기록(write/post) */
+    static final class It { String id = "", name = "", kind = "", due = "", pf = ""; long when; boolean noTime, prod, rec; int c = SAGE; int n() { return dday(due); } }
+    static List<It> items(JSONObject raw) {
+        List<It> out = new ArrayList<>();
+        JSONArray ps = raw.optJSONArray("plans");
+        if (ps != null) for (int i = 0; i < ps.length(); i++) { JSONObject o = ps.optJSONObject(i); if (o == null) continue; It t = new It();
+            t.id = o.optString("id"); t.name = o.optString("name"); t.when = o.optLong("when"); t.noTime = o.optBoolean("noTime"); t.due = o.optString("due"); t.pf = o.optString("pf"); t.prod = o.optBoolean("prod"); t.c = color(o.optString("c"), SAGE);
+            t.kind = t.when > 0 ? "visit" : "date"; out.add(t); }
+        JSONArray rs = raw.optJSONArray("recs");
+        if (rs != null) for (int i = 0; i < rs.length(); i++) { JSONObject o = rs.optJSONObject(i); if (o == null) continue; It t = new It();
+            t.id = o.optString("id"); t.name = o.optString("name"); t.kind = o.optString("kind", "write"); t.due = o.optString("due"); t.pf = o.optString("pf"); t.prod = o.optBoolean("prod"); t.rec = true; out.add(t); }
+        return out;
+    }
+    static int kindOrd(String k) { return "post".equals(k) ? 0 : "write".equals(k) ? 1 : "visit".equals(k) ? 2 : 3; }
+    /** 앱 홈과 같은 순서: 마감 가까운 순, 마감 없으면 올리기 > 쓰기 > 방문 > 날짜 */
+    static List<It> sorted(JSONObject raw) {
+        List<It> l = items(raw);
+        l.sort((a, b) -> { int x = Integer.compare(a.n(), b.n()); if (x != 0) return x; x = Integer.compare(kindOrd(a.kind), kindOrd(b.kind)); if (x != 0) return x; return Long.compare(a.when == 0 ? Long.MAX_VALUE : a.when, b.when == 0 ? Long.MAX_VALUE : b.when); });
+        return l;
+    }
+    static String subOf(It t) {
+        if ("visit".equals(t.kind)) return md(t.when) + (t.prod ? " 도착 예정" : " 방문");
+        if ("date".equals(t.kind)) return t.prod ? "배송 기다리는 중" : "방문 날짜를 정해주세요";
+        if ("write".equals(t.kind)) return "기록 쓰는 중";
+        return "기록 완성 · 블로그에 올리면 끝";
+    }
+    static String act(It t) { return (t.rec ? "rec:" : "plan:") + t.id; }
+    static int lv(int n) { return n <= 1 ? 2 : n <= 3 ? 1 : 0; }
+
+    static Bitmap flower(JSONObject raw) {
+        try { JSONObject g = raw.optJSONObject("grow"); if (g == null) return null; String b = g.optString("png"); if (b.isEmpty()) return null; byte[] x = Base64.decode(b, Base64.DEFAULT); return BitmapFactory.decodeByteArray(x, 0, x.length); }
+        catch (Exception e) { return null; }
+    }
+
+    /* ---------- ① 오늘: 오늘 방문 + 오늘·내일 마감 ---------- */
+    static RemoteViews todayRaw(Context c, JSONObject raw) {
+        RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_today);
+        long t0 = dayStart(System.currentTimeMillis()), t1 = t0 + 86400000L;
+        List<It> all = items(raw), visits = new ArrayList<>(), dues = new ArrayList<>();
+        for (It t : all) if ("visit".equals(t.kind) && t.when >= t0 && t.when < t1) visits.add(t);
+        visits.sort((a, b) -> Long.compare(a.when, b.when));
+        for (It t : all) { int n = t.n(); if (n <= 1 && n != 999 && !visits.contains(t)) dues.add(t); }
+        dues.sort((a, b) -> Integer.compare(a.n(), b.n()));
+        It nx = null; for (It t : all) if ("visit".equals(t.kind) && t.when >= t1 && (nx == null || t.when < nx.when)) nx = t;
+        v.setImageViewBitmap(R.id.w_img, todayImgRaw(c, visits, dues, nx));
+        v.setImageViewBitmap(R.id.w_btn1, text(c, "현장 메모", INK, true));
+        if (!visits.isEmpty()) {
+            It f = visits.get(0);
+            v.setImageViewBitmap(R.id.w_btn2, text(c, f.prod ? "받았어요" : "다녀왔어요", 0xFFFFFFFF, true));
+            v.setOnClickPendingIntent(R.id.w_btn1, open(c, "memo:" + f.id, 31));
+            v.setOnClickPendingIntent(R.id.w_btn2, open(c, "visit:" + f.id, 32));
+            v.setOnClickPendingIntent(R.id.w_img, open(c, "plan:" + f.id, 33));
+        } else if (!dues.isEmpty()) {
+            It f = dues.get(0);
+            v.setImageViewBitmap(R.id.w_btn2, text(c, f.rec ? "기록 열기" : "일정 보기", 0xFFFFFFFF, true));
+            v.setOnClickPendingIntent(R.id.w_btn1, open(c, "memo:", 31));
+            v.setOnClickPendingIntent(R.id.w_btn2, open(c, act(f), 32));
+            v.setOnClickPendingIntent(R.id.w_img, open(c, act(f), 33));
+        } else {
+            v.setImageViewBitmap(R.id.w_btn2, text(c, "일정 추가", 0xFFFFFFFF, true));
+            v.setOnClickPendingIntent(R.id.w_btn1, open(c, "memo:", 31));
+            v.setOnClickPendingIntent(R.id.w_btn2, open(c, "addplan", 32));
+            v.setOnClickPendingIntent(R.id.w_img, open(c, "tab:plans", 33));
+        }
+        v.setOnClickPendingIntent(R.id.w_root, open(c, "tab:home", 34));
+        return v;
+    }
+
+    static Bitmap todayImgRaw(Context c, List<It> visits, List<It> dues, It nx) {
+        int W = 760, H = 230;
+        Bitmap bm = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888); Canvas cv = new Canvas(bm);
+        Calendar now = Calendar.getInstance();
+        textV(cv, pt(c, true, 30, SAGE_D), "오늘 · " + (now.get(Calendar.MONTH) + 1) + "/" + now.get(Calendar.DAY_OF_MONTH) + " (" + WD[now.get(Calendar.DAY_OF_WEEK) - 1] + ")", 4, 26);
+        It f = !visits.isEmpty() ? visits.get(0) : !dues.isEmpty() ? dues.get(0) : null;
+        int more = visits.size() + dues.size() - 1;
+        if (f != null) {
+            boolean isDue = visits.isEmpty();
+            String chipTx = isDue ? (f.n() < 0 ? "지남" : f.n() == 0 ? "오늘 마감" : "내일 마감") : (f.noTime ? "종일" : hm(f.when));
+            float x = 4 + chip(cv, c, chipTx, 4, 98, 32, isDue ? RED : SAGE_D, isDue ? RED_BG : SAGE_S) + 16;
+            Paint big = pt(c, true, 56, 0xFF1F1F1F);
+            textV(cv, big, fit(big, f.name, W - x - (more > 0 ? 130 : 8)), x, 98);
+            if (more > 0) chip(cv, c, "외 " + more + "곳", W - 118, 98, 26, 0xFF9C5A70, 0xFFF6E2E9);
+            String sub = isDue ? (f.pf.isEmpty() ? "" : f.pf + " · ") + subOf(f) : f.pf + (f.n() != 999 ? (f.pf.isEmpty() ? "" : " · ") + ddTxt(f.n()) : "");
+            if (!sub.isEmpty()) { Paint s = pt(c, false, 31, isDue || f.n() <= 1 ? RED : f.n() <= 3 ? WARN : SUB); textV(cv, s, fit(s, sub, W - 8), 4, 156); }
+        } else {
+            textV(cv, pt(c, true, 46, 0xFF1F1F1F), "오늘은 일정이 없어요", 4, 98);
+        }
+        if (!visits.isEmpty() && !dues.isEmpty()) {
+            It d0 = dues.get(0); Paint s = pt(c, true, 28, RED);
+            textV(cv, s, fit(s, (d0.n() < 0 ? "마감 지남  " : d0.n() == 0 ? "오늘 마감  " : "내일 마감  ") + d0.name + (dues.size() > 1 ? " 외 " + (dues.size() - 1) : ""), W - 8), 4, 208);
+        } else if (nx != null) { Paint s = pt(c, false, 28, SUB); textV(cv, s, fit(s, "다음  " + md(nx.when) + "  " + nx.name, W - 8), 4, 208); }
+        return bm;
+    }
+
+    /* ---------- ② 할 일: 가장 급한 일 + 단계별 숫자 + 이번 달 꽃, 줄마다 누르면 그 기록으로 ---------- */
+    static RemoteViews todoRaw(Context c, JSONObject raw) {
+        RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_todo);
+        List<It> l = sorted(raw);
+        It top = l.isEmpty() ? null : l.get(0);
+        v.setImageViewBitmap(R.id.w_img, todoTopImg(c, raw, l, top));
+        v.setOnClickPendingIntent(R.id.w_img, top == null ? open(c, "tab:home", 41) : open(c, act(top), 41));
+        int[] rows = {R.id.w_row1, R.id.w_row2};
+        for (int i = 0; i < rows.length; i++) {
+            It t = l.size() > i + 1 ? l.get(i + 1) : null;
+            if (t == null) { v.setViewVisibility(rows[i], View.GONE); continue; }
+            v.setViewVisibility(rows[i], View.VISIBLE);
+            v.setImageViewBitmap(rows[i], todoRowImg(c, t));
+            v.setOnClickPendingIntent(rows[i], open(c, act(t), 43 + i));
+        }
+        v.setOnClickPendingIntent(R.id.w_root, open(c, "tab:home", 42));
+        return v;
+    }
+
+    static Bitmap todoTopImg(Context c, JSONObject raw, List<It> l, It top) {
+        int W = 760, H = 216;
+        Bitmap bm = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888); Canvas cv = new Canvas(bm);
+        textV(cv, pt(c, true, 32, INK), "할 일", 4, 24);
+        // 오른쪽 위: 이번 달 새싹과 발행 수
+        JSONObject g = raw.optJSONObject("grow"); Bitmap fl = flower(raw);
+        float rx = W - 4;
+        if (fl != null) { android.graphics.RectF dst = new android.graphics.RectF(rx - 52, -2, rx, 50); cv.drawBitmap(fl, null, dst, new Paint(Paint.FILTER_BITMAP_FLAG)); rx -= 58; }
+        if (g != null) { String gt = g.optInt("st") >= 4 ? "꽃이 폈어요" : g.optInt("n") + "/" + g.optInt("N", 4) + "편"; Paint gp = pt(c, true, 26, SAGE_D); textV(cv, gp, gt, rx - gp.measureText(gt), 24); }
+        // 가장 급한 일 카드
+        float y0 = 52, y1 = 152;
+        int level = top == null ? 0 : lv(top.n());
+        Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG); bg.setColor(level == 2 ? RED_BG : level == 1 ? WARN_BG : 0xFFFFFFFF);
+        cv.drawRoundRect(4, y0, W - 4, y1, 26, 26, bg);
+        if (level == 0) { bg.setStyle(Paint.Style.STROKE); bg.setStrokeWidth(2.5f); bg.setColor(LINE); cv.drawRoundRect(4, y0, W - 4, y1, 26, 26, bg); }
+        if (top == null) {
+            textV(cv, pt(c, true, 36, SUB), "할 일이 없어요", 30, (y0 + y1) / 2);
+        } else {
+            int n = top.n();
+            String lab = n == 999 ? "다음 할 일" : n < 0 ? "마감 지남 · 지금 바로" : n == 0 ? "비상 · 오늘 마감" : n == 1 ? "비상 · 내일 마감" : n <= 3 ? "곧 마감 · D-" + n : "다음 할 일 · D-" + n;
+            textV(cv, pt(c, true, 24, level == 2 ? RED : level == 1 ? WARN : SUB), lab, 30, y0 + 26);
+            Paint nm = pt(c, true, 38, 0xFF1F1F1F); textV(cv, nm, fit(nm, top.name, W - 60), 30, y0 + 58);
+            Paint sb = pt(c, false, 24, SUB); textV(cv, sb, fit(sb, (top.pf.isEmpty() ? "" : top.pf + " · ") + subOf(top), W - 60), 30, y0 + 86);
+        }
+        // 단계별 숫자: 날짜 정하기 · 방문하기 · 기록 쓰기 · 블로그 올리기
+        String[] ks = {"date", "visit", "write", "post"}, labs = {"날짜 정하기", "방문하기", "기록 쓰기", "블로그 올리기"};
+        float cw = (W - 8) / 4f;
+        for (int i = 0; i < 4; i++) {
+            int cnt = 0, mn = 999; for (It t : l) if (ks[i].equals(t.kind)) { cnt++; mn = Math.min(mn, t.n()); }
+            int lvl = cnt == 0 ? -1 : lv(mn);
+            Paint np = pt(c, true, 30, cnt == 0 ? 0xFFBDB8B0 : lvl == 2 ? RED : lvl == 1 ? WARN : INK);
+            Paint lp = pt(c, false, 21, SUB);
+            String ns = String.valueOf(cnt); float w = np.measureText(ns) + 8 + lp.measureText(labs[i]);
+            float x = 4 + cw * i + (cw - w) / 2;
+            textV(cv, np, ns, x, 192); textV(cv, lp, labs[i], x + np.measureText(ns) + 8, 193);
+        }
+        return bm;
+    }
+
+    static Bitmap todoRowImg(Context c, It t) {
+        int W = 760, H = 58;
+        Bitmap bm = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888); Canvas cv = new Canvas(bm);
+        line(cv, 4, 2, W - 4);
+        float cy = H / 2f + 2;
+        Paint dot = new Paint(Paint.ANTI_ALIAS_FLAG); dot.setColor("post".equals(t.kind) ? SAGE : "write".equals(t.kind) ? 0xFFB8B2A7 : t.c); cv.drawCircle(14, cy, 7, dot);
+        int n = t.n(); float cw = 0;
+        if (n != 999) {
+            String dd = n < 0 ? "지남" : n == 0 ? "오늘" : "D-" + n; int l = lv(n);
+            cw = pt(c, true, 24, 0).measureText(dd) + 26;
+            chip(cv, c, dd, W - 4 - cw, cy, 24, l == 2 ? RED : l == 1 ? WARN : SUB, l == 2 ? 0xFFFBE3DF : l == 1 ? 0xFFFFF0D6 : 0xFFF0ECE4);
+        }
+        Paint nm = pt(c, true, 30, 0xFF1F1F1F); Paint sb = pt(c, false, 24, SUB);
+        String name = fit(nm, t.name, (W - 40 - cw - 12) * 0.55f); textV(cv, nm, name, 34, cy);
+        float x = 34 + nm.measureText(name) + 14; textV(cv, sb, fit(sb, subOf(t), W - x - cw - 16), x, cy);
+        return bm;
+    }
+
+    /* ---------- ③ 일정: 이번 주 목록·다음 일정·미정 개수를 오늘 기준으로 ---------- */
+    static JSONArray weekRaw(JSONObject raw) throws Exception {
+        long t0 = dayStart(System.currentTimeMillis()); Calendar k = Calendar.getInstance(); k.setTimeInMillis(t0);
+        long ws = t0 - (k.get(Calendar.DAY_OF_WEEK) - 1) * 86400000L, we = ws + 7 * 86400000L;
+        List<JSONObject> l = new ArrayList<>();
+        for (It t : items(raw)) {
+            if ("visit".equals(t.kind) && t.when >= ws && t.when < we) { Calendar d = Calendar.getInstance(); d.setTimeInMillis(t.when);
+                JSONObject o = new JSONObject(); o.put("wd", d.get(Calendar.DAY_OF_WEEK) - 1); o.put("time", t.noTime ? "종일" : hm(t.when)); o.put("name", t.name); o.put("c", String.format("#%06X", 0xFFFFFF & t.c)); o.put("t", t.when); l.add(o); }
+            long dm = t.due.isEmpty() ? -1 : dueMs(t.due);
+            if (dm >= ws && dm < we) { Calendar d = Calendar.getInstance(); d.setTimeInMillis(dm);
+                JSONObject o = new JSONObject(); o.put("wd", d.get(Calendar.DAY_OF_WEEK) - 1); o.put("time", ""); o.put("name", t.name); o.put("due", 1); o.put("t", dm + 86399000L); l.add(o); }
+        }
+        l.sort((a, b) -> Long.compare(a.optLong("t"), b.optLong("t")));
+        JSONArray out = new JSONArray(); for (JSONObject o : l) { o.remove("t"); out.put(o); } return out;
+    }
+    static JSONArray fixedRaw(JSONObject raw) throws Exception {
+        long t0 = dayStart(System.currentTimeMillis()); List<It> l = new ArrayList<>();
+        for (It t : items(raw)) if ("visit".equals(t.kind) && t.when >= t0) l.add(t);
+        l.sort((a, b) -> Long.compare(a.when, b.when));
+        JSONArray out = new JSONArray();
+        for (int i = 0; i < Math.min(3, l.size()); i++) { It t = l.get(i); JSONObject o = new JSONObject(); o.put("id", t.id); o.put("day", md(t.when)); o.put("name", t.name);
+            String dd = ddTxt(t.n()); o.put("sub", t.pf + (dd.isEmpty() ? "" : (t.pf.isEmpty() ? "" : " · ") + dd)); out.put(o); }
+        return out;
+    }
+    static JSONArray tbdRaw(JSONObject raw) { JSONArray out = new JSONArray(); for (It t : items(raw)) if ("date".equals(t.kind)) out.put(t.name); return out; }
 
     static void updateAll(Context c) {
         AppWidgetManager m = AppWidgetManager.getInstance(c);

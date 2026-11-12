@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/widget_todo"
-    android:initialLayout="@layout/widget_card"
+    android:initialLayout="@layout/widget_todo"
     android:minWidth="250dp"
     android:minHeight="110dp"
     android:targetCellWidth="4"

@@ -3154,6 +3154,12 @@ function driveSheet(){openAct(b=>{
 })}
 
 /* ---------- 위젯 연동 (앱) ---------- */
+/* 위젯용 이번 달 꽃 그림(PNG). 처음엔 그림을 만든 뒤 위젯을 한 번 더 그린다 */
+function flowerPng(mo,st){const k='chd-flpng-'+mo+':'+st;let v='';try{v=localStorage.getItem(k)||''}catch(e){}if(v)return v;
+  if(!flowerPng.busy){flowerPng.busy=1;try{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=120;c.getContext('2d').drawImage(im,0,0,120,120);
+    const b=c.toDataURL('image/png').split(',')[1];Object.keys(localStorage).filter(x=>x.startsWith('chd-flpng-')).forEach(x=>localStorage.removeItem(x));localStorage.setItem(k,b)}catch(e){}flowerPng.busy=0;syncWidget()};im.onerror=()=>{flowerPng.busy=0};
+    im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(flowerSvg(mo,st).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" '))}catch(e){flowerPng.busy=0}}
+  return ''}
 function syncWidget(){
   if(!(IS_APP&&ChdNative.syncWidget))return;
   try{
@@ -3177,9 +3183,13 @@ function syncWidget(){
     const all=todoItems(),open=all.filter(x=>x.kind!=='end');
     const sd=(a,b)=>ddayNum(a.due)-ddayNum(b.due);
     const todo={late:open.filter(x=>x.due&&ddayNum(x.due)<0).length,soon:open.filter(x=>x.due&&ddayNum(x.due)>=0&&ddayNum(x.due)<=3).length,prog:open.length,post:all.filter(x=>x.kind==='post').length,write:all.filter(x=>x.kind==='write').length,
-      list:all.filter(x=>x.kind==='post'||x.kind==='write').sort(sd).slice(0,4).map(x=>({id:String(x.rec.id),name:x.name,kind:x.kind,dd:x.due?dday(x.due).replace('마감 ',''):'',hot:!!(x.due&&ddayNum(x.due)<=2)}))};
+      list:all.filter(x=>x.kind==='post'||x.kind==='write').sort(sd).slice(0,4).map(x=>({id:String(x.rec.id),name:x.name,kind:x.kind,dd:x.due?dday(x.due).replace('마감 ',''):'',hot:!!(x.due&&ddayNum(x.due)<=1)}))};
+    /* 0.9.24 위젯: 날짜 원본을 넘기면 위젯이 그릴 때마다 오늘 기준으로 계산한다 (앱을 안 열어도 D-day가 줄어든다) */
+    let grow=null;try{const g=growNow();grow={mo:g.mo,st:g.st,n:g.n,N:BLOOM_N,png:flowerPng(g.mo,g.st)}}catch(e){}
+    const raw={v:1,plans:ps.map(p=>({id:String(p.id),name:p.place.name,when:p.when?new Date(p.when).getTime():0,noTime:!!p.noTime,due:p.due||'',pf:p.platform||'',c:p.platform?pColor(p.platform):acc,prod:!!(p.place&&p.place.product)})),
+      recs:getRecords().filter(r=>!String(r.id).startsWith('_')&&!r.posted).map(r=>({id:String(r.id),name:r.name,kind:(r.sent||r.done)?'post':'write',due:r.due||'',pf:r.platform||'',prod:!!(r.place&&r.place.product)})),grow};
     const wom=Math.ceil((t0.getDate()+new Date(t0.getFullYear(),t0.getMonth(),1).getDay())/7);
-    ChdNative.syncWidget(JSON.stringify({next:nx?{id:String(nx.id),name:nx.place.name,label:planLabel(nx)}:null,fixed:fx,tbd:tb,days,acc,plans:ps.length,drafts,today,week,wom,todo}));
+    ChdNative.syncWidget(JSON.stringify({next:nx?{id:String(nx.id),name:nx.place.name,label:planLabel(nx)}:null,fixed:fx,tbd:tb,days,acc,plans:ps.length,drafts,today,week,wom,todo,raw}));
   }catch(e){}
 }
 /* 위젯·알림에서 들어온 동작 */

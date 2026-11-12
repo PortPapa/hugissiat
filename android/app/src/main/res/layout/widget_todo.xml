@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 할 일 위젯: 위는 가장 급한 일과 단계별 숫자(이번 달 꽃), 아래 두 줄은 줄마다 눌러서 그 기록으로 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <ImageView
+        android:id="@+id/w_img"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="3.7"
+        android:contentDescription="가장 급한 할 일"
+        android:scaleType="fitCenter" />
+
+    <ImageView
+        android:id="@+id/w_row1"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:contentDescription="할 일"
+        android:scaleType="fitCenter" />
+
+    <ImageView
+        android:id="@+id/w_row2"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:contentDescription="할 일"
+        android:scaleType="fitCenter" />
+</LinearLayout>
