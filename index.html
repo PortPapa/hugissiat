@@ -663,6 +663,19 @@ body:not(.flow)::after{content:'';position:fixed;right:-34px;bottom:54px;width:2
 .rec-fav{display:inline-block;width:13px;height:13px;margin-left:5px;vertical-align:-1.5px;color:#E26D8A}.rec-fav svg{width:100%;height:100%;display:block}
 .pb-pv img{display:block;max-width:100%;max-height:120px;border-radius:10px;margin:8px 0 0;border:1px solid var(--line)}.pb-st{margin:6px 2px 10px;min-height:1em}
 .e-btn.pr-btn{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;margin-top:10px}.e-btn.pr-btn span{font-weight:700}.e-btn.pr-btn small{font-size:12.5px;color:var(--sub);font-weight:400;line-height:1.4;word-break:keep-all}
+.e-btn.pr-btn.primary{margin-top:0;margin-bottom:8px}.e-btn.pr-btn.primary small{color:rgba(255,255,255,.86)}
+.e-btn.drive.primary{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.done-links{flex-wrap:wrap;row-gap:0}
+/* ---------- 완성 화면: 꽃까지의 단계 ---------- */
+.bloom.grow>svg{overflow:visible}.bloom.grow .fl-sway{animation:flsway 1.3s ease-in-out infinite alternate}.bloom.grow .fl-head{animation:flhead 1.3s ease-in-out -.45s infinite alternate}
+.gt{display:flex;align-items:center;justify-content:center;gap:4px;margin:14px auto 8px}
+.gt-s{width:38px;height:38px;border-radius:50%;background:var(--line);display:flex;align-items:center;justify-content:center;flex:none}.gt-s svg{width:28px;height:28px;filter:grayscale(1);opacity:.45}
+.gt-s.on{background:var(--blush)}.gt-s.on svg{filter:none;opacity:1}.gt-s.cur{box-shadow:0 0 0 2px var(--acc)}
+.gt-s.next{background:transparent;border:1.5px dashed var(--acc);animation:gtnext 1.4s ease-in-out infinite alternate}.gt-s.next svg{filter:none;opacity:.75}
+@keyframes gtnext{from{transform:scale(.94)}to{transform:scale(1.06)}}
+.gt>i{width:12px;height:3px;border-radius:2px;background:var(--line);flex:none}.gt>i.on{background:var(--sage)}
+.gt-msg{font-size:14px;font-weight:700;color:var(--ink);text-align:center;margin:2px 0 4px;word-break:keep-all}
+@media (prefers-reduced-motion:reduce){.gt-s.next{animation:none}}
 </style>
 </head>
 <body>
@@ -2492,25 +2505,30 @@ function easyCards(){
     b.append(eText(()=>S.f.freeMemo,x=>S.f.freeMemo=x,'예: 간판이 낡았는데 오히려 오래된 집 느낌. 메밀전은 얇게 부쳐야 바삭함. 애가 콩국수 맛보기를 두 번 달라고 함…',true,'big'));
     b.append(photoBlock());
   }});
-  cards.push({id:'done',src:'끝',q:'꽃이 폈어요!',done:true,body:b=>{
-    const bl=el('div','bloom');bl.innerHTML=sproutSvg(3);bl.append(el('div','e-tip','후기 소스 완성'+(PHOTOS.length?' · 사진 '+PHOTOS.length+'장':'')));b.append(bl);if(!NO_CONFETTI)confetti();
+  cards.push({id:'done',src:'끝',q:doneTitle(),done:true,body:b=>{
+    const bl=el('div','bloom grow');{const g=growNow();bl.innerHTML=flowerSvg(g.mo,g.st);bl.append(growTrack(g,!S.posted),el('div','gt-msg',doneMsg(g)))}
+    b.append(bl);if(!NO_CONFETTI)confetti();
     if(PHOTOS.length){const row=el('div','pile-row');const pile=el('button','pile');pile.type='button';pile.setAttribute('aria-label','사진 '+PHOTOS.length+'장 보기');
       PHOTOS.slice(-3).forEach((p,i,a)=>{const im=document.createElement('img');im.src=p.thumb;im.alt='';im.className='p'+(a.length-1-i);pile.append(im)});
       pile.append(el('span','pile-n',String(PHOTOS.length)));pile.onclick=()=>openPhotoSheet();
       const ad=el('button','pile-add','+');ad.type='button';ad.setAttribute('aria-label','사진 추가');ad.onclick=pickPhotos;row.append(pile,ad);b.append(row)}
-    const row=el('div','done-row');
-    const s=el('button','e-btn primary','보내기');s.type='button';s.onclick=()=>sendAll();
-    const c=el('button','e-btn','복사하기');c.type='button';c.onclick=()=>$('#btnCopy').click();
-    row.append(s,c);b.append(row);
     b.append(campLine(()=>{try{renderEasyKeep()}catch(e){}}));
-    if(canDrive()){const dv=el('button','e-btn drive');dv.type='button';dv.id='btnDrive';
-      const uq=UPQ[curRid()];dv.append(svgIcon(),el('span','lbl',uq?'올리는 중 '+(uq.p||0)+'%':S.drive?'드라이브에 다시 저장':'드라이브에 저장'));if(uq)dv.style.setProperty('--p',(uq.p||0)+'%');dv.onclick=saveDrive;b.append(dv);
-      b.append(el('div','e-tip drive-path',drivePath().join(' / ')));
-      if(S.drive&&S.drive.at&&PLACE)b.append(promptBtn(PLACE.id))}
+    if(canDrive()){ // 드라이브 저장이 주인공. 저장이 끝나면 프롬프트 복사가 이어진다. 보내기·복사하기는 아래 "다른 방법으로 보내기"로
+      const saved=!!(S.drive&&S.drive.at),uq=UPQ[curRid()];
+      const dv=el('button','e-btn drive'+(saved?'':' primary'));dv.type='button';dv.id='btnDrive';
+      dv.append(svgIcon(),el('span','lbl',uq?'올리는 중 '+(uq.p||0)+'%':saved?'드라이브에 다시 저장':driveLinked()?'드라이브에 저장':'드라이브 연결하고 저장'));if(uq)dv.style.setProperty('--p',(uq.p||0)+'%');dv.onclick=saveDrive;
+      if(saved&&PLACE){const pb=promptBtn(PLACE.id);pb.classList.add('primary');b.append(pb,dv)}else b.append(dv);
+      b.append(el('div','e-tip drive-path',drivePath().join(' / ')))}
+    else{const row=el('div','done-row');
+      const s=el('button','e-btn primary','보내기');s.type='button';s.onclick=()=>sendAll();
+      const c=el('button','e-btn','복사하기');c.type='button';c.onclick=()=>$('#btnCopy').click();
+      row.append(s,c);b.append(row)}
     const lk=el('div','done-links');
     const e1=el('button','','자세히 수정하기');e1.type='button';e1.onclick=()=>setMode('full');
     const e3=el('button','','한눈에 보기');e3.type='button';e3.onclick=()=>openRecView();
-    lk.append(e1,el('span','','·'),e3);b.append(lk);
+    lk.append(e1,el('span','','·'),e3);
+    if(canDrive()){const e4=el('button','','다른 방법으로 보내기');e4.type='button';e4.onclick=()=>otherSend();lk.append(el('span','','·'),e4)}
+    b.append(lk);
   }});
   return cards;
 }
@@ -2830,6 +2848,16 @@ function updAvatar(){try{const g=growNow(),a=$('#tabMe');if(!a)return;const sig=
   const key=ymKey(g.y,g.mo),prev=(localStorage.getItem('chd-grow')||'').split(':');
   if(prev[0]===key&&+prev[1]<g.st&&!noMotion()){a.classList.remove('pop');void a.offsetWidth;a.classList.add('pop');setTimeout(()=>a.classList.remove('pop'),900)}
   localStorage.setItem('chd-grow',key+':'+g.st)}catch(e){}}
+/* 완성 화면: 꽃은 기록을 끝냈다고 피는 게 아니라 블로그에 올린 글 수만큼 자란다. 씨앗 → 새싹 → 잎 → 꽃봉오리 → 꽃 단계와 지금 위치를 보여 준다 */
+function doneTitle(){try{const g=growNow();return S&&S.posted&&g.st>=4?'꽃이 폈어요!':'기록 완성!'}catch(e){return '기록 완성!'}}
+function growTrack(g,pending){const w=el('div','gt');const nx=pending&&g.st<4?growStage(g.n+1):-1;
+  for(let i=0;i<=4;i++){const c=el('div','gt-s'+(g.st>=i?' on':'')+(i===g.st?' cur':'')+(i===nx&&nx>g.st?' next':''));c.innerHTML=flowerSvg(g.mo,i);w.append(c);if(i<4)w.append(el('i',g.st>i?'on':''))}
+  w.setAttribute('aria-label','이번 달 발행 '+Math.min(g.n,BLOOM_N)+' / '+BLOOM_N+'편');return w}
+function doneMsg(g){const left=BLOOM_N-g.n;
+  if(S&&S.posted)return g.st>=4?g.mo+'월 '+FLOWER_NAME[g.mo]+' · 이번 달 '+g.n+'편 발행':'블로그에 올린 기록이에요 · 꽃까지 '+left+'편 남았어요';
+  if(g.st>=4)return '이번 달 꽃은 이미 폈어요 · 올리면 '+(g.n+1)+'편째예요';
+  if(left<=1)return '이 글을 블로그에 올리면 꽃이 펴요 · '+g.mo+'월 '+FLOWER_NAME[g.mo];
+  return '이 글을 블로그에 올리면 한 단계 자라요 · 꽃까지 '+left+'편 남았어요'}
 /* 발행 직후 한마디 */
 function growMsg(){try{const g=growNow();if(g.n===BLOOM_N)return FLOWER_NAME[g.mo]+' 활짝! '+g.mo+'월 꽃을 피웠어요'+(g.sk>=2?' · '+g.sk+'달 연속':'');if(g.n<BLOOM_N)return '끝! 수고했어요 · '+(BLOOM_N-g.n)+'편 더 쓰면 꽃이 펴요';return ''}catch(e){return ''}}
 function flowerSheet(year){const g=growNow(),y=year||g.y;openAct(b=>{
@@ -3645,6 +3673,12 @@ function writerPrompt(id){const st=recState(id)||{},f=st.f||{},pl=placeById(id)|
 function copyPrompt(id){const t=writerPrompt(id);if(!t)return;
   try{if(IS_APP&&ChdNative.copyText)ChdNative.copyText(t);else navigator.clipboard&&navigator.clipboard.writeText(t)}catch(e){}
   undoToast('프롬프트를 복사했어요',()=>{try{if(IS_APP&&ChdNative.shareText)ChdNative.shareText(t);else if(navigator.share)navigator.share({text:t}).catch(()=>{})}catch(e){}},'보내기')}
+/* 완성 화면의 "다른 방법으로 보내기": 드라이브 대신 카톡·메일·AI 앱으로 넘기거나 MD만 복사 */
+function otherSend(){openAct(b=>{b.append(...hInfo('다른 방법으로 보내기','기록(MD)과 사진을 카톡·메일·AI 앱으로 한 번에 보내거나, 기록 글만 복사해요.'));
+  const ch=el('div','e-choices');
+  const s1=el('button','e-btn primary','보내기');s1.type='button';s1.onclick=()=>{closeAct();sendAll()};
+  const s2=el('button','e-btn','복사하기');s2.type='button';s2.onclick=()=>{closeAct();$('#btnCopy').click()};
+  ch.append(s1,s2);b.append(ch)})}
 function promptBtn(id){const b=el('button','e-btn pr-btn');b.type='button';b.append(el('span','','프롬프트 복사'),el('small','','“'+writerPrompt(id)+'”'));b.onclick=()=>copyPrompt(id);return b}
 function recBody(){const md=buildMD();const i=md.indexOf('## 내 경험');const j=md.indexOf('\n## 업체 정보');return i<0?md:md.slice(i,j<0?undefined:j)}
 function openRecView(){openAct(b=>{
