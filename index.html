@@ -2922,6 +2922,12 @@ function todoItems(){
   getRecords().forEach(r=>{if(String(r.id).startsWith('_'))return;const k=r.posted?'end':(r.sent||r.done)?'post':'write';out.push({kind:k,due:r.due,name:r.name,place:r.place,rec:r})});
   return out;
 }
+/* 방문일(받은 날) 기준 정렬 값: 갈 곳은 예약한 방문 시각, 기록은 방문일, 날짜 미정은 맨 뒤 */
+function visitKey(x){
+  if(x.kind==='visit'&&x.when)return new Date(x.when).getTime();
+  const r=x.rec;if(r){if(r.visitDate){const [y,m,d]=r.visitDate.split('-').map(Number);return new Date(y,m-1,d).getTime()}if(r.updated)return new Date(r.updated).getTime()}
+  return Infinity}
+const sortVisit=(a,b)=>(visitKey(a)-visitKey(b))||(ddayNum(a.due)-ddayNum(b.due));
 function updTodoDot(){const d=document.getElementById('todoDot');if(!d)return;const n=todoItems().filter(x=>x.kind!=='end'&&x.due&&ddayNum(x.due)<=2).length;d.classList.toggle('on',n>0)}
 function todoRow(x){
   const row=el('div','li td-row');row.append(thumbEl(x.place,'th'));const tx=el('div','tx');const nm=el('div','nm',x.name);
@@ -2931,9 +2937,8 @@ function todoRow(x){
   const pr=x.place&&x.place.product;
   if(x.kind==='visit'){const d=new Date(x.when);sub.append((d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+') '+(pr?'도착 예정':'방문'));if(lateVisit(x.plan))sub.append(el('span','due hot','마감 후 방문'))}
   else if(x.kind==='date')sub.append(pr?'배송 기다리는 중':'방문 날짜를 정해주세요');
-  else if(x.kind==='write')sub.append('기록 쓰는 중');
-  else if(x.kind==='post')sub.append('기록 완성 · 블로그에 올리면 끝');
-  else sub.append('블로그 발행 완료');
+  else{const vd=x.rec&&x.rec.visitDate?(()=>{const [y,m,d]=x.rec.visitDate.split('-').map(Number);return m+'/'+d+'('+WD[new Date(y,m-1,d).getDay()]+') '+(pr?'받음':'방문')+' · '})():'';
+    sub.append(vd+(x.kind==='write'?'기록 쓰는 중':x.kind==='post'?'기록 완성 · 블로그에 올리면 끝':'블로그 발행 완료'))}
   tx.append(nm,sub);row.append(tx);
   const lab=(x.place&&x.place.product?{visit:'받았어요',date:'받았어요',write:'이어 쓰기',post:'올렸어요',end:''}:{visit:'다녀왔어요',date:'날짜 정하기',write:'이어 쓰기',post:'올렸어요',end:''})[x.kind];
   if(lab){const b=el('button','td-go'+(x.kind==='post'?' acc':''),lab);b.type='button';b.onclick=e=>{e.stopPropagation();
@@ -2951,8 +2956,8 @@ function renderTodo(){
   const sortDue=(a,b)=>ddayNum(a.due)-ddayNum(b.due)||String(a.when||'').localeCompare(String(b.when||''));
   const act=all.filter(x=>x.kind!=='end'),hp=all.some(x=>x.place&&x.place.product);
   /* 맨 위: 가장 급한 일 하나. 마감 하루 전부터는 비상(빨강), 2~3일 전은 주의(노랑) */
-  {const ORD={post:0,write:1,visit:2,date:3};const withDue=act.filter(x=>x.due).sort(sortDue);
-    const top=withDue[0]||act.slice().sort((a,b)=>ORD[a.kind]-ORD[b.kind]||String(a.when||'').localeCompare(String(b.when||'')))[0];
+  {const withDue=act.filter(x=>x.due).sort(sortDue);
+    const top=(withDue[0]&&ddayNum(withDue[0].due)<=3)?withDue[0]:act.slice().sort(sortVisit)[0];
     if(top){const n=top.due?ddayNum(top.due):99,lv=n<=1?'bad':n<=3?'warn':'';
       const more=withDue.filter(x=>x!==top&&ddayNum(x.due)<=(n<=1?1:3)).length;
       const lab=!top.due?'다음 할 일':n<0?'마감 지남 · 지금 바로':n===0?'비상 · 오늘 마감':n===1?'비상 · 내일 마감':n<=3?'곧 마감 · '+dday(top.due):'다음 할 일 · '+dday(top.due);
@@ -2971,11 +2976,11 @@ function renderTodo(){
       b.onclick=()=>{TODO_F=TODO_F===k?'':k;renderTodo()};
       if(i)bar.append(el('i','','›'));bar.append(b)});
     if(act.length)v.append(bar)}
-  const sec=(t,kind)=>{if(TODO_F&&TODO_F!==kind)return;const xs=all.filter(x=>x.kind===kind).sort(sortDue);if(!xs.length)return;v.append(el('div','sub-h',t+' '+xs.length));xs.forEach(x=>v.append(todoRow(x)))};
+  const sec=(t,kind)=>{if(TODO_F&&TODO_F!==kind)return;const xs=all.filter(x=>x.kind===kind).sort(sortVisit);if(!xs.length)return;v.append(el('div','sub-h',t+' '+xs.length));xs.forEach(x=>v.append(todoRow(x)))};
   sec('블로그 올리기','post');sec('기록 쓰기','write');sec(hp?'방문하기 · 받기':'방문하기','visit');sec(hp?'날짜 정하기 · 배송 대기':'날짜 정하기','date');
   if(TODO_F){const a=el('button','td-all','전체 보기');a.type='button';a.onclick=()=>{TODO_F='';renderTodo()};v.append(a)}
   const ends=TODO_F?[]:all.filter(x=>x.kind==='end');
-  if(ends.length){const h=el('button','sec-h'+(TODO_END?'':' closed'),'끝 '+ends.length);h.insertAdjacentHTML('beforeend',ICO_DOWN);h.type='button';h.onclick=()=>{TODO_END=!TODO_END;renderTodo()};v.append(h);if(TODO_END)ends.forEach(x=>v.append(todoRow(x)))}
+  if(ends.length){const h=el('button','sec-h'+(TODO_END?'':' closed'),'끝 '+ends.length);h.insertAdjacentHTML('beforeend',ICO_DOWN);h.type='button';h.onclick=()=>{TODO_END=!TODO_END;renderTodo()};v.append(h);if(TODO_END)ends.slice().sort((a,b)=>sortVisit(b,a)).forEach(x=>v.append(todoRow(x)))}
   if(all.length===0){const h=el('div','hello');h.innerHTML=sproutSvg(0);h.append(el('b','','할 일이 없어요'));v.append(h)}
 }
 /* ---------- 갈 곳 달력 ---------- */
