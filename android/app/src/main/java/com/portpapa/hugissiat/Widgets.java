@@ -402,30 +402,33 @@ public final class Widgets {
     static int womNow() { Calendar k = Calendar.getInstance(); Calendar f = (Calendar) k.clone(); f.set(Calendar.DAY_OF_MONTH, 1); return (k.get(Calendar.DAY_OF_MONTH) + f.get(Calendar.DAY_OF_WEEK) - 1 + 6) / 7; }
 
     /** 할 일 하나: 갈 곳(visit/date) 또는 기록(write/post) */
-    static final class It { String id = "", name = "", kind = "", due = "", pf = ""; long when; boolean noTime, prod, rec; int c = SAGE; int n() { return dday(due); } }
+    static final class It { String id = "", name = "", kind = "", due = "", pf = ""; long when, vk = Long.MAX_VALUE; boolean noTime, prod, rec; int c = SAGE; int n() { return dday(due); } }
     static List<It> items(JSONObject raw) {
         List<It> out = new ArrayList<>();
         JSONArray ps = raw.optJSONArray("plans");
         if (ps != null) for (int i = 0; i < ps.length(); i++) { JSONObject o = ps.optJSONObject(i); if (o == null) continue; It t = new It();
             t.id = o.optString("id"); t.name = o.optString("name"); t.when = o.optLong("when"); t.noTime = o.optBoolean("noTime"); t.due = o.optString("due"); t.pf = o.optString("pf"); t.prod = o.optBoolean("prod"); t.c = color(o.optString("c"), SAGE);
-            t.kind = t.when > 0 ? "visit" : "date"; out.add(t); }
+            t.kind = t.when > 0 ? "visit" : "date"; if (t.when > 0) t.vk = t.when; out.add(t); }
         JSONArray rs = raw.optJSONArray("recs");
         if (rs != null) for (int i = 0; i < rs.length(); i++) { JSONObject o = rs.optJSONObject(i); if (o == null) continue; It t = new It();
-            t.id = o.optString("id"); t.name = o.optString("name"); t.kind = o.optString("kind", "write"); t.due = o.optString("due"); t.pf = o.optString("pf"); t.prod = o.optBoolean("prod"); t.rec = true; out.add(t); }
+            t.id = o.optString("id"); t.name = o.optString("name"); t.kind = o.optString("kind", "write"); t.due = o.optString("due"); t.pf = o.optString("pf"); t.prod = o.optBoolean("prod"); t.rec = true;
+            String vd = o.optString("vd"); long vm = vd.isEmpty() ? -1 : dueMs(vd); if (vm > 0) t.vk = vm; else if (o.optLong("up") > 0) t.vk = o.optLong("up"); out.add(t); }
         return out;
     }
     static int kindOrd(String k) { return "post".equals(k) ? 0 : "write".equals(k) ? 1 : "visit".equals(k) ? 2 : 3; }
     /** 앱 홈과 같은 순서: 마감 가까운 순, 마감 없으면 올리기 > 쓰기 > 방문 > 날짜 */
     static List<It> sorted(JSONObject raw) {
         List<It> l = items(raw);
-        l.sort((a, b) -> { int x = Integer.compare(a.n(), b.n()); if (x != 0) return x; x = Integer.compare(kindOrd(a.kind), kindOrd(b.kind)); if (x != 0) return x; return Long.compare(a.when == 0 ? Long.MAX_VALUE : a.when, b.when == 0 ? Long.MAX_VALUE : b.when); });
+        // 앱 홈과 같은 순서: 올리기 > 쓰기 > 방문 > 날짜 칸, 칸 안에서는 방문일이 이른 순
+        l.sort((a, b) -> { int x = Integer.compare(kindOrd(a.kind), kindOrd(b.kind)); if (x != 0) return x; x = Long.compare(a.vk, b.vk); if (x != 0) return x; return Integer.compare(a.n(), b.n()); });
         return l;
     }
     static String subOf(It t) {
         if ("visit".equals(t.kind)) return md(t.when) + (t.prod ? " 도착 예정" : " 방문");
         if ("date".equals(t.kind)) return t.prod ? "배송 기다리는 중" : "방문 날짜를 정해주세요";
-        if ("write".equals(t.kind)) return "기록 쓰는 중";
-        return "기록 완성 · 블로그에 올리면 끝";
+        String vd = t.vk != Long.MAX_VALUE ? md(t.vk) + (t.prod ? " 받음 · " : " 방문 · ") : "";
+        if ("write".equals(t.kind)) return vd + "기록 쓰는 중";
+        return vd + "기록 완성 · 블로그에 올리면 끝";
     }
     static String act(It t) { return (t.rec ? "rec:" : "plan:") + t.id; }
     static int lv(int n) { return n <= 1 ? 2 : n <= 3 ? 1 : 0; }
@@ -499,7 +502,11 @@ public final class Widgets {
     static RemoteViews todoRaw(Context c, JSONObject raw) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_todo);
         List<It> l = sorted(raw);
-        It top = l.isEmpty() ? null : l.get(0);
+        // 맨 위: 3일 안 마감이 있으면 그 일(경고), 없으면 방문일이 가장 이른 일. 아래 줄은 홈 목록 순서
+        It top = null, urg = null, early = null;
+        for (It t : l) { if (urg == null || t.n() < urg.n()) urg = t; if (early == null || t.vk < early.vk) early = t; }
+        top = urg != null && urg.n() <= 3 ? urg : early;
+        l = new ArrayList<>(l); if (top != null) l.remove(top); l.add(0, top == null ? null : top); if (top == null) l.clear();
         v.setImageViewBitmap(R.id.w_img, todoTopImg(c, raw, l, top));
         v.setOnClickPendingIntent(R.id.w_img, top == null ? open(c, "tab:home", 41) : open(c, act(top), 41));
         int[] rows = {R.id.w_row1, R.id.w_row2};
