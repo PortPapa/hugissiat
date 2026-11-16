@@ -2387,14 +2387,14 @@ public class MainActivity extends Activity {
                     for (int i = 1; i < uris.size(); i++) clip.addItem(new ClipData.Item(uris.get(i)));
                     send.setClipData(clip);
                     send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    final Intent chooser = Intent.createChooser(send, "후기 소스 보내기");
+                    final Intent chooser = Intent.createChooser(send, "기록 보내기");
                     runOnUiThread(() -> {
                         try { startActivity(chooser); } catch (Exception e) {
-                            Toast.makeText(MainActivity.this, "보내지 못했어요. MD 복사를 써주세요.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(MainActivity.this, "보내지 못했어요. 기록 글 복사를 써주세요.", Toast.LENGTH_LONG).show();
                         }
                     });
                 } catch (Exception e) {
-                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "보내지 못했어요. MD 복사를 써주세요.", Toast.LENGTH_LONG).show());
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "보내지 못했어요. 기록 글 복사를 써주세요.", Toast.LENGTH_LONG).show());
                 }
             });
         }
@@ -2430,7 +2430,7 @@ public class MainActivity extends Activity {
                 Intent send = new Intent(Intent.ACTION_SEND);
                 send.setType("text/plain");
                 send.putExtra(Intent.EXTRA_TEXT, text);
-                startActivity(Intent.createChooser(send, "후기 소스 보내기"));
+                startActivity(Intent.createChooser(send, "기록 보내기"));
             });
         }
 

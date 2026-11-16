@@ -398,8 +398,9 @@ body[data-tab=memo] #viewMemo,body[data-tab=plans] #viewPlans,body[data-tab=todo
 .ps-th{display:flex;gap:5px;margin-top:6px}.ps-th img{width:48px;height:48px;border-radius:8px;object-fit:cover}
 .ps-addr{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:13px;color:var(--sub);padding:0;margin-top:10px;line-height:1.55}.ps-addr span{color:var(--acc-ink)}
 .ps-cta{margin-top:14px;width:100%}
-.ph-hd{display:flex;align-items:center;gap:8px}.ph-hd h3{flex:1;margin:0 0 8px}
-.ph-tip{font-size:12px;color:var(--sub)}
+.ph-hd{display:flex;align-items:center;flex-wrap:wrap;gap:0 8px}.ph-hd h3{flex:1;margin:0 0 8px}
+.ph-hd h3{white-space:nowrap}
+.ph-tip{font-size:12px;color:var(--sub);flex:1 1 100%;margin:-2px 0 10px}
 .ph-cc,.ph-del{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;margin-bottom:8px}
 .ph-del{background:var(--red);border-color:var(--red);color:#fff;font-weight:700}.ph-del:disabled{opacity:.4}
 #act .thumbs .th .ck{position:absolute;right:5px;top:5px;width:22px;height:22px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.25)}
@@ -4009,13 +4010,17 @@ function openRecView(){openAct(b=>{
   else{const ad=el('button','e-btn','+ 사진 넣기');ad.type='button';ad.onclick=()=>{closeAct();pickPhotos()};b.append(ad)}
   const qm=PLACE?getQM(PLACE.id):[];
   const v=el('div','md-view');{const rtb=rateTable(S.rate);if(rtb)v.append(el('h4','','평가'),rtb);v.insertAdjacentHTML('beforeend',mdToHtml(stripRate(recBody().replace(/^## 내 경험\n*/,'').replace(/(^|\n)### 사진\n(?:- .*\n?)*\n?/,'$1'))))}b.append(v);
-  const row=el('div','done-row');
-  const s=el('button','e-btn primary','보내기');s.type='button';s.onclick=()=>{closeAct();sendAll()};
-  const c=el('button','e-btn','복사하기');c.type='button';c.onclick=()=>$('#btnCopy').click();
-  row.append(s,c);b.append(row);
-  if(canDrive()){const dv=el('button','e-btn drive');dv.type='button';dv.append(svgIcon(),el('span','lbl',S.drive?'드라이브에 다시 저장':'드라이브에 저장'));dv.onclick=()=>{closeAct();saveDrive()};b.append(dv);if(S.drive&&S.drive.at&&PLACE)b.append(promptBtn(PLACE.id))}
+  /* 완성 화면과 같은 순서: 드라이브 저장이 먼저, 저장한 뒤엔 프롬프트 복사. 보내기·복사하기는 "다른 방법으로 보내기" 안에 */
+  if(canDrive()){const saved=!!(S.drive&&S.drive.at);const dv=el('button','e-btn drive'+(saved?'':' primary'));dv.type='button';dv.append(svgIcon(),el('span','lbl',saved?'드라이브에 다시 저장':'드라이브에 저장'));dv.onclick=()=>{closeAct();saveDrive()};
+    if(saved&&PLACE){const pb=promptBtn(PLACE.id);pb.classList.add('primary');b.append(pb,dv)}else b.append(dv)}
+  else{const row=el('div','done-row');
+    const s=el('button','e-btn primary','보내기');s.type='button';s.onclick=()=>{closeAct();sendAll()};
+    const c=el('button','e-btn','복사하기');c.type='button';c.onclick=()=>$('#btnCopy').click();
+    row.append(s,c);b.append(row)}
   const lk=el('div','done-links');const e1=el('button','','수정하기');e1.type='button';e1.onclick=()=>{closeAct();goStep(0)};
-  const e2=el('button','','전체 보기');e2.type='button';e2.onclick=()=>openMdView();lk.append(e1,el('span','','·'),e2);b.append(lk);
+  const e2=el('button','','전체 보기');e2.type='button';e2.onclick=()=>openMdView();lk.append(e1,el('span','','·'),e2);
+  if(canDrive()){const e3=el('button','','다른 방법으로 보내기');e3.type='button';e3.onclick=()=>otherSend();lk.append(el('span','','·'),e3)}
+  b.append(lk);
 })}
 function driveFileUrl(name){const id=S&&S.drive&&S.drive.files&&S.drive.files[name];return id?'https://drive.google.com/file/d/'+id+'/view':''}
 /* ---------- 후기 마감 알림: 마감 3일 전·전날 오전 9시, 발행한 건 빼고 ---------- */
