@@ -48,7 +48,7 @@ nav#toc a.done::after{content:'✓';color:var(--ok);font-weight:700}
 .flabel{display:block;font-weight:600;margin-bottom:8px;font-size:14.5px}
 .hint{color:var(--sub);font-size:12.5px;margin:-4px 0 8px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:13.5px;color:var(--ink);transition:background .12s,border-color .12s}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 12px;font-size:13.5px;color:var(--ink);transition:background .12s,border-color .12s}
 .chip:hover{border-color:#c9c2b4}
 .chip.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
 .chip.on small{color:rgba(255,255,255,.78)}
@@ -130,7 +130,7 @@ body.act #actBg{opacity:1;pointer-events:auto}body.act #act{transform:none}
 .plan{display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;margin-bottom:6px}
 .plan-i b{display:block;font-size:15px}.plan-i span{font-size:12.5px;color:var(--sub)}
 .btn.primary.sm{color:#fff}
-.e-memo{display:flex;justify-content:flex-end;gap:6px;margin:6px 0 10px}
+.e-memo{display:flex;justify-content:flex-end;gap:6px;margin:10px 0 10px}
 .e-memo button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px;font-size:13px;color:var(--acc-ink)}
 /* 자세히 쓰기: 모바일에서는 한 번에 한 섹션만 펼치는 Accordion */
 .sec h2 .badge{margin-left:8px;font-size:12px;font-weight:600;color:var(--ok);background:var(--ok-soft);border-radius:999px;padding:2px 8px;vertical-align:2px}
@@ -205,7 +205,9 @@ body[data-tab=home] #viewTodo{display:block}
 .due.hot{background:#ffe3dd;color:#d23b1e}
 .pf{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:1px}
 .li .sub b.wd{color:var(--acc-ink);font-weight:700}.li .sub b.wd.tbd{color:var(--sub)}
-.li .tx{flex:1;min-width:0}.li .nm{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .tx{flex:1;min-width:0}.li .nm{font-size:15px;font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:6px;min-width:0}
+.li .nm .nm-t{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.li .nm>.due,.li .nm>.pf,.li .nm>.fav{flex:none;margin-left:0}
 .li .sub{font-size:12px;color:var(--sub)}
 .li img.th,.li .th{width:46px;height:46px;border-radius:13px}
 .hello{text-align:center;padding:50px 10px 10px;color:var(--sub)}
@@ -228,6 +230,7 @@ body[data-tab=memo] #viewMemo,body[data-tab=plans] #viewPlans,body[data-tab=todo
 /* 자라는 새싹 / 가게 사진 / 완성 꽃 */
 .e-grow{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--sub);font-size:13px;font-weight:700}
 .e-grow svg{width:34px;height:34px}
+.e-cnt{font-size:12px;font-weight:600;color:var(--sub);font-variant-numeric:tabular-nums;margin-top:14px}
 .e-hero{height:110px;border-radius:16px;overflow:hidden;margin:0 0 14px;background:var(--line)}
 .e-hero img{width:100%;height:100%;object-fit:cover;display:block}
 .e-q em{font-style:normal;color:var(--acc-ink)}
@@ -335,7 +338,7 @@ body[data-tab=memo] #viewMemo,body[data-tab=plans] #viewPlans,body[data-tab=todo
 .st-v{min-width:24px;margin-left:6px;font-size:13px;font-weight:800;color:#C9921F}
 .rt-row .chips{margin-top:8px}.rt-row input,.fc-row input{margin-top:8px}
 .seg{display:flex;flex:none;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.seg button{border:0;border-left:1px solid var(--line);background:var(--card);font:inherit;font-size:12.5px;padding:7px 9px;color:var(--sub)}.seg button:first-child{border-left:0}
+.seg button{border:0;border-left:1px solid var(--line);background:var(--card);font:inherit;font-size:12.5px;padding:11px 13px;color:var(--sub)}.seg button:first-child{border-left:0}
 .seg button.on{background:var(--acc);color:#fff;font-weight:700}
 .pile-row{display:flex;justify-content:center;align-items:center;gap:18px;margin:6px 0 16px}
 .pile{position:relative;width:76px;height:76px;border:0;background:none;padding:0}
@@ -411,8 +414,10 @@ body[data-tab=memo] #viewMemo,body[data-tab=plans] #viewPlans,body[data-tab=todo
 .dk-sw b{font-variant-numeric:tabular-nums;font-weight:600}
 .dk-sw i{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;opacity:.55}
 .dk-sw i:first-child{border-bottom:4px solid currentColor}.dk-sw i:last-child{border-top:4px solid currentColor}
-.swr{position:relative;overflow:hidden;border-radius:12px}
-.swr-acts{position:absolute;right:0;top:0;bottom:0;display:flex}
+.swr{position:relative;overflow:hidden;border-radius:16px;margin-bottom:8px;box-shadow:var(--sh)}
+.swr>.li{margin-bottom:0;box-shadow:none}
+.swr-acts{position:absolute;right:0;top:0;bottom:0;display:flex;visibility:hidden}
+.swr.drag .swr-acts{visibility:visible}
 .swr-b{width:72px;border:0;font:inherit;font-size:13.5px;font-weight:700;color:var(--ink);background:var(--acc-soft)}.swr-b.acc{background:var(--acc);color:#fff}
 .swr-front{position:relative;background:var(--bg);z-index:1}
 .fav{color:#E26D8A;margin-left:6px;font-size:13px;display:inline-flex;vertical-align:-1px}.fav svg,.fav-b svg,.ps-fav svg,.heart-burst svg{width:1em;height:1em;display:block}
@@ -541,7 +546,7 @@ body.flow>#easy,body.flow>.wrap{flex:1 0 auto;width:100%}
 .e-top button{border:0;background:none;color:var(--sub);padding:8px 2px;font-size:14px}
 .e-top button:last-child{text-align:right}
 .e-skw{display:flex;flex-direction:column;align-items:flex-end}
-.e-skw button{padding:4px 2px!important}
+.e-skw button{padding:6px 2px!important}
 .e-top .e-skall{font-size:12px;color:var(--sub);opacity:.8;text-decoration:underline;text-underline-offset:3px}
 .e-top button:first-child{text-align:left}
 .e-bar{height:4px;border-radius:3px;background:var(--line);margin:6px 0 24px}
@@ -575,7 +580,7 @@ body.flow>#easy,body.flow>.wrap{flex:1 0 auto;width:100%}
 .save-ind{font-size:11.5px;font-weight:600;color:var(--sub);margin-left:8px;opacity:0;transition:opacity .25s;white-space:nowrap;flex:none}.save-ind.on{opacity:1}
 .coach{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom));z-index:60;background:var(--ink);color:#fff;border-radius:16px;padding:12px 14px 10px;width:min(300px,calc(100% - 48px));font-size:13.5px;line-height:1.6;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .coach b{display:block;font-size:12px;opacity:.65;margin-bottom:2px}.coach::after{content:'';position:absolute;left:50%;bottom:-7px;margin-left:-7px;border:7px solid transparent;border-bottom:0;border-top-color:var(--ink)}.coach button{display:block;margin:8px 0 0 auto;border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:12.5px;font-weight:700}
-.fbar{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}.fbar::-webkit-scrollbar{display:none}.fchip{flex:none;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;color:var(--ink);white-space:nowrap}.fchip.on{background:var(--acc);color:var(--on-acc);border-color:var(--acc);font-weight:700}.fchip i{width:8px;height:8px;border-radius:50%}.fsep{flex:none;width:1px;background:var(--line);margin:6px 2px}
+.fbar{display:flex;gap:6px;overflow-x:auto;padding:6px 0 8px;margin:-4px 0 -2px;scrollbar-width:none}.fbar::-webkit-scrollbar{display:none}.fchip{flex:none;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;color:var(--ink);white-space:nowrap}.fchip.on{background:var(--acc);color:var(--on-acc);border-color:var(--acc);font-weight:700}.fchip i{width:8px;height:8px;border-radius:50%}.fsep{flex:none;width:1px;background:var(--line);margin:6px 2px}
 .memo-row.edit{cursor:default;border-color:var(--acc)}.memo-row.edit textarea{margin:2px 0 8px;font-size:14.5px;line-height:1.55}.mr-acts{display:flex;gap:6px;flex-wrap:wrap}.mr-acts button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 13px;font:inherit;font-size:13px;color:var(--ink)}.mr-acts .pri{background:var(--acc);color:var(--on-acc);border-color:var(--acc);font-weight:700}.mr-acts .del{color:#B4534B;border-color:#E9C4C0;margin-left:auto}
 @media(prefers-reduced-motion:reduce){.skel i,.cfm{animation:none}.sw,.sw i{transition:none}}
 .has-inf{display:flex;align-items:center;gap:4px}#act h3.has-inf{margin-bottom:10px}
@@ -647,6 +652,29 @@ body:not(.flow)::after{content:'';position:fixed;right:-34px;bottom:54px;width:2
 .gd-yr{display:flex;justify-content:space-between;gap:2px;background:var(--card);border-radius:18px;padding:10px 12px 8px;margin:0 0 18px;box-shadow:var(--sh);border:0;width:100%;font:inherit}
 .gd-yr div{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:10px;color:var(--sub)}.gd-yr svg{width:22px;height:22px;filter:grayscale(1);opacity:.4}.gd-yr .on svg,.gd-yr .cur svg{filter:none;opacity:1}.gd-yr .cur{color:var(--ink);font-weight:700}
 .pills button{position:relative}.tab-n{position:absolute;top:3px;left:calc(50% + 6px);min-width:17px;height:17px;padding:0 4px;border-radius:99px;background:#e2553f;color:#fff;font-size:10.5px;font-weight:800;font-style:normal;line-height:17px;text-align:center;box-shadow:0 0 0 2px var(--bg)}.tab-n[hidden]{display:none}.pills button.on .tab-n{display:none}
+/* ---------- 누르는 영역 넓히기: 보이는 크기는 그대로, 손가락이 닿는 영역만 44px 안팎으로 ---------- */
+/* 접는 묶음(.acc)과 이름이 같은 강조 버튼(.acc)에 묶음용 여백·잘림이 섞여 들어가지 않게 */
+button.acc{margin-bottom:0;overflow:visible}
+.swr-b.acc{border:0;border-radius:0}
+.td-go,.sec-h,.cal-nav,.st-y button,.cal-lg button,.fchip,.e-top button,.e-memo button,.done-links button,.ps-fav,.rc-h button,.ps-bh button,.rc-links button,.chip,.ib,.danger-link button{position:relative}
+.td-go::after,.sec-h::after,.cal-nav::after,.st-y button::after,.cal-lg button::after,.fchip::after,.e-top button::after,.e-memo button::after,.done-links button::after,.ps-fav::after,.rc-h button::after,.ps-bh button::after,.rc-links button::after,.chip::after,.ib::after,.danger-link button::after{content:'';position:absolute;inset:-4px 0}
+.td-go::after{inset:-5px -3px}
+.sec-h::after{inset:-11px -10px}
+.cal-nav::after,.st-y button::after{inset:-5px}
+.cal-lg button::after{inset:-6px 0}
+.e-memo button::after{inset:-2px 0 -10px}
+.mic{position:relative}.mic::after{content:'';position:absolute;inset:-4px 0}
+.chip::after{inset:-3px 0}
+.done-links button::after{inset:-5px -2px}
+.ps-fav::after{inset:-12px}
+.rc-h button::after{inset:-12px -8px}
+.ps-bh button::after{inset:-11px -13px}
+.rc-links button::after{inset:-8px -5px}
+.ib::after{inset:-2px}
+.e-top>button::after{inset:-3px 0}
+.e-skw button:first-child::after{inset:-9px -6px 0 -14px}
+.e-skw .e-skall::after{inset:0 -6px -8px -14px}
+
 /* ---------- 홈 맨 위: 가장 급한 일 + 단계별 숫자 ---------- */
 .td-top{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:20px;padding:16px;box-shadow:var(--sh);margin:6px 0 10px}
 .td-top .tx{flex:1;min-width:0}.td-top small{display:block;font-size:12px;font-weight:700;color:var(--sub);margin-bottom:2px}.td-top b{display:block;font-size:17px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.td-top .s{font-size:13px;color:var(--sub)}
@@ -1028,6 +1056,121 @@ const CATS = {
     cons:['시간이 짧음','대기 시간','난이도','주차 불편','가격대','사람이 많음'],
     flow:['외관·입구','주차장','접수·안내','시설 전경','프로그램 진행 장면','사람 나오는 체험 컷','결과물·기념사진','부대시설','주변 풍경']}
 };
+/* ---------- 업종별 선택지·예시 문구 ----------
+   음식점 말("이 메뉴 먹으러 다시", "가족 외식" 등)이 뷰티·숙박·체험·제품 기록에 나오지 않게 한곳에서 관리한다.
+   쉽게 쓰기(질문 카드)와 자세히 쓰기 양쪽이 같은 목록을 쓴다. */
+const CAT_TXT={
+  food:{
+    reason:['체험단 선정','여행 중','등산·나들이 후','집·회사 근처','기념일','부모님 효도','데이트','평소 궁금했던 곳','재방문'],
+    reasonPh:'예: 출렁다리 갔다가 배고파서 들렀어요',
+    appRes:'앱 예약 (캐치테이블 등)',
+    kid:null,kidPh:'예: 아기밥 한 그릇 더 챙겨주심',
+    spacePh:'예: 벽에 방송 출연 사진이 빼곡해서 구경하는 재미',
+    staff:['친절함','직접 구워줌/조리해줌','메뉴 추천해줌','설명이 자세함','서비스 챙겨줌','응대가 빠름','무심한 듯 챙겨줌'],
+    staffPh:'예: 사장님이 면 종류를 골라보라고 권해주심',servicePh:'예: 맛보기 콩국수, 음료 1병',
+    reactPh:'예: 아들이 메밀전을 두 번이나 직접 부쳤어요',
+    consPh:'예: 평일엔 4시에 닫아서 늦게 가면 못 먹어요',
+    surprisePh:'예: 셀프 메밀전이 그냥 서비스인 줄 알았는데 무한이었음',comparePh:'예: 의정부 매장이랑 비빔국수 스타일이 달랐음',expertisePh:'예: 면 좋아하는 입장에서 중면이 제일 탄력 있었음',
+    pricePh:'예: 1인 1만원대',promoPh:'예: 평일 런치 10% 할인',
+    tips:['붐비는 시간 피하기','예약 팁','주문 조합 팁','맵기·간 조절 가능','포장 가능','아이랑 갈 때 팁','주차 팁','근처 코스'],
+    tipsPh:'예: 3명이면 국수 3개 + 메밀전 셀프로 충분',
+    revisit:['무조건 재방문','기회 되면 또','이 메뉴 먹으러 다시','글쎄'],
+    recommend:['가족 외식','아이 동반','부모님 효도 외식','데이트','친구 모임','회식·단체','혼자','여행·등산 코스'],
+    oneLinePh:'예: 산 다녀와서 국수 한 그릇 하기 딱 좋은 집',
+    freePh:'예: 간판이 낡았는데 오히려 오래된 집 느낌. 메밀전은 얇게 부쳐야 바삭함. 애가 콩국수 맛보기를 두 번 달라고 함…'},
+  cafe:{
+    reason:['체험단 선정','여행 중','산책·나들이 중','집·회사 근처','기념일','데이트','친구 모임','평소 궁금했던 곳','재방문'],
+    reasonPh:'예: 산책하다가 창가 자리가 예뻐서 들어갔어요',
+    appRes:'앱 예약',
+    kid:null,kidPh:'예: 아이 컵에 우유를 따로 담아 주심',
+    spacePh:'예: 2층 창가에 앉으면 은행나무가 바로 보여요',
+    staff:['친절함','메뉴 추천해줌','설명이 자세함','서비스 챙겨줌','응대가 빠름','무심한 듯 챙겨줌'],
+    staffPh:'예: 덜 달게 해 달라고 하니 시럽 양을 물어봐 주심',servicePh:'예: 쿠키 한 조각, 시음 한 잔',
+    reactPh:'예: 친구가 케이크 사진만 스무 장 찍었어요',
+    consPh:'예: 주말 오후엔 자리가 없어서 10분쯤 기다렸어요',
+    surprisePh:'예: 디저트만 유명한 줄 알았는데 커피가 더 기억에 남았음',comparePh:'예: 본점보다 좌석이 넓고 조용했음',expertisePh:'예: 산미 있는 커피를 좋아하는 입장에서 원두를 고를 수 있어 반가웠음',
+    pricePh:'예: 음료 6천원대, 디저트 7천원대',promoPh:'예: 오전 11시 전 아메리카노 할인',
+    tips:['붐비는 시간 피하기','자리 잡는 팁','주문 조합 팁','당도·샷 조절 가능','포장 가능','아이랑 갈 때 팁','주차 팁','근처 코스'],
+    tipsPh:'예: 2층 창가 자리는 오픈 직후에만 비어 있어요',
+    revisit:['무조건 재방문','기회 되면 또','이 메뉴 먹으러 다시','글쎄'],
+    recommend:['데이트','친구 모임','아이 동반','부모님과 함께','혼자 작업·공부','모임·단체','여행·산책 코스'],
+    oneLinePh:'예: 조용히 책 읽다 오기 좋은 동네 카페',
+    freePh:'예: 간판이 작아서 지나칠 뻔함. 2층 창가 자리가 제일 좋음. 스콘은 오전에 가야 따뜻함…'},
+  beauty:{
+    reason:['체험단 선정','집·회사 근처','기념일·행사 전','기분 전환','지인 추천','평소 궁금했던 곳','재방문'],
+    reasonPh:'예: 결혼식 가기 전에 손톱 정리하려고 예약했어요',
+    appRes:'앱 예약',
+    kid:['아이 기다릴 공간 있음','유모차 들어가기 편함','아이도 같이 받음','직원이 아이를 챙겨줌','아이가 지루해함'],kidPh:'예: 기다리는 동안 색칠 놀이를 꺼내 주심',
+    spacePh:'예: 자리마다 칸막이가 있어서 옆 사람이 신경 쓰이지 않았어요',
+    staff:['친절함','상담이 꼼꼼함','어울리는 스타일 추천','설명이 자세함','중간중간 확인해줌','손길이 섬세함','편하게 대해줌'],
+    staffPh:'예: 손톱이 얇다고 하니 두께를 조절해서 올려 주심',servicePh:'예: 손 팩, 큐티클 오일',
+    reactPh:'예: 친구가 색 예쁘다고 어디서 했냐고 물어봤어요',
+    consPh:'예: 주말 예약은 2주 전에 잡아야 했어요',
+    surprisePh:'예: 기본 케어만 예약했는데 큐티클 정리까지 꼼꼼하게 해 주심',comparePh:'예: 전에 다니던 곳보다 일주일은 더 오래 유지됐음',expertisePh:'예: 손을 많이 쓰는 직업이라 얇게 해 달라고 했는데 딱 맞춰 주심',
+    pricePh:'예: 젤네일 기본 5만원대',promoPh:'예: 첫 방문 20% 할인',
+    tips:['붐비는 시간 피하기','예약 팁','담당자 지정 팁','원하는 사진 챙겨가기','관리·유지 팁','아이랑 갈 때 팁','주차 팁','근처 코스'],
+    tipsPh:'예: 원하는 디자인 사진을 미리 보내 두면 상담이 빨라요',
+    revisit:['무조건 재방문','기회 되면 또','같은 관리 받으러 다시','글쎄'],
+    recommend:['친구랑 같이','엄마랑 같이','커플','직장인','중요한 일정 앞둔 분','처음 받아보는 분','혼자 쉬고 싶은 분'],
+    oneLinePh:'예: 꼼꼼하게 받고 싶을 때 믿고 가는 곳',
+    freePh:'예: 건물 2층이라 간판을 잘 봐야 함. 받는 동안 음료를 챙겨 주심. 일주일 지나도 끝이 안 들뜸…'},
+  stay:{
+    reason:['체험단 선정','가족 여행','커플 여행','친구 여행','기념일','부모님 효도','호캉스·쉬러','평소 궁금했던 곳','재방문'],
+    reasonPh:'예: 아이 방학이라 수영장 있는 곳으로 골랐어요',
+    appRes:'앱 예약',
+    kid:['놀이 공간','아기 침대·가드','아기 욕조·식기','기저귀 교환대','유모차 들어가기 편함','아이가 좋아함','아이가 지루해함'],kidPh:'예: 아기 욕조와 침대 가드를 미리 넣어 주심',
+    spacePh:'예: 거실 통창으로 바다가 보여서 한참 앉아 있었어요',
+    staff:['친절함','체크인 안내가 자세함','요청에 빨리 응대','주변 맛집·코스 추천','세심하게 챙겨줌','무심한 듯 챙겨줌'],
+    staffPh:'예: 늦게 도착한다고 하니 문 앞에 조명을 켜 두셨음',servicePh:'예: 웰컴 드링크, 레이트 체크아웃',
+    reactPh:'예: 아이가 수영장에서 안 나오려고 했어요',
+    consPh:'예: 옆방 소리가 조금 들렸어요',
+    surprisePh:'예: 사진보다 방이 넓고 층고가 높았음',comparePh:'예: 지난번 근처 숙소보다 방음이 훨씬 좋았음',expertisePh:'예: 아이 둘 데리고 다니는 입장에서 주방이 넓은 게 제일 편했음',
+    pricePh:'예: 주말 1박 20만원대',promoPh:'예: 연박 할인, 평일 특가',
+    tips:['예약 팁','객실 고르는 팁','챙겨가면 좋은 것','체크인·체크아웃 팁','아이랑 갈 때 팁','주차 팁','근처 코스','근처 맛집'],
+    tipsPh:'예: 바비큐는 체크인할 때 미리 신청해야 해요',
+    revisit:['무조건 재방문','기회 되면 또','다른 계절에 다시','글쎄'],
+    recommend:['가족 여행','아이 동반','부모님 효도 여행','커플','친구 모임','단체·워크숍','혼자 쉬러','반려견 동반'],
+    oneLinePh:'예: 아이랑 물놀이하기 좋은 가족 숙소',
+    freePh:'예: 입구가 좁아서 천천히 들어가야 함. 침구가 폭신해서 늦잠을 잠. 밤에 별이 잘 보였음…'},
+  activity:{
+    reason:['체험단 선정','여행 중','아이랑 나들이','집·회사 근처','기념일','데이트','친구 모임','평소 궁금했던 곳','재방문'],
+    reasonPh:'예: 비 오는 주말에 아이랑 갈 곳을 찾다가 예약했어요',
+    appRes:'앱 예약',
+    kid:['놀이 공간','기저귀 교환대','수유실','유모차 들어가기 편함','보호자 쉴 곳 있음','아이가 좋아함','아이가 지루해함'],kidPh:'예: 볼풀에서 깔깔대며 뒹굴었음',
+    spacePh:'예: 유리창 너머로 아이 수업하는 모습을 볼 수 있었어요',
+    staff:['친절함','처음이어도 잘 알려줌','안전 설명이 자세함','설명이 자세함','사진 찍어줌','아이 눈높이로 대해줌','응대가 빠름'],
+    staffPh:'예: 선생님이 손을 같이 잡고 모양을 잡아 주심',servicePh:'예: 기념사진 인화, 음료 쿠폰',
+    reactPh:'예: 딸이 만든 컵을 집에 오자마자 자랑했어요',
+    consPh:'예: 체험 시간이 생각보다 짧았어요',
+    surprisePh:'예: 아이만 하는 줄 알았는데 어른도 같이 만들 수 있었음',comparePh:'예: 다른 공방보다 재료를 넉넉하게 줬음',expertisePh:'예: 손재주가 없는 편인데도 결과물이 그럴듯했음',
+    pricePh:'예: 1인 3만원',promoPh:'예: 네이버 예약 10% 할인',
+    tips:['붐비는 시간 피하기','예약 팁','옷차림·준비물','소요 시간 팁','아이랑 갈 때 팁','주차 팁','근처 코스'],
+    tipsPh:'예: 여벌 옷을 꼭 챙기세요. 생각보다 많이 묻어요',
+    revisit:['무조건 재방문','기회 되면 또','다른 프로그램으로 다시','글쎄'],
+    recommend:['가족 나들이','아이 동반','부모님과 함께','데이트','친구 모임','단체·모임','혼자','여행 코스'],
+    oneLinePh:'예: 비 오는 날 아이랑 가기 좋은 곳',
+    freePh:'예: 주차장이 건물 뒤편에 있음. 앞치마를 빌려줘서 옷은 괜찮았음. 완성품은 2주 뒤 택배로 옴…'},
+  product:{
+    reason:['체험단 선정','평소 필요했던 제품','기존 제품 교체','선물용','후기 보고 궁금'],
+    reasonPh:'예: 쓰던 청소기가 고장 나서 알아보던 참이었어요',
+    appRes:'앱 예약',kid:null,kidPh:'',spacePh:'',
+    staff:['문의 답변 빠름','포장 꼼꼼','배송 빠름','설명서 친절','손편지·사은품'],
+    staffPh:'예: 사용법 문의했더니 영상으로 보내주심',servicePh:'예: 리필 필터 1개, 파우치',
+    react:['가족도 같이 씀','아이가 좋아함','주변에서 어디 거냐고 물어봄','하나 더 사 달라고 함','나만 쓰게 됨'],
+    reactPh:'예: 남편이 써 보더니 자기 것도 사 달라고 했어요',
+    consPh:'예: 설명서가 영어뿐이라 처음에 조금 헤맸어요',
+    surprisePh:'예: 조립이 어려울 줄 알았는데 10분 만에 끝남',comparePh:'예: 쓰던 제품보다 소음이 절반으로 줄었음',expertisePh:'예: 매일 요리하는 입장에서 세척이 쉬운 게 제일 좋았음',
+    pricePh:'예: 정가 129,000원',promoPh:'예: 첫 구매 쿠폰, 묶음 할인',
+    tips:['사용 순서 팁','보관 팁','같이 쓰면 좋은 것','이런 분은 비추'],
+    tipsPh:'예: 충전은 거치대보다 케이블이 빠름',
+    revisit:['무조건 재구매','다 쓰면 고민','선물로 사줄 듯','글쎄'],
+    recommend:['아이 키우는 집','자취생','직장인','선물용','입문자','부모님'],
+    oneLinePh:'예: 매일 손이 가는 기본템',
+    freePh:'예: 상자가 생각보다 커서 놀람. 조립은 10분이면 끝. 색은 사진보다 살짝 어두움…'}
+};
+const catTxt=c=>CAT_TXT[c]||CAT_TXT.activity;
+/* 목록이 바뀌어도 예전에 골라 둔 답은 칩으로 계속 보이게 덧붙인다 */
+function keepSel(id,opts){const v=S&&S.f?S.f[id]:null;const cur=v?(Array.isArray(v.sel)?v.sel:[v.sel]):[];return [...opts,...cur.filter(x=>x&&x!=='기타'&&!opts.includes(x))]}
 function guessCat(p){
   if(p&&p.product)return'product';
   const c=(p.category||'')+' '+(p.type||'');
@@ -1094,7 +1237,7 @@ const A=(id,label,ph,x={})=>({id,label,type:'textarea',ph,...x});
 const D=(id,label,x={})=>({id,label,type:'date',...x});
 
 function sections(){
-  const c=S.cat,C=CATS[c],visit=c!=='product';
+  const c=S.cat,C=CATS[c],visit=c!=='product',X=catTxt(c);
   const placeAmen=PLACE?uniq([...(PLACE.conveniences||[]),...(PLACE.facilities||[])]).filter(x=>!['주차','예약','포장','간편결제','단체 이용 가능'].includes(x)):[];
   const list=[
     {id:'campaign',title:'기본 정보',desc:'어디를 다녀왔는지만 적어요. 키워드·대가 표기 같은 체험단 가이드는 AI 글쓰기 단계에서 따로 넣어요.',fields:[
@@ -1106,8 +1249,8 @@ function sections(){
       R('when',visit?'방문 시간대':'주로 쓴 때',visit?['평일 점심','평일 저녁','주말 점심','주말 저녁','오전','늦은 밤']:['평일 위주','주말 위주','매일']),
       M('with',visit?'같이 간 사람':'같이 쓴 사람',['혼자','남편','아내','연인','아이','부모님','친구','직장 동료','반려견']),
       T('withDetail','동행 디테일','예: 남편, 7살·5살 아들 둘 / 칠순 엄마 / 회사 동기 3명'),
-      M('reason',visit?'방문 이유':'써보게 된 이유',visit?['체험단 선정','기념일','부모님 효도','여행 중','등산·나들이 후','집·회사 근처','평소 궁금했던 곳','재방문','데이트']:['체험단 선정','평소 필요했던 제품','기존 제품 교체','선물용','후기 보고 궁금']),
-      A('reasonStory','이유에 얽힌 내 이야기','예: 감악산 출렁다리 다녀오는 길에 배가 고파서'),
+      M('reason',visit?'방문 이유':'써보게 된 이유',keepSel('reason',X.reason)),
+      A('reasonStory','이유에 얽힌 내 이야기',X.reasonPh),
       ...(visit?[R('weather','그날 날씨',['맑음','흐림','비','눈','더움','쌀쌀함'])]:[])
     ]},
     visit?{id:'access',title:'찾아가기·주차·예약',desc:'직접 가보니 어땠는지.',fields:[
@@ -1118,7 +1261,7 @@ function sections(){
       T('parkingDetail','주차 디테일','예: 코너 자리라 나갈 때 좌우를 잘 봐야 했음'),
       R('wait','기다림',WAIT_OPTS),
       ...(EXTRA_WAIT[c]?[R(EXTRA_WAIT[c][0],EXTRA_WAIT[c][1],EXTRA_WAIT[c][2])]:[]),
-      R('reserve','예약',['예약 필수','예약 권장','워크인 가능','네이버 예약','전화 예약','앱 예약 (캐치테이블 등)'])
+      R('reserve','예약',keepSel('reserve',['예약 필수','예약 권장','워크인 가능','네이버 예약','전화 예약',X.appRes]))
     ]}:{id:'usage',title:'사용 맥락',desc:'어떤 상황에서, 얼마나 써봤는지.',fields:[
       R('period','사용 기간',['1회','2~3일','1주일','2주 이상','한 달 이상']),
       A('situation','어떤 상황에서 썼나요','예: 아이 둘 키우는 거실, 매일 저녁 식사 후 바닥 청소'),
@@ -1133,44 +1276,44 @@ function sections(){
       M('vibe','분위기',['아늑함','넓고 쾌적','인테리어 예쁨','활기참','조용함','뷰 맛집','레트로','고급스러움','오래된 전통 느낌']),
       M('spaceOpt',C.spaceLabel,C.space),
       M('amenity','편의',uniq(['아기의자','키즈 공간','화장실 깨끗','반려견 동반 가능','와이파이','유아차 진입 편함',...placeAmen])),
-      M('kid','아이랑',KID_OPTS),
-      A('kidStory','아이 반응·장면','예: 아기밥 한 그릇 더 챙겨주심'),
+      M('kid','아이랑',keepSel('kid',X.kid||KID_OPTS)),
+      A('kidStory','아이 반응·장면',X.kidPh),
       ...(c==='stay'?[M('bbq','바베큐',BBQ_OPTS),M('room','방·시설',ROOM_OPTS),A('stayMemo','숙소에서 기억나는 장면','예: 사장님이 야외에서 먹어도 된다고 안내')]:[]),
-      A('spaceMemo','공간에서 기억나는 장면','예: 벽에 방송 출연 사진이 빼곡해서 구경하는 재미')
+      A('spaceMemo','공간에서 기억나는 장면',X.spacePh)
     ]}:null,
     {id:'items',title:C.item,desc:'"맛있다/좋다" 말고 구체적으로. 예상과 달랐던 점, 실제 행동(몇 번 리필했는지 등)이 핵심이에요.',type:'items'},
     {id:'people',title:visit?'사장님·직원·서비스':'업체 응대·배송',fields:[
       ...(c==='food'?[M('sides','반찬·곁들임',['가짓수 많음','적지만 딱 필요한 것만','셀프바 있음','리필 잘 해줌','아이 먹을 반찬 있음']),T('sidesMemo','반찬 디테일','예: 아이 먹을 반찬이 없어서 김을 따로 챙겨주심')]:[]),
-      M('staff','응대',visit?['친절함','직접 구워줌/조리해줌','메뉴 추천해줌','설명이 자세함','서비스 챙겨줌','응대가 빠름','무심한 듯 챙겨줌']:['문의 답변 빠름','포장 꼼꼼','배송 빠름','설명서 친절','손편지·사은품']),
-      A('staffStory','기억에 남는 대화·에피소드',visit?'예: 사장님이 면 종류를 골라보라고 권해주심':'예: 사용법 문의했더니 영상으로 보내주심'),
-      T('service','서비스로 받은 것','예: 맛보기 콩국수, 음료 1병')
+      M('staff','응대',keepSel('staff',X.staff)),
+      A('staffStory','기억에 남는 대화·에피소드',X.staffPh),
+      T('service','서비스로 받은 것',X.servicePh)
     ]},
-    {id:'reaction',title:'같이 간 사람 반응',desc:'동행자의 실제 반응과 행동.',fields:[
-      M('react','반응',['또 오자고 함','아이가 잘 먹음/좋아함','부모님이 만족하심','말없이 먹기만 함','사진 찍기 바빴음','포장해 감','추가 주문함']),
-      A('reactStory','구체적인 장면','예: 아들이 메밀전을 직접 뒤집겠다고 두 번이나 부침')
+    {id:'reaction',title:visit?'같이 간 사람 반응':'가족·주변 반응',desc:visit?'동행자의 실제 반응과 행동.':'같이 써 본 사람의 실제 반응.',fields:[
+      M('react','반응',keepSel('react',!visit?X.react:c==='food'?['또 오자고 함','아이가 잘 먹음/좋아함','부모님이 만족하심','말없이 먹기만 함','사진 찍기 바빴음','포장해 감','추가 주문함']:['또 오자고 함','아이가 좋아함','부모님이 만족하심','사진 찍기 바빴음'])),
+      A('reactStory','구체적인 장면',X.reactPh)
     ]},
     (PLACE&&PLACE.voted&&PLACE.voted.length)?{id:'voted',title:'다른 방문자 평가와 비교',desc:'플레이스 방문자들이 많이 고른 키워드예요(숫자는 투표 수). 내 경험과 비교해 보세요.',type:'voted'}:null,
     {id:'cons',title:'솔직히 아쉬웠던 점',desc:'한두 가지 아쉬움이 후기의 신뢰를 올려요.',fields:[
       M('cons','아쉬운 점',['딱히 없었어요',...C.cons]),
-      A('consMemo','아쉬움 디테일','예: 평일엔 4시에 닫아서 늦게 가면 못 먹음'),
+      A('consMemo','아쉬움 디테일',X.consPh),
       R('consTone','글에 넣을지',['부드럽게 넣기','방문 팁으로 바꿔서','넣지 않기'],{other:false})
     ]},
     {id:'insight',title:'비교·나만의 시선',desc:'비교 경험과 예상 밖 포인트.',fields:[
-      A('surprise','예상과 달랐던 점','예: 셀프 메밀전이 그냥 서비스인 줄 알았는데 무한이었음'),
-      A('compare','비교 경험','예: 의정부 매장이랑 비빔국수 스타일이 달랐음'),
-      A('expertise','내 직업·취향으로 보면','예: 면 좋아하는 입장에서 중면이 제일 탄력 있었음')
+      A('surprise','예상과 달랐던 점',X.surprisePh),
+      A('compare','비교 경험',X.comparePh),
+      A('expertise','내 직업·취향으로 보면',X.expertisePh)
     ]},
     {id:'info',title:visit?'방문 팁·실용 정보':'구매 정보·사용 팁',desc:PLACE?'운영시간·가격은 플레이스에서 가져왔어요. 실제와 다르면 고쳐주세요.':'방문(구매)을 결정하게 만드는 정보.',fields:[
       ...(visit?[T('hours','운영시간·휴무','예: 11:30~22:00, 브레이크 15~17시, 월요일 휴무')]:[T('where','구매처','예: 스마트스토어, 쿠팡')]),
-      T('price','가격대',visit?'예: 1인 1만원대':'예: 정가 129,000원'),
-      T('promo','진행 중인 이벤트·할인','예: 평일 런치 10% 할인'),
-      M('tips','팁',visit?['붐비는 시간 피하기','예약 팁','주문 조합 팁','맵기·간 조절 가능','포장 가능','아이랑 갈 때 팁','주차 팁','근처 코스']:['사용 순서 팁','보관 팁','같이 쓰면 좋은 것','이런 분은 비추']),
-      A('tipsMemo','팁 디테일',visit?'예: 3명이면 국수 3개 + 메밀전 셀프로 충분':'예: 충전은 거치대보다 케이블이 빠름')
+      T('price','가격대',X.pricePh),
+      T('promo','진행 중인 이벤트·할인',X.promoPh),
+      M('tips','팁',keepSel('tips',X.tips)),
+      A('tipsMemo','팁 디테일',X.tipsPh)
     ]},
     {id:'wrap',title:'총평·추천',fields:[
-      M('recommend','이런 사람에게 추천',visit?['부모님 효도 외식','데이트','가족 외식','아이 동반','친구 모임','회식·단체','혼자','여행·등산 코스']:['아이 키우는 집','자취생','직장인','선물용','입문자','부모님']),
-      R('revisit',visit?'재방문 의사':'재구매 의사',visit?['무조건 재방문','기회 되면 또','이 메뉴 먹으러 다시','글쎄']:['무조건 재구매','다 쓰면 고민','선물로 사줄 듯','글쎄']),
-      T('oneLine','내 말로 한 줄 총평','예: 산 다녀와서 국수 한 그릇에 메밀전까지 부쳐 먹는 재미가 있는 집'),
+      M('recommend','이런 사람에게 추천',keepSel('recommend',X.recommend)),
+      R('revisit',visit?'재방문 의사':'재구매 의사',keepSel('revisit',X.revisit)),
+      T('oneLine','내 말로 한 줄 총평',X.oneLinePh),
       A('freeMemo','생각나는 대로 남긴 메모','순서·말투 상관없이 떠오르는 것')
     ]},
     {id:'photos',title:'사진',desc:'',type:'photopick'}
@@ -2284,8 +2427,10 @@ function voiceButton(t,set,onEnd){
 }
 let PENDING_LINK='';
 let RESUME=null;
+let KEEP_Y=null;
 function applyPlace(d){
-  const nx=sanitize(d);if(!nx)return;if(PLACE&&String(PLACE.id)!==String(nx.id))autoSyncCur();
+  const nx=sanitize(d);if(!nx)return;
+  try{if(!document.body.classList.contains('flow'))KEEP_Y={tab:TAB,y:window.scrollY}}catch(e){}if(PLACE&&String(PLACE.id)!==String(nx.id))autoSyncCur();
   PLACE=nx;RESUME=null;
   try{localStorage.setItem(LAST_KEY,JSON.stringify(PLACE));localStorage.setItem('chd-place-'+PLACE.id,JSON.stringify(PLACE))}catch(e){}
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);
@@ -2375,7 +2520,7 @@ function toggleItem(name,price){
   if(!S.items.length)S.items.push(newItem());
 }
 function easyCards(){
-  const C=CATS[S.cat],visit=S.cat!=='product',cards=[];
+  const C=CATS[S.cat],visit=S.cat!=='product',cards=[],X=catTxt(S.cat);
   if(!PLACE)cards.push({id:'start',src:'시작',q:'어디 다녀왔어요?',nextLabel:'링크 없이 쓰기',nextFn:manualStart,body:b=>{
     const inp=document.createElement('input');inp.type='text';inp.id='placeLink';inp.placeholder='https://naver.me/...';inp.value=PENDING_LINK||'';inp.autocomplete='off';
     const go2=el('button','e-btn primary','가져오기');go2.type='button';
@@ -2427,8 +2572,8 @@ function easyCards(){
     
   }});
   cards.push({id:'why',src:'왜',q:visit?'왜 가게 됐어요?':'왜 써보게 됐어요?',body:b=>{
-    b.append(mChips('reason',visit?['체험단 선정','여행 중','등산·나들이 후','집·회사 근처','기념일','부모님 효도','데이트','평소 궁금했던 곳','재방문']:['체험단 선정','평소 필요했던 제품','기존 제품 교체','선물용','후기 보고 궁금']));
-    b.append(el('div','e-label','한 줄'),eText(()=>S.f.reasonStory,x=>S.f.reasonStory=x,'예: 출렁다리 갔다가 배고파서 들렀어요',true));
+    b.append(mChips('reason',keepSel('reason',X.reason)));
+    b.append(el('div','e-label','한 줄'),eText(()=>S.f.reasonStory,x=>S.f.reasonStory=x,X.reasonPh,true));
   }});
   const nb=(PLACE&&PLACE.blogs&&PLACE.blogs.length)||5;
   const L=t=>el('div','e-label',t);
@@ -2451,7 +2596,7 @@ function easyCards(){
   }});
   if(visit)cards.push({id:'way',src:'가는 길',q:'찾아가는 길은 어땠어요?',body:b=>{
     b.append(L('이동 수단'),rChips('transport',['자차','대중교통','도보','택시']),L('찾기 쉬웠나요'),rChips('findEase',['간판이 커서 바로 찾음','지도 보고 쉽게 찾음','골목 안이라 조금 헤맴','지나칠 뻔함','건물 안이라 입구가 애매함']),
-      L('외관 첫인상'),mChips('exterior',['눈에 확 띔','감성적·예쁨','소박함','노포 느낌','깔끔·모던','주변 풍경이 좋음']),L('예약'),rChips('reserve',['예약 필수','예약 권장','워크인 가능','네이버 예약','전화 예약','앱 예약 (캐치테이블 등)']));
+      L('외관 첫인상'),mChips('exterior',['눈에 확 띔','감성적·예쁨','소박함','노포 느낌','깔끔·모던','주변 풍경이 좋음']),L('예약'),rChips('reserve',keepSel('reserve',['예약 필수','예약 권장','워크인 가능','네이버 예약','전화 예약',X.appRes])));
   }});
   if(visit)cards.push({id:'arrive',src:'현장',q:'도착해 보니 어땠어요?',body:b=>{
     b.append(el('div','e-label','주차'),rChips('parking',PARK_OPTS),eText(()=>S.f.parkingDetail,x=>S.f.parkingDetail=x,'예: 근처 유료주차장 2시간 지원 / 바로 옆 건물 지하'));
@@ -2460,7 +2605,7 @@ function easyCards(){
     const ex=EXTRA_WAIT[S.cat];if(ex)b.append(el('div','e-label',ex[1]),rChips(ex[0],ex[2]));
   }});
   if(visit&&((S.f.with&&S.f.with.sel)||[]).includes('아이'))cards.push({id:'kid',src:'아이',q:'아이랑은 어땠어요?',body:b=>{
-    b.append(mChips('kid',KID_OPTS),el('div','e-label','아이 반응·장면'),eText(()=>S.f.kidStory,x=>S.f.kidStory=x,'예: 아기밥 한 그릇 더 챙겨주심 / 볼풀에서 깔깔대며 뒹굴었음',true));
+    b.append(mChips('kid',keepSel('kid',X.kid||KID_OPTS)),el('div','e-label','아이 반응·장면'),eText(()=>S.f.kidStory,x=>S.f.kidStory=x,X.kidPh,true));
   }});
   if(S.cat==='stay')cards.push({id:'stay',src:'숙소',q:'숙소는 어땠어요?',body:b=>{
     b.append(el('div','e-label','바베큐'),mChips('bbq',BBQ_OPTS),el('div','e-label','방·시설'),mChips('room',ROOM_OPTS),eText(()=>S.f.stayMemo,x=>S.f.stayMemo=x,'예: 사장님이 야외 공간에서 먹어도 된다고 안내해 주심',true));
@@ -2469,7 +2614,7 @@ function easyCards(){
     const amen=PLACE?uniq([...(PLACE.conveniences||[]),...(PLACE.facilities||[])]).filter(x=>!['주차','예약','포장','간편결제','단체 이용 가능'].includes(x)):[];
     b.append(L('분위기'),mChips('vibe',['아늑함','넓고 쾌적','인테리어 예쁨','활기참','조용함','뷰 맛집','레트로','고급스러움','오래된 전통 느낌']),
       L(C.spaceLabel),mChips('spaceOpt',C.space),L('편의'),mChips('amenity',uniq(['화장실 깨끗','와이파이','반려견 동반 가능',...amen]).slice(0,12)),
-      L('공간에서 기억나는 장면'),eText(()=>S.f.spaceMemo,x=>S.f.spaceMemo=x,'예: 벽에 방송 출연 사진이 빼곡해서 구경하는 재미',true));
+      L('공간에서 기억나는 장면'),eText(()=>S.f.spaceMemo,x=>S.f.spaceMemo=x,X.spacePh,true));
   }});
   if(S.cat!=='product')cards.push({id:'menu',src:C.item,q:ITEM_Q[S.cat],body:b=>{
     let pm=(PLACE&&PLACE.menus)||[];
@@ -2507,41 +2652,41 @@ function easyCards(){
   cards.push({id:'rate',src:'평가',q:'어땠어요?',body:b=>rateCard(b)});
   cards.push({id:'people',src:'응대',q:visit?'응대·서비스는 어땠어요?':'업체 응대·배송은요?',body:b=>{
     if(S.cat==='food')b.append(L('반찬·곁들임'),mChips('sides',['가짓수 많음','적지만 딱 필요한 것만','셀프바 있음','리필 잘 해줌','아이 먹을 반찬 있음']),eText(()=>S.f.sidesMemo,x=>S.f.sidesMemo=x,'예: 아이 먹을 반찬이 없어서 김을 따로 챙겨주심'));
-    b.append(L('응대'),mChips('staff',visit?['친절함','직접 구워줌/조리해줌','메뉴 추천해줌','설명이 자세함','서비스 챙겨줌','응대가 빠름','무심한 듯 챙겨줌']:['문의 답변 빠름','포장 꼼꼼','배송 빠름','설명서 친절','손편지·사은품']),
-      L('기억에 남는 대화·에피소드'),eText(()=>S.f.staffStory,x=>S.f.staffStory=x,visit?'예: 사장님이 면 종류를 골라보라고 권해주심':'예: 사용법 문의했더니 영상으로 보내주심',true),
-      L('서비스로 받은 것'),eText(()=>S.f.service,x=>S.f.service=x,'예: 맛보기 콩국수, 음료 1병'));
+    b.append(L('응대'),mChips('staff',keepSel('staff',X.staff)),
+      L('기억에 남는 대화·에피소드'),eText(()=>S.f.staffStory,x=>S.f.staffStory=x,X.staffPh,true),
+      L('서비스로 받은 것'),eText(()=>S.f.service,x=>S.f.service=x,X.servicePh));
   }});
   const w=sel('with').filter(x=>x!=='기타');
-  if(!(w.length===1&&w[0]==='혼자'))cards.push({id:'react',src:'같이 간 사람',q:'같이 간 사람 반응은 어땠어요?',body:b=>{
+  if(!(w.length===1&&w[0]==='혼자'))cards.push({id:'react',src:visit?'같이 간 사람':'주변 반응',q:visit?'같이 간 사람 반응은 어땠어요?':'가족·주변 반응은 어땠어요?',body:b=>{
     const food=S.cat==='food',kid=w.some(x=>/아이/.test(x)),has=x=>w.includes(x);
-    const ro=['또 오자고 함',kid?(food?'아이가 잘 먹음':'아이가 좋아함'):'',has('부모님')?'부모님이 만족하심':'',has('남편')?'남편이 만족함':'',has('아내')?'아내가 만족함':'',has('남편/아내')?'남편/아내가 만족함':'',has('연인')?'연인이 좋아함':'',has('친구')?'친구가 좋아함':'',has('직장 동료')?'동료들이 만족함':'',has('반려견')?'반려견도 편해함':'',food?'말없이 먹기만 함':'','사진 찍기 바빴음',food?'포장해 감':'',food?'추가 주문함':''].filter(Boolean);
+    const ro=!visit?X.react:['또 오자고 함',kid?(food?'아이가 잘 먹음':'아이가 좋아함'):'',has('부모님')?'부모님이 만족하심':'',has('남편')?'남편이 만족함':'',has('아내')?'아내가 만족함':'',has('남편/아내')?'남편/아내가 만족함':'',has('연인')?'연인이 좋아함':'',has('친구')?'친구가 좋아함':'',has('직장 동료')?'동료들이 만족함':'',has('반려견')?'반려견도 편해함':'',food?'말없이 먹기만 함':'','사진 찍기 바빴음',food?'포장해 감':'',food?'추가 주문함':''].filter(Boolean);
     b.append(mChips('react',[...ro,...mv('react').sel.filter(x=>!ro.includes(x))]));
-    b.append(el('div','e-label','기억나는 장면'),eText(()=>S.f.reactStory,x=>S.f.reactStory=x,'예: 아들이 메밀전을 두 번이나 직접 부쳤어요',true));
+    b.append(el('div','e-label','기억나는 장면'),eText(()=>S.f.reactStory,x=>S.f.reactStory=x,X.reactPh,true));
   }});
   cards.push({id:'cons',src:'솔직히',q:'아쉬웠던 점, 하나만 꼽는다면?',body:b=>{
     const hc=PLACE&&PLACE.hints&&PLACE.hints.cons;
     if(hc&&hc.length){S.h.cons=S.h.cons||{};b.append(el('div','e-label','다른 후기'),hChips(S.h.cons,hc))}
     b.append(el('div','e-label','내가 느낀 것'),mChips('cons',['딱히 없었어요',...C.cons]));
-    b.append(el('div','e-label','한 줄'),eText(()=>S.f.consMemo,x=>S.f.consMemo=x,'예: 평일엔 4시에 닫아서 늦게 가면 못 먹어요',true));
+    b.append(el('div','e-label','한 줄'),eText(()=>S.f.consMemo,x=>S.f.consMemo=x,X.consPh,true));
   }});
   cards.push({id:'insight',src:'나만의 시선',q:'예상과 달랐던 점이 있었나요?',body:b=>{
-    b.append(L('예상과 달랐던 점'),eText(()=>S.f.surprise,x=>S.f.surprise=x,'예: 셀프 메밀전이 그냥 서비스인 줄 알았는데 무한이었음',true),
-      L('비교 경험'),eText(()=>S.f.compare,x=>S.f.compare=x,'예: 의정부 매장이랑 비빔국수 스타일이 달랐음',true),
-      L('내 직업·취향으로 보면'),eText(()=>S.f.expertise,x=>S.f.expertise=x,'예: 면 좋아하는 입장에서 중면이 제일 탄력 있었음'));
+    b.append(L('예상과 달랐던 점'),eText(()=>S.f.surprise,x=>S.f.surprise=x,X.surprisePh,true),
+      L('비교 경험'),eText(()=>S.f.compare,x=>S.f.compare=x,X.comparePh,true),
+      L('내 직업·취향으로 보면'),eText(()=>S.f.expertise,x=>S.f.expertise=x,X.expertisePh));
   }});
   cards.push({id:'info',src:'팁',q:visit?'알아두면 좋은 건요?':'구매 정보·사용 팁은요?',body:b=>{
     if(visit)b.append(L('운영시간·휴무 (실제와 다르면)'),eText(()=>S.f.hours,x=>S.f.hours=x,'예: 평일엔 4시에 닫음'));else b.append(L('구매처'),eText(()=>S.f.where,x=>S.f.where=x,'예: 스마트스토어, 쿠팡'));
-    b.append(L('가격대'),eText(()=>S.f.price,x=>S.f.price=x,visit?'예: 1인 1만원대':'예: 정가 129,000원'),L('진행 중인 이벤트·할인'),eText(()=>S.f.promo,x=>S.f.promo=x,'예: 평일 런치 10% 할인'),
-      L('팁'),mChips('tips',visit?['붐비는 시간 피하기','예약 팁','주문 조합 팁','맵기·간 조절 가능','포장 가능','아이랑 갈 때 팁','주차 팁','근처 코스']:['사용 순서 팁','보관 팁','같이 쓰면 좋은 것','이런 분은 비추']),
-      eText(()=>S.f.tipsMemo,x=>S.f.tipsMemo=x,visit?'예: 3명이면 국수 3개 + 메밀전 셀프로 충분':'예: 충전은 거치대보다 케이블이 빠름',true));
+    b.append(L('가격대'),eText(()=>S.f.price,x=>S.f.price=x,X.pricePh),L('진행 중인 이벤트·할인'),eText(()=>S.f.promo,x=>S.f.promo=x,X.promoPh),
+      L('팁'),mChips('tips',keepSel('tips',X.tips)),
+      eText(()=>S.f.tipsMemo,x=>S.f.tipsMemo=x,X.tipsPh,true));
   }});
   cards.push({id:'wrap',src:'마무리',q:visit?'또 갈 거예요?':'또 살 거예요?',body:b=>{
-    b.append(rChips('revisit',visit?['무조건 재방문','기회 되면 또','이 메뉴 먹으러 다시','글쎄']:['무조건 재구매','다 쓰면 고민','선물로 사줄 듯','글쎄']));
-    b.append(el('div','e-label','누구한테 추천해요?'),mChips('recommend',visit?['가족 외식','아이 동반','부모님 효도 외식','데이트','친구 모임','회식·단체','혼자','여행·등산 코스']:['아이 키우는 집','자취생','직장인','선물용','입문자','부모님']));
-    b.append(el('div','e-label','한 줄 총평'),eText(()=>S.f.oneLine,x=>S.f.oneLine=x,'예: 산 다녀와서 국수 한 그릇 하기 딱 좋은 집'));
+    b.append(rChips('revisit',keepSel('revisit',X.revisit)));
+    b.append(el('div','e-label','누구한테 추천해요?'),mChips('recommend',keepSel('recommend',X.recommend)));
+    b.append(el('div','e-label','한 줄 총평'),eText(()=>S.f.oneLine,x=>S.f.oneLine=x,X.oneLinePh));
   }});
   cards.push({id:'free',src:'마지막',q:'더 생각나는 거 있으면 남겨주세요',body:b=>{
-    b.append(eText(()=>S.f.freeMemo,x=>S.f.freeMemo=x,'예: 간판이 낡았는데 오히려 오래된 집 느낌. 메밀전은 얇게 부쳐야 바삭함. 애가 콩국수 맛보기를 두 번 달라고 함…',true,'big'));
+    b.append(eText(()=>S.f.freeMemo,x=>S.f.freeMemo=x,X.freePh,true,'big'));
     b.append(photoBlock());
   }});
   cards.push({id:'done',src:'끝',q:doneTitle(),done:true,body:b=>{
@@ -2576,7 +2721,8 @@ function autoWhen(){if(S.autoWhen)return;S.autoWhen=1;const w=rv('when');if(w.se
   w.sel=h<11?'오전':h<16?(wk?'주말 점심':'평일 점심'):h<21?(wk?'주말 저녁':'평일 저녁'):'늦은 밤';save()}
 function updTop(){
   const n=easyCards().length;const g=document.querySelector('#easy .e-grow');if(!g)return;
-  const r=(S.step+1)/n;g.innerHTML=sproutSvg(r>=1?3:r>=.6?2:r>=.25?1:0);const bar=el('span','e-pbar');const fi=el('i');fi.style.width=Math.round(r*100)+'%';bar.append(fi);g.append(bar);g.setAttribute('aria-label',`질문 ${S.step+1} / ${n}`);
+  const r=(S.step+1)/n;g.innerHTML=sproutSvg(r>=1?3:r>=.6?2:r>=.25?1:0);const bar=el('span','e-pbar');const fi=el('i');fi.style.width=Math.round(r*100)+'%';bar.append(fi);g.append(bar);
+  if(S.step<n-1)g.append(el('span','e-cnt',(S.step+1)+'/'+(n-1)));g.setAttribute('aria-label',`질문 ${S.step+1} / ${n-1}`);
 }
 function renderEasy(){
   const box=$('#easy');box.innerHTML='';document.querySelectorAll('.conf').forEach(x=>x.remove());
@@ -2693,6 +2839,8 @@ function goHome(){autoSyncCur();document.querySelectorAll('.conf').forEach(x=>x.
   if(PLACE)RESUME=PLACE;PLACE=null;
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);
   KEY='chd-memo-v2';S=init();S.step=0;S.mode='easy';if(!TABS.includes(TAB))TAB='home';document.body.dataset.tab=TAB;setMode('easy');
+  if(KEEP_Y&&KEEP_Y.tab===TAB&&KEEP_Y.y>0){const y=KEEP_Y.y,go=()=>{try{window.scrollTo({top:y,behavior:'instant'})}catch(e){window.scrollTo(0,y)}};go();requestAnimationFrame(go)}
+  KEEP_Y=null;
 }
 $('#topBack').onclick=goHome;
 $('#btnMore').onclick=()=>openAct(b=>{
@@ -2940,16 +3088,18 @@ function visitKey(x){
   return Infinity}
 const sortVisit=(a,b)=>(visitKey(a)-visitKey(b))||(ddayNum(a.due)-ddayNum(b.due));
 function updTodoDot(){const d=document.getElementById('todoDot');if(!d)return;const n=todoItems().filter(x=>x.kind!=='end'&&x.due&&ddayNum(x.due)<=2).length;d.classList.toggle('on',n>0)}
-function todoRow(x){
-  const row=el('div','li td-row');row.append(thumbEl(x.place,'th'));const tx=el('div','tx');const nm=el('div','nm',x.name);
-  {const pf=(x.plan&&x.plan.platform)||(x.rec&&x.rec.platform);if(pf)nm.append(pBadge(pf))}
+function todoRow(x,full){
+  const row=el('div','li td-row');row.append(thumbEl(x.place,'th'));const tx=el('div','tx');const nm=nameEl(x.name);
   if(x.due&&x.kind!=='end'){const n=ddayNum(x.due);nm.append(el('span','due'+(n<=1?' hot':n<=3?' soon':''),dday(x.due)))}
   const sub=el('div','sub');
   const pr=x.place&&x.place.product;
   if(x.kind==='visit'){const d=new Date(x.when);sub.append((d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+') '+(pr?'도착 예정':'방문'));if(lateVisit(x.plan))sub.append(el('span','due hot','마감 후 방문'))}
   else if(x.kind==='date')sub.append(pr?'배송 기다리는 중':'방문 날짜를 정해주세요');
-  else{const vd=x.rec&&x.rec.visitDate?(()=>{const [y,m,d]=x.rec.visitDate.split('-').map(Number);return m+'/'+d+'('+WD[new Date(y,m-1,d).getDay()]+') '+(pr?'받음':'방문')+' · '})():'';
-    sub.append(vd+(x.kind==='write'?'기록 쓰는 중':x.kind==='post'?'기록 완성 · 블로그에 올리면 끝':'블로그 발행 완료'))}
+  else{const vd=x.rec&&x.rec.visitDate?(()=>{const [y,m,d]=x.rec.visitDate.split('-').map(Number);return m+'/'+d+'('+WD[new Date(y,m-1,d).getDay()]+') '+(pr?'받음':'방문')})():'';
+    /* 목록에서는 방문일만(단계는 위 제목과 버튼이 말해 준다). 맨 위 카드에서는 단계까지 */
+    const stg=x.kind==='write'?'쓰는 중':x.kind==='post'?'올리면 끝':'발행 완료';
+    sub.append(vd?(full?vd+' · '+stg:vd):(x.kind==='write'?'기록 쓰는 중':x.kind==='post'?'블로그에 올리면 끝':'블로그 발행 완료'))}
+  {const pf=(x.plan&&x.plan.platform)||(x.rec&&x.rec.platform);if(pf)sub.append(pBadge(pf))}
   tx.append(nm,sub);row.append(tx);
   const lab=(x.place&&x.place.product?{visit:'받았어요',date:'받았어요',write:'이어 쓰기',post:'올렸어요',end:''}:{visit:'다녀왔어요',date:'날짜 정하기',write:'이어 쓰기',post:'올렸어요',end:''})[x.kind];
   if(lab){const b=el('button','td-go'+(x.kind==='post'?' acc':''),lab);b.type='button';b.onclick=e=>{e.stopPropagation();
@@ -2967,12 +3117,13 @@ function renderTodo(){
   const sortDue=(a,b)=>ddayNum(a.due)-ddayNum(b.due)||String(a.when||'').localeCompare(String(b.when||''));
   const act=all.filter(x=>x.kind!=='end'),hp=all.some(x=>x.place&&x.place.product);
   /* 맨 위: 가장 급한 일 하나. 마감 하루 전부터는 비상(빨강), 2~3일 전은 주의(노랑) */
+  let topX=null;
   {const withDue=act.filter(x=>x.due).sort(sortDue);
     const top=(withDue[0]&&ddayNum(withDue[0].due)<=3)?withDue[0]:act.slice().sort(sortVisit)[0];
-    if(top){const n=top.due?ddayNum(top.due):99,lv=n<=1?'bad':n<=3?'warn':'';
+    if(top){topX=top;const n=top.due?ddayNum(top.due):99,lv=n<=1?'bad':n<=3?'warn':'';
       const more=withDue.filter(x=>x!==top&&ddayNum(x.due)<=(n<=1?1:3)).length;
       const lab=!top.due?'다음 할 일':n<0?'마감 지남 · 지금 바로':n===0?'비상 · 오늘 마감':n===1?'비상 · 내일 마감':n<=3?'곧 마감 · '+dday(top.due):'다음 할 일 · '+dday(top.due);
-      const r=todoRow(top),c=el('div','td-top '+lv),tx=el('div','tx');
+      const r=todoRow(top,true),c=el('div','td-top '+lv),tx=el('div','tx');
       const nm=el('b','',top.name);const sub=r.querySelector('.sub');
       tx.append(el('small','',lab+(lv&&more?' · 외 '+more+'건':'')),nm);if(sub){sub.className='s';tx.append(sub)}
       c.append(tx);const go=r.querySelector('.td-go');if(go){go.classList.add('acc');c.append(go)}
@@ -2987,7 +3138,7 @@ function renderTodo(){
       b.onclick=()=>{TODO_F=TODO_F===k?'':k;renderTodo()};
       if(i)bar.append(el('i','','›'));bar.append(b)});
     if(act.length)v.append(bar)}
-  const sec=(t,kind)=>{if(TODO_F&&TODO_F!==kind)return;const xs=all.filter(x=>x.kind===kind).sort(sortVisit);if(!xs.length)return;v.append(el('div','sub-h',t+' '+xs.length));xs.forEach(x=>v.append(todoRow(x)))};
+  const sec=(t,kind)=>{if(TODO_F&&TODO_F!==kind)return;const xs=all.filter(x=>x.kind===kind&&x!==topX).sort(sortVisit);if(!xs.length)return;v.append(el('div','sub-h',t+' '+xs.length));xs.forEach(x=>v.append(todoRow(x)))};
   sec('블로그 올리기','post');sec('기록 쓰기','write');sec(hp?'방문하기 · 받기':'방문하기','visit');sec(hp?'날짜 정하기 · 배송 대기':'날짜 정하기','date');
   if(TODO_F){const a=el('button','td-all','전체 보기');a.type='button';a.onclick=()=>{TODO_F='';renderTodo()};v.append(a)}
   const ends=TODO_F?[]:all.filter(x=>x.kind==='end');
@@ -3028,7 +3179,7 @@ function renderCal(v){
   const dayList=(key,showEmpty)=>{const es=ev[key]||[];const [yy,mm,dd]=key.split('-').map(Number);if(!es.length&&!showEmpty)return;v.append(el('div','sub-h',mm+'월 '+dd+'일 ('+WD[new Date(yy,mm-1,dd).getDay()]+')'));
     if(!es.length)v.append(el('div','e-tip','일정이 없어요'));
     es.forEach(e=>{if(e.p&&e.t==='visit')v.append(planRow(e.p));else if(e.r&&e.t==='done')v.append(recRow(e.r));
-      else if(e.t==='due'){const row=el('div','li');row.append(thumbEl((e.p||e.r).place,'th'));const tx=el('div','tx');tx.append(el('div','nm',(e.p?e.p.place.name:e.r.name)),el('div','sub','블로그 마감일'));row.append(tx);row.onclick=()=>e.p?placeSheet({plan:e.p}):placeSheet({rec:e.r});v.append(row)}})};
+      else if(e.t==='due'){const row=el('div','li');row.append(thumbEl((e.p||e.r).place,'th'));const tx=el('div','tx');tx.append(nameEl(e.p?e.p.place.name:e.r.name),el('div','sub','블로그 마감일'));row.append(tx);row.onclick=()=>e.p?placeSheet({plan:e.p}):placeSheet({rec:e.r});v.append(row)}})};
   if(CAL_SEL)dayList(CAL_SEL,true);
   else{const pre=y+'-'+String(m+1).padStart(2,'0')+'-';const t0=ymd(now);const ks=Object.keys(ev).filter(k=>k.startsWith(pre)&&(k>=t0||y*12+m!==now.getFullYear()*12+now.getMonth())).sort();ks.forEach(k=>dayList(k,false));if(!ks.length)v.append(el('div','e-tip cal-none','이번 달 남은 일정이 없어요'))}
 }
@@ -3252,6 +3403,8 @@ function confetti(){
 }
 function stageOf(r){return r.sent||r.done?3:(r.step||0)>=6?2:(r.step||0)>=2?1:0}
 function stageName(s){return ['씨앗','새싹','잎','꽃'][s]}
+/* 목록 줄의 이름: 이름만 말줄임하고 뒤에 붙는 뱃지(마감 등)는 항상 보이게 */
+function nameEl(name){const d=el('div','nm');d.append(el('span','nm-t',name));return d}
 function recStatus(r){return r.posted?'발행':r.sent?'보냄':r.done?'완성':'작성 중'}
 function recDate(r){if(r.visitDate){const [,m,d]=r.visitDate.split('-').map(Number);return m+'/'+d}const d=r.updated?new Date(r.updated):null;return d?(d.getMonth()+1)+'/'+d.getDate():''}
 function thumbEl(place,cls){
@@ -3326,7 +3479,7 @@ function planRow(p){
   const row=el('div','li');
   const th=thumbEl(p.place,'th');
   const tx=el('div','tx');const nm=getQM(p.id).length;
-  const nmEl=el('div','nm',p.place.name);
+  const nmEl=nameEl(p.place.name);
   if(p.due){const dd=dday(p.due);nmEl.append(el('span','due'+(/오늘|지남|D-1$/.test(dd)?' hot':/D-[23]$/.test(dd)?' soon':''),dd))}
   const sub=el('div','sub');
   let when='날짜 미정';if(p.when){const d=new Date(p.when);when=(d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+')'+(p.noTime?'':' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'))}
@@ -3339,7 +3492,7 @@ function planRow(p){
 }
 function recRow(r){
   const row=el('div','li');const tx=el('div','tx');
-  tx.append(el('div','nm',r.name),el('div','sub',[recDate(r),recStatus(r)].filter(Boolean).join(' · ')));
+  tx.append(nameEl(r.name),el('div','sub',[recDate(r),recStatus(r)].filter(Boolean).join(' · ')));
   const done=r.sent||r.done;if(done&&getFav().has(String(r.id))){const f=el('span','fav');f.innerHTML=ICO_HEART;tx.querySelector('.nm').append(f)}
   row.append(thumbEl(r.place,'th'),tx);
   if(done)tapOrDouble(row,()=>placeSheet({rec:r}),()=>toggleFav(r.id,row));else row.onclick=()=>placeSheet({rec:r});
@@ -3517,7 +3670,8 @@ function swipeRow(row,acts){
   acts.forEach(([label,cls,fn])=>{const b=el('button','swr-b '+(cls||''),label);b.type='button';b.onclick=e=>{e.stopPropagation();close();fn()};back.append(b)});
   row.classList.add('swr-front');box.append(back,row);
   const W=()=>back.offsetWidth||acts.length*72;let x0=null,y0=0,dx=0,open=false,horiz=null;
-  const set=(x,anim)=>{row.style.transition=anim?'transform .2s ease-out':'none';row.style.transform=x?'translateX('+x+'px)':''};
+  const set=(x,anim)=>{row.style.transition=anim?'transform .2s ease-out':'none';row.style.transform=x?'translateX('+x+'px)':'';
+    if(x)box.classList.add('drag');else setTimeout(()=>{if(!row.style.transform)box.classList.remove('drag')},anim?230:0)};
   row.addEventListener('touchstart',e=>{if(SW_OPEN&&SW_OPEN!==close)SW_OPEN();x0=e.touches[0].clientX;y0=e.touches[0].clientY;dx=0;horiz=null},{passive:true});
   row.addEventListener('touchmove',e=>{if(x0===null)return;const mx=e.touches[0].clientX-x0,my=e.touches[0].clientY-y0;
     if(horiz===null&&(Math.abs(mx)>8||Math.abs(my)>8))horiz=Math.abs(mx)>Math.abs(my);
