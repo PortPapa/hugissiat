@@ -462,7 +462,10 @@ body[data-tab=memo] #viewMemo,body[data-tab=plans] #viewPlans,body[data-tab=todo
 .cal-d .dots{display:flex;gap:2px;height:6px}
 .cal-d i,.cal-lg i{display:inline-block;width:6px;height:6px;border-radius:50%}
 i.v{background:var(--acc)}i.dn{background:#B9B3A8}i.du{background:transparent;box-shadow:inset 0 0 0 1.5px #E0563B}
-.cal-lg{display:flex;gap:14px;font-size:12px;color:var(--sub);margin:8px 2px}.cal-lg span{display:flex;align-items:center;gap:5px}
+.cal-lg{display:flex;gap:8px;font-size:12px;color:var(--sub);margin:8px 0}
+.cal-lg button{display:flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 11px;font-size:12px;font-weight:600;transition:opacity .15s}
+.cal-lg button.off{opacity:.45;background:transparent;color:var(--sub);text-decoration:line-through;font-weight:500}
+.cal-lg button.off i{filter:grayscale(1)}
 .rp{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
 .money-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}.money-row .m{display:block}.money-row .m-l{display:block;font-size:13px;font-weight:600;color:var(--sub);margin:10px 0 6px}.money-row .m-in{position:relative}.money-row input{width:100%;text-align:right;padding-right:30px!important;font-variant-numeric:tabular-nums}.money-row .u{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none}.money-row .m-h{display:block;font-size:11.5px;color:var(--sub);margin-top:4px}
 .blog-list{margin:10px 0}.blog-row{display:flex;align-items:center;justify-content:space-between;padding:10px 2px;border-bottom:1px solid var(--line);font-weight:600}.blog-row button{border:0;background:none;color:#D9534F;font:inherit;font-size:13px}
@@ -3000,9 +3003,11 @@ function calEvents(){
   getRecords().forEach(r=>{if(String(r.id).startsWith('_'))return;if(r.visitDate)add(r.visitDate,{t:'done',r});if(r.due&&!r.posted)add(r.due,{t:'due',r})});
   return ev;
 }
+/* 달력 범례 켜고 끄기: 방문·다녀옴·마감 중 끈 것은 달력 점과 아래 목록에서 숨긴다 (기억해 둠) */
+function calHide(){try{return new Set(JSON.parse(localStorage.getItem('chd-cal-hide')||'[]'))}catch(e){return new Set()}}
 function renderCal(v){
   const now=new Date();if(!CAL_M)CAL_M=new Date(now.getFullYear(),now.getMonth(),1);
-  const ev=calEvents();const y=CAL_M.getFullYear(),m=CAL_M.getMonth();
+  const HID=calHide(),ev={};{const ev0=calEvents();Object.keys(ev0).forEach(k=>{const xs=ev0[k].filter(x=>!HID.has(x.t));if(xs.length)ev[k]=xs})}const y=CAL_M.getFullYear(),m=CAL_M.getMonth();
   const hd=el('div','cal-hd');const pv=el('button','cal-nav');pv.type='button';pv.innerHTML=ICAL_L;pv.onclick=()=>{CAL_M=new Date(y,m-1,1);renderPlans()};
   const nx=el('button','cal-nav');nx.type='button';nx.innerHTML=ICAL_R;nx.onclick=()=>{CAL_M=new Date(y,m+1,1);renderPlans()};
   hd.append(pv,el('b','',y+'년 '+(m+1)+'월'),nx);v.append(hd);
@@ -3016,7 +3021,10 @@ function renderCal(v){
     if(es.some(e=>e.t==='done'))dots.append(el('i','dn'));if(es.some(e=>e.t==='due'))dots.append(el('i','du'));
     c.append(dots);c.onclick=()=>{CAL_SEL=CAL_SEL===key?null:key;renderPlans()};g.append(c)}
   v.append(g);
-  const lg=el('div','cal-lg');const pc=getPlatforms().slice(0,3).map(p=>'<i class="v" style="background:'+p.color+'"></i>').join('')||'<i class="v"></i>';lg.innerHTML='<span>'+pc+'방문</span><span><i class="dn"></i>다녀옴</span><span><i class="du"></i>마감</span>';v.append(lg);
+  const lg=el('div','cal-lg');const pc=getPlatforms().slice(0,3).map(p=>'<i class="v" style="background:'+p.color+'"></i>').join('')||'<i class="v"></i>';
+  [['visit',pc,'방문'],['done','<i class="dn"></i>','다녀옴'],['due','<i class="du"></i>','마감']].forEach(([t,ic,l])=>{const b=el('button',HID.has(t)?'off':'');b.type='button';b.innerHTML=ic;b.append(l);b.setAttribute('aria-pressed',String(!HID.has(t)));
+    b.onclick=()=>{const s=calHide();s.has(t)?s.delete(t):s.add(t);try{localStorage.setItem('chd-cal-hide',JSON.stringify([...s]))}catch(e){}renderPlans()};lg.append(b)});
+  v.append(lg);
   const dayList=(key,showEmpty)=>{const es=ev[key]||[];const [yy,mm,dd]=key.split('-').map(Number);if(!es.length&&!showEmpty)return;v.append(el('div','sub-h',mm+'월 '+dd+'일 ('+WD[new Date(yy,mm-1,dd).getDay()]+')'));
     if(!es.length)v.append(el('div','e-tip','일정이 없어요'));
     es.forEach(e=>{if(e.p&&e.t==='visit')v.append(planRow(e.p));else if(e.r&&e.t==='done')v.append(recRow(e.r));
