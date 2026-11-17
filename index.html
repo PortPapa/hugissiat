@@ -2005,7 +2005,7 @@ function sharedRec(i,r){openAct(b=>{const nm=el('div','ps-nm');nm.append(r.name|
   const ct=campText(r,null);if(ct)b.append(el('div','ps-meta',(r.visitDate?recDate(r)+' 방문 · ':'')+ct));
   if(r.sum&&r.sum.length){const bx=el('div','ps-box');bx.append(el('div','ps-bh','경험 요약'));const t=el('div','ps-sum');r.sum.forEach((l,k)=>{if(k)t.append(document.createElement('br'));t.append(l)});bx.append(t);b.append(bx)}
   const ch=el('div','e-choices');
-  if(r.folder){const f=el('button','e-btn primary','드라이브에서 사진·후기 소스 보기');f.type='button';f.onclick=()=>{location.href=r.folder};ch.append(f)}
+  if(r.folder){const f=el('button','e-btn primary','드라이브에서 사진·기록 글 보기');f.type='button';f.onclick=()=>{location.href=r.folder};ch.append(f)}
   if(r.postUrl){const p=el('button','e-btn','올린 블로그 글 보기');p.type='button';p.onclick=()=>{location.href=r.postUrl};ch.append(p)}
   const bk=el('button','e-btn','목록으로');bk.type='button';bk.onclick=()=>sharedSheet(i);ch.append(bk);b.append(ch)})}
 function mergeWebInbox(o){
