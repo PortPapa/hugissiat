@@ -3101,10 +3101,10 @@ function visitKey(x){
   const r=x.rec;if(r){if(r.visitDate){const [y,m,d]=r.visitDate.split('-').map(Number);return new Date(y,m-1,d).getTime()}if(r.updated)return new Date(r.updated).getTime()}
   return Infinity}
 const sortVisit=(a,b)=>(visitKey(a)-visitKey(b))||(ddayNum(a.due)-ddayNum(b.due));
-function updTodoDot(){const d=document.getElementById('todoDot');if(!d)return;const n=todoItems().filter(x=>x.kind!=='end'&&x.due&&ddayNum(x.due)<=2).length;d.classList.toggle('on',n>0)}
+function updTodoDot(){const d=document.getElementById('todoDot');if(!d)return;const n=todoItems().filter(x=>x.kind!=='end'&&x.due&&ddayNum(x.due)<=dueRed()).length;d.classList.toggle('on',n>0)}
 function todoRow(x,full){
   const row=el('div','li td-row');row.append(thumbEl(x.place,'th'));const tx=el('div','tx');const nm=nameEl(x.name);
-  if(x.due&&x.kind!=='end'){const n=ddayNum(x.due);nm.append(el('span','due'+(n<=1?' hot':n<=3?' soon':''),dday(x.due)))}
+  if(x.due&&x.kind!=='end'){const n=ddayNum(x.due);{const lv=dueLv(n);nm.append(el('span','due'+(lv==='bad'?' hot':lv==='warn'?' soon':''),dday(x.due)))}}
   const sub=el('div','sub');
   const pr=x.place&&x.place.product;
   if(x.kind==='visit'){const d=new Date(x.when);sub.append((d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+') '+(pr?'도착 예정':'방문'));if(lateVisit(x.plan))sub.append(el('span','due hot','마감 후 방문'))}
@@ -3133,10 +3133,10 @@ function renderTodo(){
   /* 맨 위: 가장 급한 일 하나. 마감 하루 전부터는 비상(빨강), 2~3일 전은 주의(노랑) */
   let topX=null;
   {const withDue=act.filter(x=>x.due).sort(sortDue);
-    const top=(withDue[0]&&ddayNum(withDue[0].due)<=3)?withDue[0]:act.slice().sort(sortVisit)[0];
-    if(top){topX=top;const n=top.due?ddayNum(top.due):99,lv=n<=1?'bad':n<=3?'warn':'';
-      const more=withDue.filter(x=>x!==top&&ddayNum(x.due)<=(n<=1?1:3)).length;
-      const lab=!top.due?'다음 할 일':n<0?'마감 지남 · 지금 바로':n===0?'비상 · 오늘 마감':n===1?'비상 · 내일 마감':n<=3?'곧 마감 · '+dday(top.due):'다음 할 일 · '+dday(top.due);
+    const top=(withDue[0]&&ddayNum(withDue[0].due)<=dueYel())?withDue[0]:act.slice().sort(sortVisit)[0];
+    if(top){topX=top;const n=top.due?ddayNum(top.due):99,lv=top.due?dueLv(n):'';
+      const more=withDue.filter(x=>x!==top&&ddayNum(x.due)<=(lv==='bad'?dueRed():dueYel())).length;
+      const lab=!top.due?'다음 할 일':n<0?'마감 지남 · 지금 바로':n===0?'비상 · 오늘 마감':n===1&&lv==='bad'?'비상 · 내일 마감':lv==='bad'?'비상 · '+dday(top.due):lv==='warn'?'곧 마감 · '+dday(top.due):'다음 할 일 · '+dday(top.due);
       const r=todoRow(top,true),c=el('div','td-top '+lv),tx=el('div','tx');
       const nm=el('b','',top.name);const sub=r.querySelector('.sub');
       tx.append(el('small','',lab+(lv&&more?' · 외 '+more+'건':'')),nm);if(sub){sub.className='s';tx.append(sub)}
@@ -3147,7 +3147,7 @@ function renderTodo(){
     if(TODO_F&&!act.some(x=>x.kind===TODO_F))TODO_F='';
     const bar=el('div','td-steps');
     steps.forEach(([k,l],i)=>{const xs=act.filter(x=>x.kind===k),m=xs.filter(x=>x.due).reduce((a,x)=>Math.min(a,ddayNum(x.due)),99);
-      const b=el('button',(TODO_F===k?'on ':'')+(m<=1?'bad':m<=3?'warn':''));b.type='button';b.disabled=!xs.length;b.setAttribute('aria-pressed',String(TODO_F===k));
+      const b=el('button',(TODO_F===k?'on ':'')+(m<99?dueLv(m):''));b.type='button';b.disabled=!xs.length;b.setAttribute('aria-pressed',String(TODO_F===k));
       const nb=el('b','',String(xs.length));b.append(nb,el('span','',l));countUp(nb,xs.length,String);
       b.onclick=()=>{TODO_F=TODO_F===k?'':k;renderTodo()};
       if(i)bar.append(el('i','','›'));bar.append(b)});
@@ -3250,6 +3250,10 @@ function addPlanFlow(){openAct(b=>{
 
 /* ---------- 내 정원 (예전 이름: 내 정보) ---------- */
 function getSettings(){let o={};try{o=JSON.parse(localStorage.getItem('chd-settings')||'{}')||{}}catch(e){}return Object.assign({remindH:3},o)}
+/* 마감 색 기준: 빨강(급함)은 D-redD부터, 노랑(곧)은 D-yelD부터. 기본 1·3 */
+function dueRed(){const v=+getSettings().redD;return v>=0&&v<=7?v:1}
+function dueYel(){const v=+getSettings().yelD;return Math.max(v>=0&&v<=14?v:3,dueRed())}
+function dueLv(n){return n<=dueRed()?'bad':n<=dueYel()?'warn':''}
 function setSettings(o){try{localStorage.setItem('chd-settings',JSON.stringify(Object.assign(getSettings(),o)))}catch(e){}}
 function renderMe(){
   const v=$('#viewMe');v.innerHTML='';
@@ -3281,7 +3285,7 @@ function renderMe(){
   const dOn=driveLinked();
   const rpg=el('div','set-g');rpg.append(el('div','set-h','내 기록'),reportBox());
   v.append(hero,yr,rpg,
-    group('글쓰기 설정',[row('내 블로그',getBlogs().length?getBlogs().map(x=>x.name).join(', '):'하나만 써요',()=>blogSheet()),row('체험단 플랫폼',dots,()=>platformSheet()),row('프롬프트',getSettings().promptTpl?'내 문구':'기본 문구',()=>promptSheet()),row('자주 가는 조합',gsN.length?gsN.slice(0,2).map(g=>g.name||groupName(g.with)).join(', ')+(gsN.length>2?' 외 '+(gsN.length-2):''):'저장해 두기',()=>profileSheet()),row('알림','다녀온 뒤 '+st.remindH+'시간 · 마감 '+(st.dueOff?'끔':'3일·1일 전'),()=>remindSheet())]),
+    group('글쓰기 설정',[row('내 블로그',getBlogs().length?getBlogs().map(x=>x.name).join(', '):'하나만 써요',()=>blogSheet()),row('체험단 플랫폼',dots,()=>platformSheet()),row('프롬프트',getSettings().promptTpl?'내 문구':'기본 문구',()=>promptSheet()),row('자주 가는 조합',gsN.length?gsN.slice(0,2).map(g=>g.name||groupName(g.with)).join(', ')+(gsN.length>2?' 외 '+(gsN.length-2):''):'저장해 두기',()=>profileSheet()),row('알림','다녀온 뒤 '+st.remindH+'시간 · 마감 '+(st.dueOff?'끔':'3일·1일 전'),()=>remindSheet()),row('마감 색','빨강 '+ddLab(dueRed())+' · 노랑 '+ddLab(dueYel()),()=>dueColorSheet())]),
     canDrive()?group('저장·공유',[row('구글 드라이브',dOn?'연결됨':'연결 안 됨',()=>driveSheet(),{cls:dOn?'on':''}),dOn?row('전체 동기화','바뀐 것·빠진 사진 맞추기',()=>syncAll()):null,dOn&&freeOk()?row('저장 공간 정리','드라이브에 저장된 사진 비우기',()=>storageSheet()):null,shareOk()?row('기록 공유',shareState(),()=>shareSheet()):null,dOn?row('백업·복원',lastBackup()?new Date(lastBackup()).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 백업':'백업 전',()=>backupSheet()):null]):'',
     group('정보',[row('사용법','',()=>document.body.classList.add('sheet')),row('의견 보내기','',()=>feedback()),row('디스코드 커뮤니티','사용법·문의',()=>openCommunity()),IS_APP?row('앱 평가하기','',()=>rateApp()):null,row('개인정보처리방침','',()=>privacySheet()),ver?row('버전',ver,null,{noChev:true,cls:'static'}):null]),
     group('',[row('모든 데이터 지우기','',()=>deleteAllSheet(),{cls:'danger'})])
@@ -3340,6 +3344,16 @@ function remindSheet(){openAct(b=>{
   {const hs=hInfo('후기 마감 알림','마감 3일 전과 전날 오전 9시에 알려드려요. 발행한 기록은 알리지 않아요.');hs[0].style.marginTop='26px';
     hs[0].append(toggleSw(!getSettings().dueOff,on=>{setSettings({dueOff:!on});DUE_SIG='';syncDue();try{renderMe()}catch(e){}toast(on?'마감 알림을 켰어요':'마감 알림을 껐어요')},'후기 마감 알림'));b.append(...hs)}
 })}
+const ddLab=n=>n===0?'당일':'D-'+n+'부터';
+function dueColorSheet(){openAct(b=>{
+  b.append(...hInfo('마감 색','홈과 목록의 마감 표시 색이 언제부터 바뀔지 정해요. 맨 위 카드와 홈 탭의 빨간 점도 같은 기준을 따라요.'));
+  const h1=el('div','e-label','빨강 (급해요)');h1.style.marginTop='14px';b.append(h1);
+  b.append(eChips(['D-1','D-2','D-3'],t=>'D-'+dueRed()===t,t=>{const r=parseInt(t.slice(2),10);setSettings({redD:r,yelD:Math.max(dueYel(),r+1)});dueColorSheet();try{renderMe()}catch(e){}}));
+  const h2=el('div','e-label','노랑 (곧 마감)');h2.style.marginTop='18px';b.append(h2);
+  const ys=[2,3,4,5,7].filter(v=>v>dueRed()).map(v=>'D-'+v);
+  b.append(eChips(ys,t=>'D-'+dueYel()===t,t=>{setSettings({yelD:parseInt(t.slice(2),10)});dueColorSheet();try{renderMe()}catch(e){}}));
+  const ok=el('button','e-btn primary','확인');ok.type='button';ok.style.marginTop='22px';ok.onclick=()=>{closeAct();renderView()};b.append(ok);
+})}
 function driveSheet(){openAct(b=>{
   const on=driveLinked();
   if(on)b.append(...hInfo('구글 드라이브',(getBlogs().length?'후기씨앗 / 블로그 / 년 월 / 일 가게이름':'후기씨앗 / 년 월 / 일 가게이름')+' 폴더에 기록 글·사진·가이드가 저장돼요'));else b.append(el('h3','','구글 드라이브'),el('div','e-tip','연결하면 가게별 폴더에 기록 글과 사진을 저장할 수 있어요'));
@@ -3377,8 +3391,8 @@ function syncWidget(){
     week.sort((a,b)=>a.t-b.t);week.forEach(x=>delete x.t);
     const all=todoItems(),open=all.filter(x=>x.kind!=='end');
     const sd=(a,b)=>ddayNum(a.due)-ddayNum(b.due);
-    const todo={late:open.filter(x=>x.due&&ddayNum(x.due)<0).length,soon:open.filter(x=>x.due&&ddayNum(x.due)>=0&&ddayNum(x.due)<=3).length,prog:open.length,post:all.filter(x=>x.kind==='post').length,write:all.filter(x=>x.kind==='write').length,
-      list:all.filter(x=>x.kind==='post'||x.kind==='write').sort(sd).slice(0,4).map(x=>({id:String(x.rec.id),name:x.name,kind:x.kind,dd:x.due?dday(x.due).replace('마감 ',''):'',hot:!!(x.due&&ddayNum(x.due)<=1)}))};
+    const todo={late:open.filter(x=>x.due&&ddayNum(x.due)<0).length,soon:open.filter(x=>x.due&&ddayNum(x.due)>=0&&ddayNum(x.due)<=dueYel()).length,prog:open.length,post:all.filter(x=>x.kind==='post').length,write:all.filter(x=>x.kind==='write').length,
+      list:all.filter(x=>x.kind==='post'||x.kind==='write').sort(sd).slice(0,4).map(x=>({id:String(x.rec.id),name:x.name,kind:x.kind,dd:x.due?dday(x.due).replace('마감 ',''):'',hot:!!(x.due&&ddayNum(x.due)<=dueRed())}))};
     /* 0.9.24 위젯: 날짜 원본을 넘기면 위젯이 그릴 때마다 오늘 기준으로 계산한다 (앱을 안 열어도 D-day가 줄어든다) */
     let grow=null;try{const g=growNow();grow={mo:g.mo,st:g.st,n:g.n,N:BLOOM_N,png:flowerPng(g.mo,g.st)}}catch(e){}
     const raw={v:1,plans:ps.map(p=>({id:String(p.id),name:p.place.name,when:p.when?new Date(p.when).getTime():0,noTime:!!p.noTime,due:p.due||'',pf:p.platform||'',c:p.platform?pColor(p.platform):acc,prod:!!(p.place&&p.place.product)})),
