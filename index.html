@@ -748,6 +748,18 @@ button.acc{margin-bottom:0;overflow:visible}
 .rs .st::before{color:#E3DED3}.rs .st i{position:absolute;left:0;top:0;height:100%;width:0;overflow:hidden}.rs .st i::before{color:#F5B83D}
 .md-view .rtab,.rc-exp .rtab{margin-bottom:10px}
 .pt-tags{margin:8px 0 4px}.pt-pv{background:var(--acc-soft);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5;color:var(--ink);word-break:keep-all}.pt-warn{color:var(--red);min-height:0;margin:6px 2px 0}
+.dc{margin:22px 18px 4px}
+.dc-bar{position:relative;height:36px;touch-action:none;cursor:pointer}
+.dc-tr{position:absolute;left:0;right:0;top:14px;height:8px;border-radius:8px;background:var(--line)}
+.dc-zr,.dc-zy{position:absolute;top:0;bottom:0}
+.dc-zr{left:0;background:var(--red);border-radius:8px 0 0 8px}
+.dc-zy{background:#F2C14E}
+.dc-k{position:absolute;top:4px;width:28px;height:28px;margin-left:-14px;padding:0;border:0;border-radius:50%;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.28);touch-action:none}
+.dc-k:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.dc-tk{position:relative;height:24px;margin-top:8px}
+.dc-tk span{position:absolute;top:0;transform:translateX(-50%);min-width:36px;padding-inline:4px;padding:3px 0;border-radius:999px;text-align:center;font-size:12px;font-weight:600;color:var(--sub);font-variant-numeric:tabular-nums;transition:background .15s,color .15s}
+.dc-tk span.r{background:var(--red-soft);color:var(--red)}
+.dc-tk span.y{background:var(--warn-soft);color:var(--warn)}
 </style>
 </head>
 <body>
@@ -3346,12 +3358,28 @@ function remindSheet(){openAct(b=>{
 })}
 const ddLab=n=>n===0?'당일':'D-'+n+'부터';
 function dueColorSheet(){openAct(b=>{
-  b.append(...hInfo('마감 색','홈과 목록의 마감 표시 색이 언제부터 바뀔지 정해요. 맨 위 카드와 홈 탭의 빨간 점도 같은 기준을 따라요.'));
-  const h1=el('div','e-label','빨강 (급해요)');h1.style.marginTop='14px';b.append(h1);
-  b.append(eChips(['D-1','D-2','D-3'],t=>'D-'+dueRed()===t,t=>{const r=parseInt(t.slice(2),10);setSettings({redD:r,yelD:Math.max(dueYel(),r+1)});dueColorSheet();try{renderMe()}catch(e){}}));
-  const h2=el('div','e-label','노랑 (곧 마감)');h2.style.marginTop='18px';b.append(h2);
-  const ys=[2,3,4,5,7].filter(v=>v>dueRed()).map(v=>'D-'+v);
-  b.append(eChips(ys,t=>'D-'+dueYel()===t,t=>{setSettings({yelD:parseInt(t.slice(2),10)});dueColorSheet();try{renderMe()}catch(e){}}));
+  b.append(...hInfo('마감 색','동그라미를 끌어서 빨강과 노랑이 언제부터 보일지 정해요. 홈 맨 위 카드, 목록 뱃지, 홈 탭 빨간 점이 같은 기준을 따라요.'));
+  const MAX=7;let r=dueRed(),y=dueYel();
+  const w=el('div','dc');const bar=el('div','dc-bar');const tr=el('div','dc-tr');const zr=el('i','dc-zr'),zy=el('i','dc-zy');tr.append(zr,zy);
+  const kr=el('button','dc-k');kr.type='button';kr.setAttribute('aria-label','빨강 시작');const ky=el('button','dc-k');ky.type='button';ky.setAttribute('aria-label','노랑 시작');
+  bar.append(tr,kr,ky);const tk=el('div','dc-tk');const ts=[];for(let n=0;n<=MAX;n++){const t=el('span','',n===0?'오늘':'D-'+n);t.style.left=(n/MAX*100)+'%';ts.push(t);tk.append(t)}
+  w.append(bar,tk);b.append(w);
+  const p=n=>(n/MAX*100)+'%';
+  const draw=()=>{zr.style.width=p(r);zy.style.left=p(r);zy.style.width=p(y-r);kr.style.left=p(r);ky.style.left=p(y);
+    ts.forEach((t,n)=>{t.className=n<=r?'r':n<=y?'y':''});kr.setAttribute('aria-valuetext','D-'+r);ky.setAttribute('aria-valuetext','D-'+y)};
+  const save=()=>{setSettings({redD:r,yelD:y});try{renderView()}catch(x){}};
+  const at=ev=>{const rc=bar.getBoundingClientRect();return Math.round(Math.min(1,Math.max(0,(ev.clientX-rc.left)/rc.width))*MAX)};
+  let drag=null;
+  const down=k=>ev=>{drag=k;try{ev.target.setPointerCapture(ev.pointerId)}catch(x){}ev.preventDefault()};
+  kr.addEventListener('pointerdown',down('r'));ky.addEventListener('pointerdown',down('y'));
+  bar.addEventListener('pointerdown',ev=>{if(ev.target.classList.contains('dc-k'))return;const n=at(ev);drag=Math.abs(n-r)<=Math.abs(n-y)?'r':'y';move(ev)});
+  const move=ev=>{if(!drag)return;const n=at(ev);if(drag==='r'){r=Math.max(1,Math.min(3,n));if(y<=r)y=r+1}else{y=Math.max(r+1,Math.min(MAX,n))}draw()};
+  bar.addEventListener('pointermove',move);kr.addEventListener('pointermove',move);ky.addEventListener('pointermove',move);
+  const up=()=>{if(drag){drag=null;save();buzz&&buzz(8)}};
+  ['pointerup','pointercancel'].forEach(t=>{bar.addEventListener(t,up);kr.addEventListener(t,up);ky.addEventListener(t,up)});
+  const key=k=>ev=>{const d=ev.key==='ArrowRight'?1:ev.key==='ArrowLeft'?-1:0;if(!d)return;ev.preventDefault();if(k==='r'){r=Math.max(1,Math.min(3,r+d));if(y<=r)y=r+1}else y=Math.max(r+1,Math.min(MAX,y+d));draw();save()};
+  kr.addEventListener('keydown',key('r'));ky.addEventListener('keydown',key('y'));
+  draw();
   const ok=el('button','e-btn primary','확인');ok.type='button';ok.style.marginTop='22px';ok.onclick=()=>{closeAct();renderView()};b.append(ok);
 })}
 function driveSheet(){openAct(b=>{
