@@ -1868,8 +1868,10 @@ window.chdUpDone=(rid,name)=>{const cur=recPatch(rid,st=>{st.upPh=Array.isArray(
 function upJobs(){try{return JSON.parse(localStorage.getItem('chd-upjobs')||'{}')||{}}catch(e){return {}}}
 function setUpJobs(o){try{localStorage.setItem('chd-upjobs',JSON.stringify(o))}catch(e){}}
 let UP_RESUME_T=0;
+const wifiOk=()=>{try{return !(IS_APP&&ChdNative.netOk)||ChdNative.netOk()}catch(e){return true}};
+window.chdNetOk=()=>{UP_RESUME_T=0;resumeUploads()};
 function resumeUploads(){try{
-  if(!bgUp()||!driveLinked()||Date.now()-UP_RESUME_T<60e3)return;UP_RESUME_T=Date.now();
+  if(!bgUp()||!driveLinked()||Date.now()-UP_RESUME_T<60e3||!wifiOk())return;UP_RESUME_T=Date.now();
   const jobs=upJobs();let n=0;
   Object.entries(jobs).forEach(([rid,j])=>{if(UPQ[rid]||!j||!j.job)return;if(Date.now()-(j.t||0)>7*864e5){delete jobs[rid];return}
     let jo=null;try{jo=JSON.parse(j.job)}catch(e){}UPQ[rid]={name:j.name||'',p:0,t:Date.now(),job:jo};UP_LAST=rid;n++;ChdNative.driveSave(j.job)});
@@ -1946,6 +1948,8 @@ window.chdDrive=s=>{
   if(o.op==='pick'){if(o.cancel)return;if(!o.ok){toast(o.error||'연결하지 못했어요');return}toast((o.label||'공유받은')+' 기록을 연결했어요');try{setTab('records')}catch(e){}return}
   if(o.op==='sharedOff'){if(!o.ok)toast('끄지 못했어요. 잠시 뒤 다시 해 주세요');return}
   if(o.op==='sharePub'){if(o.unshared)return;if(!o.ok){localStorage.removeItem('chd-share-sig');toast(o.error||'공유하지 못했어요');return}if(o.shared)toast(o.shared+'에게 공유했어요. 상대는 앱의 기록 공유에서 "공유받은 기록 연결"을 누르면 돼요');try{if(TAB==='me')renderMe()}catch(e){}return}
+  if(o.op==='wait'){const rid=String(o.rid||'');if(rid)delete UPQ[rid];const b=$('#btnDrive');if(b&&(!rid||rid===curRid())){b.disabled=false;b.classList.remove('busy');b.style.removeProperty('--p');driveLbl('와이파이 기다리는 중')}
+    if(DP.on&&DP.op==='save')dpEnd(true,'와이파이에 연결되면 올려요');else if(Date.now()-(window.__wifiT||0)>4000)toast((o.name?o.name+' · ':'')+'와이파이에 연결되면 올려요');window.__wifiT=Date.now();return}
   if(o.op==='trash'){toast(o.ok?'드라이브 폴더를 휴지통으로 옮겼어요 (30일 안에 되살릴 수 있어요)':'드라이브 폴더를 지우지 못했어요');return}
   const rid=o.rid!=null?String(o.rid):'',mine=!rid||rid===curRid();
   const q=rid?UPQ[rid]:null;
@@ -3298,7 +3302,7 @@ function renderMe(){
   const rpg=el('div','set-g');rpg.append(el('div','set-h','내 기록'),reportBox());
   v.append(hero,yr,rpg,
     group('글쓰기 설정',[row('내 블로그',getBlogs().length?getBlogs().map(x=>x.name).join(', '):'하나만 써요',()=>blogSheet()),row('체험단 플랫폼',dots,()=>platformSheet()),row('프롬프트',getSettings().promptTpl?'내 문구':'기본 문구',()=>promptSheet()),row('자주 가는 조합',gsN.length?gsN.slice(0,2).map(g=>g.name||groupName(g.with)).join(', ')+(gsN.length>2?' 외 '+(gsN.length-2):''):'저장해 두기',()=>profileSheet()),row('알림','다녀온 뒤 '+st.remindH+'시간 · 마감 '+(st.dueOff?'끔':'3일·1일 전'),()=>remindSheet()),row('마감 색','빨강 '+ddLab(dueRed())+' · 노랑 '+ddLab(dueYel()),()=>dueColorSheet())]),
-    canDrive()?group('저장·공유',[row('구글 드라이브',dOn?'연결됨':'연결 안 됨',()=>driveSheet(),{cls:dOn?'on':''}),dOn?row('전체 동기화','바뀐 것·빠진 사진 맞추기',()=>syncAll()):null,dOn&&freeOk()?row('저장 공간 정리','드라이브에 저장된 사진 비우기',()=>storageSheet()):null,shareOk()?row('기록 공유',shareState(),()=>shareSheet()):null,dOn?row('백업·복원',lastBackup()?new Date(lastBackup()).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 백업':'백업 전',()=>backupSheet()):null]):'',
+    canDrive()?group('저장·공유',[row('구글 드라이브',dOn?'연결됨':'연결 안 됨',()=>driveSheet(),{cls:dOn?'on':''}),dOn?row('전체 동기화','바뀐 것·빠진 사진 맞추기',()=>syncAll()):null,dOn&&wifiSetOk()?row('와이파이에서만 올리기',getSettings().wifiOnly?'켬':'끔',()=>wifiSheet(),{cls:getSettings().wifiOnly?'on':''}):null,dOn&&freeOk()?row('저장 공간 정리','드라이브에 저장된 사진 비우기',()=>storageSheet()):null,shareOk()?row('기록 공유',shareState(),()=>shareSheet()):null,dOn?row('백업·복원',lastBackup()?new Date(lastBackup()).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 백업':'백업 전',()=>backupSheet()):null]):'',
     group('정보',[row('사용법','',()=>document.body.classList.add('sheet')),row('의견 보내기','',()=>feedback()),row('디스코드 커뮤니티','사용법·문의',()=>openCommunity()),IS_APP?row('앱 평가하기','',()=>rateApp()):null,row('개인정보처리방침','',()=>privacySheet()),ver?row('버전',ver,null,{noChev:true,cls:'static'}):null]),
     group('',[row('모든 데이터 지우기','',()=>deleteAllSheet(),{cls:'danger'})])
   );
@@ -3382,6 +3386,14 @@ function dueColorSheet(){openAct(b=>{
   draw();
   const ok=el('button','e-btn primary','확인');ok.type='button';ok.style.marginTop='22px';ok.onclick=()=>{closeAct();renderView()};b.append(ok);
 })}
+/* 와이파이에서만 올리기 (앱 0.9.26~) */
+const wifiSetOk=()=>{try{return IS_APP&&!!ChdNative.setWifiOnly&&verGte(ChdNative.version&&ChdNative.version(),'0.9.26')}catch(e){return false}};
+function wifiPush(){try{if(wifiSetOk())ChdNative.setWifiOnly(!!getSettings().wifiOnly)}catch(e){}}
+function wifiSheet(){openAct(b=>{
+  const hs=hInfo('와이파이에서만 올리기','켜면 데이터(LTE·5G)로 연결돼 있을 땐 저장을 미뤘다가, 와이파이에 연결되면 이어서 올려요. 앱이 꺼져 있으면 와이파이에 연결될 때 알림이 와요.');
+  hs[0].append(toggleSw(!!getSettings().wifiOnly,on=>{setSettings({wifiOnly:on});wifiPush();if(!on){UP_RESUME_T=0;setTimeout(resumeUploads,300)}try{renderMe()}catch(e){}toast(on?'와이파이에서만 올려요':'데이터로도 바로 올려요')},'와이파이에서만 올리기'));
+  b.append(...hs);
+})}
 function driveSheet(){openAct(b=>{
   const on=driveLinked();
   if(on)b.append(...hInfo('구글 드라이브',(getBlogs().length?'후기씨앗 / 블로그 / 년 월 / 일 가게이름':'후기씨앗 / 년 월 / 일 가게이름')+' 폴더에 기록 글·사진·가이드가 저장돼요'));else b.append(el('h3','','구글 드라이브'),el('div','e-tip','연결하면 가게별 폴더에 기록 글과 사진을 저장할 수 있어요'));
@@ -3423,7 +3435,7 @@ function syncWidget(){
       list:all.filter(x=>x.kind==='post'||x.kind==='write').sort(sd).slice(0,4).map(x=>({id:String(x.rec.id),name:x.name,kind:x.kind,dd:x.due?dday(x.due).replace('마감 ',''):'',hot:!!(x.due&&ddayNum(x.due)<=dueRed())}))};
     /* 0.9.24 위젯: 날짜 원본을 넘기면 위젯이 그릴 때마다 오늘 기준으로 계산한다 (앱을 안 열어도 D-day가 줄어든다) */
     let grow=null;try{const g=growNow();grow={mo:g.mo,st:g.st,n:g.n,N:BLOOM_N,png:flowerPng(g.mo,g.st)}}catch(e){}
-    const raw={v:1,plans:ps.map(p=>({id:String(p.id),name:p.place.name,when:p.when?new Date(p.when).getTime():0,noTime:!!p.noTime,due:p.due||'',pf:p.platform||'',c:p.platform?pColor(p.platform):acc,prod:!!(p.place&&p.place.product)})),
+    const raw={v:1,due:{r:dueRed(),y:dueYel()},plans:ps.map(p=>({id:String(p.id),name:p.place.name,when:p.when?new Date(p.when).getTime():0,noTime:!!p.noTime,due:p.due||'',pf:p.platform||'',c:p.platform?pColor(p.platform):acc,prod:!!(p.place&&p.place.product)})),
       recs:getRecords().filter(r=>!String(r.id).startsWith('_')&&!r.posted).map(r=>({id:String(r.id),name:r.name,kind:(r.sent||r.done)?'post':'write',due:r.due||'',pf:r.platform||'',vd:r.visitDate||'',up:r.updated||0,prod:!!(r.place&&r.place.product)})),grow};
     const wom=Math.ceil((t0.getDate()+new Date(t0.getFullYear(),t0.getMonth(),1).getDay())/7);
     ChdNative.syncWidget(JSON.stringify({next:nx?{id:String(nx.id),name:nx.place.name,label:planLabel(nx)}:null,fixed:fx,tbd:tb,days,acc,plans:ps.length,drafts,today,week,wom,todo,raw}));
@@ -3431,7 +3443,7 @@ function syncWidget(){
 }
 /* 위젯·알림에서 들어온 동작 */
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncWidget();pullWebInbox();setTimeout(resumeUploads,1500);setTimeout(syncDue,2000)}});
-setTimeout(pullWebInbox,2500);setTimeout(resumeUploads,6000);
+setTimeout(pullWebInbox,2500);setTimeout(wifiPush,1000);setTimeout(resumeUploads,6000);
 window.chdAction=a=>{
   a=String(a||'');const k=a.split(':')[0],id=a.slice(k.length+1);
   if(k==='memo'){const p=id&&getPlans().find(x=>String(x.id)===id);if(p)voiceMemo(p.place);else quickVoice()}

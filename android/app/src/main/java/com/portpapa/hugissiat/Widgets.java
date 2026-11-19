@@ -224,6 +224,7 @@ public final class Widgets {
     /* ---------- ① 오늘 ---------- */
     static RemoteViews today(Context c) {
         JSONObject raw = data(c).optJSONObject("raw");
+        dueCfg(raw);
         if (raw != null) { try { return todayRaw(c, raw); } catch (Exception e) {} }
         return todayOld(c);
     }
@@ -282,6 +283,7 @@ public final class Widgets {
     /* ---------- ② 할 일 ---------- */
     static RemoteViews todo(Context c) {
         JSONObject raw = data(c).optJSONObject("raw");
+        dueCfg(raw);
         if (raw != null) { try { return todoRaw(c, raw); } catch (Exception e) {} }
         return todoOld(c);
     }
@@ -431,7 +433,14 @@ public final class Widgets {
         return vd + "기록 완성 · 블로그에 올리면 끝";
     }
     static String act(It t) { return (t.rec ? "rec:" : "plan:") + t.id; }
-    static int lv(int n) { return n <= 1 ? 2 : n <= 3 ? 1 : 0; }
+    /* 마감 색 기준 (앱 설정 "마감 색"): 빨강 D-RD, 노랑 D-YD부터. 기본 1·3 */
+    static int RD = 1, YD = 3;
+    static void dueCfg(JSONObject raw) {
+        JSONObject d = raw == null ? null : raw.optJSONObject("due");
+        if (d == null) { RD = 1; YD = 3; return; }
+        RD = Math.max(0, Math.min(7, d.optInt("r", 1))); YD = Math.max(RD, Math.min(14, d.optInt("y", 3)));
+    }
+    static int lv(int n) { return n <= RD ? 2 : n <= YD ? 1 : 0; }
 
     static Bitmap flower(JSONObject raw) {
         try { JSONObject g = raw.optJSONObject("grow"); if (g == null) return null; String b = g.optString("png"); if (b.isEmpty()) return null; byte[] x = Base64.decode(b, Base64.DEFAULT); return BitmapFactory.decodeByteArray(x, 0, x.length); }
@@ -487,7 +496,7 @@ public final class Widgets {
             textV(cv, big, fit(big, f.name, W - x - (more > 0 ? 130 : 8)), x, 98);
             if (more > 0) chip(cv, c, "외 " + more + "곳", W - 118, 98, 26, 0xFF9C5A70, 0xFFF6E2E9);
             String sub = isDue ? (f.pf.isEmpty() ? "" : f.pf + " · ") + subOf(f) : f.pf + (f.n() != 999 ? (f.pf.isEmpty() ? "" : " · ") + ddTxt(f.n()) : "");
-            if (!sub.isEmpty()) { Paint s = pt(c, false, 31, isDue || f.n() <= 1 ? RED : f.n() <= 3 ? WARN : SUB); textV(cv, s, fit(s, sub, W - 8), 4, 156); }
+            if (!sub.isEmpty()) { Paint s = pt(c, false, 31, isDue || f.n() <= RD ? RED : f.n() <= YD ? WARN : SUB); textV(cv, s, fit(s, sub, W - 8), 4, 156); }
         } else {
             textV(cv, pt(c, true, 46, 0xFF1F1F1F), "오늘은 일정이 없어요", 4, 98);
         }
@@ -505,7 +514,7 @@ public final class Widgets {
         // 맨 위: 3일 안 마감이 있으면 그 일(경고), 없으면 방문일이 가장 이른 일. 아래 줄은 홈 목록 순서
         It top = null, urg = null, early = null;
         for (It t : l) { if (urg == null || t.n() < urg.n()) urg = t; if (early == null || t.vk < early.vk) early = t; }
-        top = urg != null && urg.n() <= 3 ? urg : early;
+        top = urg != null && urg.n() <= YD ? urg : early;
         l = new ArrayList<>(l); if (top != null) l.remove(top); l.add(0, top == null ? null : top); if (top == null) l.clear();
         v.setImageViewBitmap(R.id.w_img, todoTopImg(c, raw, l, top));
         v.setOnClickPendingIntent(R.id.w_img, top == null ? open(c, "tab:home", 41) : open(c, act(top), 41));
@@ -540,7 +549,7 @@ public final class Widgets {
             textV(cv, pt(c, true, 36, SUB), "할 일이 없어요", 30, (y0 + y1) / 2);
         } else {
             int n = top.n();
-            String lab = n == 999 ? "다음 할 일" : n < 0 ? "마감 지남 · 지금 바로" : n == 0 ? "비상 · 오늘 마감" : n == 1 ? "비상 · 내일 마감" : n <= 3 ? "곧 마감 · D-" + n : "다음 할 일 · D-" + n;
+            String lab = n == 999 ? "다음 할 일" : n < 0 ? "마감 지남 · 지금 바로" : n == 0 ? "비상 · 오늘 마감" : n == 1 && n <= RD ? "비상 · 내일 마감" : n <= RD ? "비상 · D-" + n : n <= YD ? "곧 마감 · D-" + n : "다음 할 일 · D-" + n;
             textV(cv, pt(c, true, 24, level == 2 ? RED : level == 1 ? WARN : SUB), lab, 30, y0 + 26);
             Paint nm = pt(c, true, 38, 0xFF1F1F1F); textV(cv, nm, fit(nm, top.name, W - 60), 30, y0 + 58);
             Paint sb = pt(c, false, 24, SUB); textV(cv, sb, fit(sb, (top.pf.isEmpty() ? "" : top.pf + " · ") + subOf(top), W - 60), 30, y0 + 86);

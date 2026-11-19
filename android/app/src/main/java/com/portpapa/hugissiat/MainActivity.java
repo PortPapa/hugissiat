@@ -73,6 +73,59 @@ import java.util.concurrent.Executors;
  * 네이버 조회·공유 받기·복사·공유·파일 저장만 앱이 맡는다.
  */
 public class MainActivity extends Activity {
+    /** 화면(액티비티)이 살아 있는지: 와이파이 예약 작업이 알림을 띄울지 정할 때 쓴다 */
+    static volatile boolean alive = false;
+    private volatile boolean destroyed = false;
+    private android.net.ConnectivityManager.NetworkCallback netCb = null;
+
+    /** 화면이 닫힌 뒤에도 업로드는 돌 수 있으므로, 웹 화면에 알릴 때는 살아 있는지 먼저 본다 */
+    private void runJs(String js) {
+        if (destroyed) return;
+        runOnUiThread(() -> { if (destroyed || web == null) return; try { web.evaluateJavascript(js, null); } catch (Exception ignored) {} });
+    }
+
+    /* ---------- 와이파이에서만 올리기 ---------- */
+    private boolean wifiOnly() { return appPrefs().getBoolean("wifiOnly", false); }
+    /** 지금 올려도 되는지: 설정이 꺼져 있거나, 데이터 요금이 안 드는 연결(와이파이)이면 true */
+    private boolean netOk() {
+        if (!wifiOnly()) return true;
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            android.net.Network nw = cm.getActiveNetwork(); if (nw == null) return false;
+            android.net.NetworkCapabilities nc = cm.getNetworkCapabilities(nw);
+            return nc != null && (nc.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_METERED) || nc.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_TEMPORARILY_NOT_METERED));
+        } catch (Exception e) { return true; }
+    }
+    private void wifiWaitAdd(String rid) {
+        java.util.Set<String> s = new java.util.HashSet<>(appPrefs().getStringSet("wifiRids", new java.util.HashSet<>()));
+        s.add(rid == null || rid.isEmpty() ? "?" : rid);
+        appPrefs().edit().putStringSet("wifiRids", s).putInt("wifiWait", s.size()).apply();
+        WifiJob.schedule(this);
+    }
+    private void wifiWaitDone(String rid) {
+        java.util.Set<String> s = new java.util.HashSet<>(appPrefs().getStringSet("wifiRids", new java.util.HashSet<>()));
+        if (!s.remove(rid) && !s.remove("?")) return;
+        appPrefs().edit().putStringSet("wifiRids", s).putInt("wifiWait", s.size()).apply();
+        if (s.isEmpty()) WifiJob.cancel(this);
+    }
+    private void wifiWaitClear() { appPrefs().edit().remove("wifiRids").putInt("wifiWait", 0).apply(); WifiJob.cancel(this); }
+    /** 와이파이에 붙으면 웹 화면에 알려서 미뤄 둔 저장을 이어서 하게 한다 */
+    private void watchNet() {
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            netCb = new android.net.ConnectivityManager.NetworkCallback() {
+                private boolean was = false;
+                @Override public void onCapabilitiesChanged(android.net.Network n, android.net.NetworkCapabilities nc) {
+                    boolean un = nc.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_METERED) || nc.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_TEMPORARILY_NOT_METERED);
+                    if (un && !was && wifiOnly() && appPrefs().getInt("wifiWait", 0) > 0) runJs("window.chdNetOk&&window.chdNetOk()");
+                    was = un;
+                }
+                @Override public void onLost(android.net.Network n) { was = false; }
+            };
+            cm.registerDefaultNetworkCallback(netCb);
+        } catch (Exception ignored) { netCb = null; }
+    }
+
     /** 화면은 GitHub Pages에서 불러와서 앱을 다시 안 깔아도 자동 반영된다. 인터넷이 안 되면 앱에 넣어둔 화면으로 연다. */
     private static final String REMOTE = "https://portpapa.github.io/hugissiat/";
     private static final String HOME = "https://appassets.androidplatform.net/assets/index.html";
@@ -162,6 +215,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        alive = true; destroyed = false;
+        watchNet();
         // 앱이 멈추면 원인을 파일로 남겨두고, 다음에 열 때 "오류 보내기"를 물어본다
         final Thread.UncaughtExceptionHandler prev = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler((th, ex) -> {
@@ -433,7 +488,7 @@ public class MainActivity extends Activity {
 
     private void backupEvent(JSONObject o) {
         String js = "window.chdBackup&&window.chdBackup(" + JSONObject.quote(o.toString()) + ")";
-        runOnUiThread(() -> web.evaluateJavascript(js, null));
+        runJs(js);
     }
 
     private void driveBackupRun(String token, JSONObject job) {
@@ -640,7 +695,7 @@ public class MainActivity extends Activity {
     }
     private void pushGuides(String key) {
         String js = "window.chdGuides&&window.chdGuides(" + JSONObject.quote(key) + "," + JSONObject.quote(guidesJson(key)) + ")";
-        runOnUiThread(() -> web.evaluateJavascript(js, null));
+        runJs(js);
     }
     private String displayName(Uri u) {
         try (android.database.Cursor c = getContentResolver().query(u, new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
@@ -835,7 +890,7 @@ public class MainActivity extends Activity {
     private void pushPhotos() {
         pool.execute(() -> {
             String js = "window.chdPhotos&&window.chdPhotos(" + JSONObject.quote(photosJson()) + ")";
-            runOnUiThread(() -> web.evaluateJavascript(js, null));
+            runJs(js);
         });
     }
 
@@ -851,7 +906,7 @@ public class MainActivity extends Activity {
     private void driveCb(boolean ok, JSONObject o) {
         try { o.put("ok", ok); } catch (Exception ignored) {}
         String js = "window.chdDrive&&window.chdDrive(" + JSONObject.quote(o.toString()) + ")";
-        runOnUiThread(() -> web.evaluateJavascript(js, null));
+        runJs(js);
     }
 
     private void driveFail(String msg) {
@@ -901,14 +956,29 @@ public class MainActivity extends Activity {
             if ("trash".equals(op)) { upq.execute(() -> driveTrashRun(token, j)); return; }
             if ("inboxDone".equals(op)) { final String fid = j.optString("id", ""); pool.execute(() -> { try { if (!fid.isEmpty()) driveCall(token, "DELETE", "https://www.googleapis.com/drive/v3/files/" + fid, null, null); } catch (Exception ignored) {} }); return; }
         } catch (Exception ignored) {}
+        String ridW = "", nameW = "";
+        try { JSONObject jw = new JSONObject(job); ridW = jw.optString("rid", jw.optString("key", "")); nameW = jw.optString("name", ""); } catch (Exception ignored) {}
+        if (!netOk()) {
+            wifiWaitAdd(ridW);
+            JSONObject o = new JSONObject();
+            try { o.put("op", "wait"); o.put("rid", ridW); o.put("name", nameW); } catch (Exception ignored) {}
+            driveCb(false, o);
+            return;
+        }
+        wifiWaitDone(ridW);
         upWait.incrementAndGet();
-        upq.execute(() -> { upWait.decrementAndGet(); driveUpload(token, job); });
+        UploadService.start(getApplicationContext(), nameW);
+        upq.execute(() -> {
+            upWait.decrementAndGet();
+            try { driveUpload(token, job); }
+            finally { if (upWait.get() == 0) UploadService.stop(getApplicationContext()); }
+        });
     }
 
     /** 사진 한 장이 드라이브에 올라갔다(또는 이미 있었다): 화면 썸네일에 표시 */
     private void upDone(String rid, String name) {
         String js = "window.chdUpDone&&window.chdUpDone(" + JSONObject.quote(rid) + "," + JSONObject.quote(name) + ")";
-        runOnUiThread(() -> { try { web.evaluateJavascript(js, null); } catch (Exception ignored) {} });
+        runJs(js);
     }
 
     /* ---------- 업로드 알림: 앱을 나가도 진행 상황이 보이게 ---------- */
@@ -1214,7 +1284,7 @@ public class MainActivity extends Activity {
             o.put("op", op); o.put("stage", stage); o.put("i", i); o.put("n", n); o.put("done", done); o.put("total", total);
             if ("save".equals(op)) { o.put("rid", upRid); o.put("name", upName); o.put("queue", upWait.get()); }
             String js = "window.chdProgress&&window.chdProgress(" + JSONObject.quote(o.toString()) + ")";
-            runOnUiThread(() -> web.evaluateJavascript(js, null));
+            runJs(js);
         } catch (Exception ignored) {}
     }
 
@@ -1710,7 +1780,7 @@ public class MainActivity extends Activity {
             o.put("type", type);
             o.put("text", text == null ? "" : text);
             String js = "window.chdVoice&&window.chdVoice(" + JSONObject.quote(o.toString()) + ")";
-            runOnUiThread(() -> web.evaluateJavascript(js, null));
+            runJs(js);
         } catch (Exception ignored) {}
     }
 
@@ -1810,6 +1880,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        destroyed = true; alive = false;
+        try { if (netCb != null) ((android.net.ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE)).unregisterNetworkCallback(netCb); } catch (Exception ignored) {}
         if (sr != null) { try { sr.destroy(); } catch (Exception ignored) {} }
         pool.shutdownNow();
         upq.shutdown();
@@ -1895,7 +1967,7 @@ public class MainActivity extends Activity {
 
     private void callback(String id, JSONObject res) {
         String js = "window.__chdNative(" + JSONObject.quote(id) + "," + JSONObject.quote(res.toString()) + ")";
-        runOnUiThread(() -> web.evaluateJavascript(js, null));
+        runJs(js);
     }
 
     /** 페이지에서 window.ChdNative 로 부르는 함수들 */
@@ -1992,6 +2064,20 @@ public class MainActivity extends Activity {
             if (!trusted || json == null) return;
             getSharedPreferences(Widgets.PREF, 0).edit().putString("data", json).apply();
             Widgets.updateAll(MainActivity.this);
+        }
+
+        /** 와이파이에서만 올리기 켜기·끄기 (0.9.26~) */
+        @JavascriptInterface
+        public void setWifiOnly(boolean on) {
+            if (!trusted) return;
+            appPrefs().edit().putBoolean("wifiOnly", on).apply();
+            if (!on) wifiWaitClear();
+        }
+
+        /** 지금 드라이브에 올려도 되는 연결인지 (0.9.26~) */
+        @JavascriptInterface
+        public boolean netOk() {
+            return MainActivity.this.netOk();
         }
 
         @JavascriptInterface
