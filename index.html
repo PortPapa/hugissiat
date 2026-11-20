@@ -1704,7 +1704,7 @@ function placeMD(){
   return L;
 }
 function yamlQ(s){return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"'}
-function buildMD(){
+function buildMD(pfx){ // pfx: 드라이브에 올릴 때 쓰는 파일 이름 앞부분(없으면 지금 기준)
   const C=CATS[S.cat];const biz=V('biz');
   const plan=PLACE?getPlans().find(p=>String(p.id)===String(PLACE.id)):null;
   const prod=S.cat==='product';const out=['---'];
@@ -1722,7 +1722,7 @@ function buildMD(){
   const rm=rateMD();if(rm.length)out.push('### 평가',...rm,'');
   const qm=PLACE?getQM(PLACE.id):[];
   if(qm.length)out.push(prod?'### 사용 일지':'### 현장 메모',...qm.map(m=>prod&&useDay(m.t)>0?`- ${useDay(m.t)}일차 (${hhmm(m.t)}) ${m.text}`:`- ${hhmm(m.t)} ${m.text}`),'');
-  if(PHOTOS.length)out.push('### 사진',...PHOTOS.map(p=>'- '+fileBase()+' '+p.name+(p.video?' (영상)':'')),'');
+  if(PHOTOS.length){const fb=pfx||fileBase();out.push('### 사진',...PHOTOS.map(p=>'- '+fb+' '+p.name+(p.video?' (영상)':'')),'')}
   const pm=placeMD();
   if(pm.length)out.push(prod?'## 제품 정보':'## 업체 정보',...pm,'');
   if(PLACE&&PLACE.blogs&&PLACE.blogs.length){
@@ -1884,6 +1884,8 @@ const bgUp=()=>{try{return verGte(ChdNative.version&&ChdNative.version(),'0.9.17
 const curRid=()=>PLACE?String(PLACE.id):'';
 /* ---------- 드라이브 동기화: 기록마다 폴더·사진 파일을 기억해 두고, 바뀐 것만 맞춘다 ---------- */
 const hashStr=t=>{let h=5381;for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))|0;return (h>>>0).toString(36)};
+/* 영상 파일인지: 앱(네이티브)과 같은 규칙. 닫힌 기록은 사진 이름만 받아 오므로 이름으로 가린다 */
+const VIDEO_RX=/\.(mp4|mov|3gp|3g2|webm|mkv|m4v|avi)$/i;
 const folderFromUrl=u=>{const m=String(u||'').match(/folders\/([\w-]+)/);return m?m[1]:''};
 /** 어떤 기록이든(열려 있지 않아도) 드라이브에 보낼 작업을 만든다 */
 function jobFor(rid,mirror){
@@ -1891,10 +1893,10 @@ function jobFor(rid,mirror){
   try{
     if(!isCur){let pl=null;try{pl=JSON.parse(localStorage.getItem('chd-place-'+rid)||'null')}catch(e){}if(!pl)return null;
       PLACE=pl;KEY='chd-memo-v2-'+rid;S=load();if(!S)return null;
-      let names=[];try{names=IS_APP&&ChdNative.photoNames?JSON.parse(ChdNative.photoNames(rid)||'[]'):[]}catch(e){}PHOTOS=names.map(n=>({name:n}))}
+      let names=[];try{names=IS_APP&&ChdNative.photoNames?JSON.parse(ChdNative.photoNames(rid)||'[]'):[]}catch(e){}PHOTOS=names.map(n=>({name:n,video:VIDEO_RX.test(n)}))}
     const d0=S.drive||{};let path=drivePath(),prefix=fileBase();const bf=driveBase(),base=bf?bf.id:'';
     if(!V('visitDate')&&d0.path&&d0.prefix&&(d0.base||'')===base){path=d0.path;prefix=d0.prefix} // 날짜가 없으면 처음 저장한 폴더 그대로
-    const md=buildMD(),name=(V('biz')||PLACE.name||'').trim(),gt=guideText(rid);
+    const md=buildMD(prefix),name=(V('biz')||PLACE.name||'').trim(),gt=guideText(rid);
     const sig=hashStr([md.replace(/^사용 기간:.*$/m,''),base+path.join('/'),PHOTOS.map(p=>p.name).join(','),gt].join('|'));
     const job={path:base?path.slice(1):path,show:path,base,mdName:prefix+'.md',md,key:rid,rid,name,prefix,guideKey:rid,guideText:gt,folderId:d0.folder||folderFromUrl(d0.url),files:d0.files||{},mirror:!!mirror,t0:Date.now(),sig};
     if(!base)delete job.base;
@@ -1952,7 +1954,7 @@ window.chdDrive=s=>{
   if(o.op==='sharedOff'){if(!o.ok)toast('끄지 못했어요. 잠시 뒤 다시 해 주세요');return}
   if(o.op==='sharePub'){if(o.unshared)return;if(!o.ok){localStorage.removeItem('chd-share-sig');toast(o.error||'공유하지 못했어요');return}if(o.shared)toast(o.shared+'에게 공유했어요. 상대는 앱의 기록 공유에서 "공유받은 기록 연결"을 누르면 돼요');try{if(TAB==='me')renderMe()}catch(e){}return}
   if(o.op==='wait'){const rid=String(o.rid||'');if(rid)delete UPQ[rid];const b=$('#btnDrive');if(b&&(!rid||rid===curRid())){b.disabled=false;b.classList.remove('busy');b.style.removeProperty('--p');driveLbl('와이파이 기다리는 중')}
-    if(DP.on&&DP.op==='save')dpEnd(true,'와이파이에 연결되면 올려요');else if(Date.now()-(window.__wifiT||0)>4000)toast((o.name?o.name+' · ':'')+'와이파이에 연결되면 올려요');window.__wifiT=Date.now();return}
+    if(DP.on&&DP.op==='save')dpEnd(true,'와이파이에 연결되면 올려요');else if(Date.now()-(window.__wifiT||0)>4000)toast((o.name?o.name+' · ':'')+'와이파이에 연결되면 올려요');window.__wifiT=Date.now();refreshCard(rid);return}
   if(o.op==='trash'){toast(o.ok?'드라이브 폴더를 휴지통으로 옮겼어요 (30일 안에 되살릴 수 있어요)':'드라이브 폴더를 지우지 못했어요');return}
   const rid=o.rid!=null?String(o.rid):'',mine=!rid||rid===curRid();
   const q=rid?UPQ[rid]:null;
@@ -1963,8 +1965,8 @@ window.chdDrive=s=>{
   if(o.ok&&rid){const js=upJobs();if(js[rid]){delete js[rid];setUpJobs(js)}}
   if(o.ok){let job=q&&q.job;if(!job){try{job=JSON.parse((upJobs()[rid]||{}).job||'null')}catch(e){}}
     markDrive(rid,o,job);if(b&&mine)driveLbl('드라이브에 다시 저장');
-    const m=who+'드라이브에 저장했어요'+(o.added?' · 사진 '+o.added+'장':'')+(o.trashed?' · 뺀 사진 '+o.trashed+'장 정리':'')+(o.guideFail?' · 가이드 일부 실패':'');if(card&&!more)dpEnd(true,m);else toast(m);if(TAB==='me')renderMe();try{if(typeof renderView==='function'&&!inFlow())renderView()}catch(e){}return}
-  const em=who+(o.error||'저장하지 못했어요');if(card&&!more)dpEnd(false,em);else toast(em);if(TAB==='me')renderMe();
+    const m=who+'드라이브에 저장했어요'+(o.added?' · 사진 '+o.added+'장':'')+(o.trashed?' · 뺀 사진 '+o.trashed+'장 정리':'')+(o.guideFail?' · 가이드 일부 실패':'');if(card&&!more)dpEnd(true,m);else toast(m);if(TAB==='me')renderMe();try{if(typeof renderView==='function'&&!inFlow())renderView()}catch(e){}refreshCard(rid);return}
+  const em=who+(o.error||'저장하지 못했어요');if(card&&!more)dpEnd(false,em);else toast(em);if(TAB==='me')renderMe();refreshCard(rid);
 };
 /* ---------- 웹(hugissiat.com)에서 추가한 갈 곳 받기 ---------- */
 function verGte(v,w){const a=String(v||'0').split('.').map(Number),b=w.split('.').map(Number);for(let i=0;i<3;i++){if((a[i]||0)>(b[i]||0))return true;if((a[i]||0)<(b[i]||0))return false}return true}
@@ -3632,8 +3634,11 @@ function rateTable(rate){const rows=Object.entries(rate||{}).map(([k,r])=>[k,r,r
     t.append(row)});return t}
 const stripRate=md=>md.replace(/(^|\n)### 평가\n(?:- .*\n?)*\n?/,'$1');
 /* 끝난 기록 카드: 얼마였나 · 드라이브에 올라갔나 · 기록이 제대로 됐나 · 그때 뭐라고 했나를 한 화면에 */
+let CARD_REC='';
+/* 열려 있는 기록 카드가 이 기록이면 다시 그린다 (드라이브 저장이 끝났을 때) */
+function refreshCard(rid){try{if(!rid||CARD_REC!==String(rid)||!document.body.classList.contains('act')||!$('#actBody').classList.contains('rc'))return;const nr=getRecords().find(x=>String(x.id)===String(rid));if(!nr)return;const y=$('#act').scrollTop;placeSheet({rec:nr});$('#act').scrollTop=y}catch(e){}}
 function recCard(b,rec,place,st){
-  st=st||{};const f=st.f||{},id=String(rec.id),d0=st.drive||{},saved=!!d0.at;
+  st=st||{};const f=st.f||{},id=String(rec.id),d0=st.drive||{},saved=!!d0.at,busy=!!UPQ[id];CARD_REC=id;
   b.classList.add('rc');
   let J=null;try{J=jobFor(id,true)}catch(e){}
   const synced=!!(J&&J.synced),up=PHOTOS.filter(p=>(st.upPh||[]).includes(p.name)).length,qm=getQM(id);
@@ -3646,7 +3651,8 @@ function recCard(b,rec,place,st){
   const sg=el('div','rc-st');const S3=(cls,t,sub,fn)=>{const x=el('button',cls);x.type='button';const h=el('b');h.append(el('i','',cls==='ok'?'✓':cls==='wait'?'!':''),t);x.append(h,el('span','',sub));if(fn)x.onclick=fn;else x.disabled=true;sg.append(x)};
   S3('ok','기록',['사진 '+PHOTOS.length,qm.length?'메모 '+qm.length:''].filter(Boolean).join(' · '),null);
   if(canDrive()){const dd=saved?new Date(d0.at):null,dl=dd?(dd.getMonth()+1)+'/'+dd.getDate():'';
-    if(!saved)S3('wait','드라이브','아직 저장 전이에요',()=>{closeAct();openRecord(rec,true);setTimeout(saveDrive,380)});
+    if(busy)S3('','드라이브','저장하는 중이에요',null);
+    else if(!saved)S3('wait','드라이브','아직 저장 전이에요',()=>{closeAct();openRecord(rec,true);setTimeout(saveDrive,380)});
     else if(!synced)S3('wait','드라이브','바뀐 내용 있어요',()=>{closeAct();openRecord(rec,true);setTimeout(saveDrive,380)});
     else S3('ok','드라이브',dl+' 저장'+(PHOTOS.length?' · '+up+'/'+PHOTOS.length:''),null)}
   {const pd=rec.posted&&st.postedAt?new Date(st.postedAt):null;S3(rec.posted?'ok':'','블로그',rec.posted?(pd?(pd.getMonth()+1)+'/'+pd.getDate()+' 발행':'발행함'):'아직이에요',()=>postSheet(rec))}
@@ -3655,6 +3661,7 @@ function recCard(b,rec,place,st){
   const mn=el('div','rc-main');
   if(!canDrive()){const s1=el('button','e-btn primary','보내기');s1.type='button';s1.onclick=()=>{closeAct();openRecord(rec,true);setTimeout(()=>sendAll(),380)};
     const s2=el('button','e-btn','복사하기');s2.type='button';s2.onclick=()=>{closeAct();openRecord(rec,true);setTimeout(()=>$('#btnCopy').click(),380)};mn.append(s1,s2);b.append(mn)}
+  else if(busy){const dv=el('button','e-btn drive primary');dv.type='button';dv.disabled=true;dv.append(svgIcon(),el('span','lbl','드라이브에 저장하는 중…'));mn.append(dv);b.append(mn)}
   else if(saved&&synced){const pb=el('button','e-btn primary');pb.type='button';pb.textContent='프롬프트 복사';pb.onclick=()=>copyPrompt(id);mn.append(pb);
     if(d0.url){const op=el('button','e-btn rc-open');op.type='button';op.append(svgIcon(),'드라이브 폴더');op.onclick=()=>{location.href=d0.url};mn.append(op)}
     b.append(mn,el('div','e-tip rc-pt','“'+writerPrompt(id)+'”'))}
