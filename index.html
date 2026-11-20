@@ -683,11 +683,11 @@ button.acc{margin-bottom:0;overflow:visible}
 .e-skw .e-skall::after{inset:0 -6px -8px -14px}
 
 /* ---------- 홈 맨 위: 가장 급한 일 + 단계별 숫자 ---------- */
-.td-top{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:20px;padding:16px;box-shadow:var(--sh);margin:6px 0 10px}
+.td-top{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:20px;padding:16px;box-shadow:var(--sh);margin:0 0 10px}
 .td-top .tx{flex:1;min-width:0}.td-top small{display:block;font-size:12px;font-weight:700;color:var(--sub);margin-bottom:2px}.td-top b{display:block;font-size:18px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.td-top .s{font-size:13px;color:var(--sub)}
 .td-top.bad{background:var(--red-soft)}.td-top.bad small{color:var(--red)}.td-top.warn{background:var(--warn-soft)}.td-top.warn small{color:var(--warn)}
 .td-top .td-go{padding:11px 16px;font-size:14px}.td-top.bad .td-go.acc{background:var(--red);border-color:var(--red);color:#fff}
-.td-steps{display:flex;align-items:center;gap:5px;margin:0 0 8px}.td-steps i{color:#c9c2b3;font-style:normal;font-size:13px;flex:none}
+.td-steps{display:flex;align-items:center;gap:5px;margin:6px 0 10px}.td-steps i{color:#c9c2b3;font-style:normal;font-size:13px;flex:none}
 .td-steps button{flex:1;min-width:0;border:1.5px solid transparent;border-radius:16px;background:var(--card);box-shadow:var(--sh);padding:8px 2px 7px;font:inherit;color:var(--ink);display:flex;flex-direction:column;align-items:center;transition:transform .12s ease}
 .td-steps button:active{transform:scale(.96)}.td-steps button b{font-size:20px;line-height:1.2;font-variant-numeric:tabular-nums}.td-steps button span{font-size:12px;color:var(--sub);white-space:nowrap}
 .td-steps button.bad b{color:var(--red)}.td-steps button.warn b{color:var(--warn)}.td-steps button:disabled{opacity:.45;box-shadow:none}.td-steps button.on{border-color:var(--acc);background:var(--acc-soft)}
@@ -3146,18 +3146,18 @@ function renderTodo(){
   if(!getRecords().length&&!getPlans().length){const h=el('div','hello');h.innerHTML=sproutSvg(1);h.append(el('b','','첫 씨앗을 심어볼까요?'),el('div','','네이버 지도에서 가게를 공유하거나\n링크로 캠페인을 추가해 주세요'));h.lastChild.style.whiteSpace='pre-line';{const go=el('button','e-btn primary hello-go','캠페인 추가');go.type='button';go.onclick=()=>addFromLink();h.append(go)}v.append(h);return}
   const sortDue=(a,b)=>ddayNum(a.due)-ddayNum(b.due)||String(a.when||'').localeCompare(String(b.when||''));
   const act=all.filter(x=>x.kind!=='end'),hp=all.some(x=>x.place&&x.place.product);
-  /* 맨 위: 가장 급한 일 하나. 마감 하루 전부터는 비상(빨강), 2~3일 전은 주의(노랑) */
-  let topX=null;
+  /* 가장 급한 일 하나: 빨강(비상) 기준에 들어온 일이 있을 때만, 단계 숫자 아래에 보인다 */
+  let topX=null,topC=null;
   {const withDue=act.filter(x=>x.due).sort(sortDue);
-    const top=(withDue[0]&&ddayNum(withDue[0].due)<=dueYel())?withDue[0]:act.slice().sort(sortVisit)[0];
-    if(top){topX=top;const n=top.due?ddayNum(top.due):99,lv=top.due?dueLv(n):'';
-      const more=withDue.filter(x=>x!==top&&ddayNum(x.due)<=(lv==='bad'?dueRed():dueYel())).length;
-      const lab=!top.due?'다음 할 일':n<0?'마감 지남 · 지금 바로':n===0?'비상 · 오늘 마감':n===1&&lv==='bad'?'비상 · 내일 마감':lv==='bad'?'비상 · '+dday(top.due):lv==='warn'?'곧 마감 · '+dday(top.due):'다음 할 일 · '+dday(top.due);
-      const r=todoRow(top,true),c=el('div','td-top '+lv),tx=el('div','tx');
+    const top=(withDue[0]&&ddayNum(withDue[0].due)<=dueRed())?withDue[0]:null;
+    if(top){topX=top;const n=ddayNum(top.due);
+      const more=withDue.filter(x=>x!==top&&ddayNum(x.due)<=dueRed()).length;
+      const lab=n<0?'마감 지남 · 지금 바로':n===0?'비상 · 오늘 마감':n===1?'비상 · 내일 마감':'비상 · '+dday(top.due);
+      const r=todoRow(top,true),c=el('div','td-top bad'),tx=el('div','tx');
       const nm=el('b','',top.name);const sub=r.querySelector('.sub');
-      tx.append(el('small','',lab+(lv&&more?' · 외 '+more+'건':'')),nm);if(sub){sub.className='s';tx.append(sub)}
+      tx.append(el('small','',lab+(more?' · 외 '+more+'건':'')),nm);if(sub){sub.className='s';tx.append(sub)}
       c.append(tx);const go=r.querySelector('.td-go');if(go){go.classList.add('acc');c.append(go)}
-      c.onclick=r.onclick;v.append(c)}}
+      c.onclick=r.onclick;topC=c}}
   /* 단계별 숫자: 누르면 그 단계만 보고, 다시 누르면 전부 */
   {const steps=[['date',hp?'날짜·배송':'날짜 정하기'],['visit',hp?'방문·받기':'방문하기'],['write','기록 쓰기'],['post','블로그 올리기']];
     if(TODO_F&&!act.some(x=>x.kind===TODO_F))TODO_F='';
@@ -3168,6 +3168,7 @@ function renderTodo(){
       b.onclick=()=>{TODO_F=TODO_F===k?'':k;renderTodo()};
       if(i)bar.append(el('i','','›'));bar.append(b)});
     if(act.length)v.append(bar)}
+  if(topC)v.append(topC);
   const sec=(t,kind)=>{if(TODO_F&&TODO_F!==kind)return;const xs=all.filter(x=>x.kind===kind&&x!==topX).sort(sortVisit);if(!xs.length)return;v.append(el('div','sub-h',t+' '+xs.length));xs.forEach(x=>v.append(todoRow(x)))};
   sec('블로그 올리기','post');sec('기록 쓰기','write');sec(hp?'방문하기 · 받기':'방문하기','visit');sec(hp?'날짜 정하기 · 배송 대기':'날짜 정하기','date');
   if(TODO_F){const a=el('button','td-all','전체 보기');a.type='button';a.onclick=()=>{TODO_F='';renderTodo()};v.append(a)}
